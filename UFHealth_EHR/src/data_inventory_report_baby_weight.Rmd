@@ -1,0 +1,129 @@
+---
+title: "data_check"
+author: "Xinsong Du"
+date: "4/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8,
+                      echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+The document is used to check the consistancy of Mom-Baby EHR data in Dropbox and in RedCap.
+
+```{r load libraries, echo=FALSE}
+library(keyringr)
+library(tidyverse)
+library(redcapAPI)
+library(REDCapR)
+library(broom)
+library(dplyr)
+library(readxl)
+library(knitr)
+library(svMisc)
+source("commons.R")
+```
+
+## list of forms in redcap data
+```{r redcap data info, echo=FALSE}
+# keyringr: Avoiding plain text passwords
+uri <- "https://redcap.ctsi.ufl.edu/redcap/api/"
+
+# load token for Windows user:
+# credential_label <- "UFHealth_mom_baby" # Modify this to the label in your own computer
+# credential_path <- paste(Sys.getenv("USERPROFILE"), '\\DPAPI\\passwords\\', Sys.info()["nodename"], '\\', credential_label, '.txt', sep="")
+# redcap_token<-decrypt_dpapi_pw(credential_path)
+
+# load token for Mac user
+credential_label <- "UFHealth_mom_baby" # Modify this to the label in your own computer
+redcap_token<-decrypt_kc_pw(credential_label)
+
+# Create connections
+rcon <- redcapConnection(url=uri, token=redcap_token)
+
+# list of instruments
+exportInstruments(rcon)
+```
+
+## list of fields in redcap data
+```{r list redcap field names}
+# export field names
+exportFieldNames(rcon)
+```
+
+```{r load redcap data}
+desired_fields <- c("part_id", "baby_race", "baby_ethnicity", "baby_dob", "baby_birth_wt_gr", 
+                    "delivery_mode", "baby_admit_date", "baby_admit_source", "baby_gest_age", 
+                    "baby_nicu_los", "baby_gender", "mom_id2", "mom_prenat_med_rx", "mom_prenat_med_rx_link",
+                    "days2_prenat_med_rx_link", "mom_med_rx_date_link")
+data_redcap_org <- redcap_read(
+  batch_size=150L,
+  redcap_uri = uri, 
+  token      = redcap_token,
+  fields     = desired_fields
+  )$data
+
+# remove rows whose ids are mom ids
+data_redcap <- dplyr::filter(data_redcap_org, grepl("Baby",part_id))
+```
+
+```{r check baby weight}
+# redcap id name
+redcap_id_name <- quote("part_id")
+# redcap field name
+redcap_col_name <- quote("baby_birth_wt_gr")
+# dropbox id name
+dropbox_id_name <- quote("Baby-Id")
+# dropbox file name
+dropbox_file_location <- quote("../data/Baby.xlsx")
+# dropbox sheet name
+dropbox_sheet_name <- quote("Baby")
+# dropbox column name
+dropbox_col_name <- quote("Birth Weight (grams)")
+
+# sort redcap data by baby ids
+data_redcap <- arrange(data_redcap, get(redcap_id_name))
+
+# load data from dropbox
+data_dropbox <- read_excel(eval(dropbox_file_location), sheet=eval(dropbox_sheet_name))
+
+# sort dropbox data by baby ids
+data_dropbox <- arrange(data_dropbox, get(dropbox_id_name))
+```
+
+## check baby weight
+| Item                          | Value                                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| dropbox_file_location          | `r dropbox_file_location`                                                                                    |
+| dropbox_sheet_name             | `r dropbox_sheet_name`                                                                                        |
+| redcap_field_name              | `r redcap_col_name`                                                                                           |
+| dropbox_col_name               | `r dropbox_col_name`                                                                                          |
+| redcap_col_name                | `r redcap_col_name`                                                                                           |
+| number_of_id_in_dropbox        | `r nrow(data_dropbox)`                                                                                        |
+| number_of_id_in_redcap         | `r nrow(data_redcap)`                                                                                         |
+| number_of_unique_id_dropbox    | `r nrow(unique(select(data_dropbox, eval(dropbox_id_name))))`                                                 |
+| number_of_unique_id_redcap     | `r nrow(unique(select(data_redcap, eval(redcap_id_name))))`                                                   |
+| number_of_unique_value_dropbox | `r nrow(unique(select(data_dropbox, eval(dropbox_col_name))))`                                                |
+| number_of_unique_value_redcap  | `r nrow(unique(select(data_redcap, eval(redcap_col_name))))`                                                  |
+| var_type_dropbox               | `r typeof(select(data_dropbox, eval(dropbox_col_name))[,,1][1])`                                              |
+| var_type_redcap                | `r typeof(select(data_redcap, eval(redcap_col_name))[,,1][1])`                                                |
+| redcap_data_correct            | `r check_data(data_dropbox, data_redcap, dropbox_id_name, redcap_id_name, dropbox_col_name, redcap_col_name)` |
+| difference_description         | NA                                                                                                            |
+
+## Questions:
+
+
+## Including Plots (Example)
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
