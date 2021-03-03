@@ -28,15 +28,17 @@ $ git clone https://github.com/ctsit/redi.git redi
 $ cd redi
 $ make && make install
 
-[ctrl-p] # exit container
+[ctrl-d] # exit container
 
 ```
 
-### 6) Commit, tag and save to Dockerhub
+### 5) Commit, tag and save to Dockerhub
 ```
-docker container ls
-docker commit [CONTAINER ID] dominicklemas/bioconductor_asciinema
-docker tag [IMAGE ID] dominicklemas/bioconductor_asciinema:02_2020
+docker ps -a
+docker commit [CONTAINER ID] dominicklemas/redi
+docker tag [IMAGE ID] dominicklemas/redi:03_2021
 docker login
-docker push dominicklemas/bioconductor_asciinema:02_2020
+docker push dominicklemas/redi:03_2021
 ```
+
+### 6) need to create a dockerfile
