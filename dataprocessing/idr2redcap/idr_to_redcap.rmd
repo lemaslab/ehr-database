@@ -1,0 +1,166 @@
+---
+title: "IDR-to-Redcap: ehr data processing"
+author: "Dominick J. Lemas"
+date: "08/13/2021"
+output: html_document
+
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+
+# Author:            Dominick J. Lemas 
+# Start Date:        August 13, 2021 
+# Last Modified:      
+# IRB:               UFHealth  
+#                    
+#
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073 
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+#  (1) Descriptive statistics on IDR data. 
+#  (2) Process IDR data. 
+#  (3) Outputs for downstream import-ready files for RedCap. 
+
+
+```
+
+#### __Data Processing Summary__
+![](dataprocessing_workflow.png)
+The data processing workflow . . . 
+the fisrt step is X and second setep is y and the final step is Z. 
+
+```{r, include=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                Libraries                     *************** #
+# **************************************************************************** #
+
+library(xml2)
+library(XML) 
+library(plyr)
+library(tidyverse)
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# EXTRACT DATA FROM XML
+
+# import data
+
+x <- read_xml("1835_2.xml")
+
+# DESCRIPTIVE FUNCTIONS
+# xml_name(x)
+# xml_children(x)
+# xml_text(x)
+
+# create empty tibble() for data
+feed_status <- tibble(
+  note_id= character(),
+  annotation_id = character(),
+  class = character(),
+  identifier = character(),
+  annotator = character(),
+  date = character(),
+  offset = numeric(),
+  length = numeric(),
+  text = character()
+)
+
+# extract note ID
+passage=xml_find_all(x, "//passage/text") %>% xml_text(trim=TRUE) %>% as_tibble()
+note_id_all=last(passage$value)
+
+# extract annotations
+annotate=xml_find_all(x, "//annotation")
+
+
+# DESCRIPTIVE FUNCTIONS
+# xml_path(annotate)
+# xml_children(annotate)
+# xml_structure(annotate)
+
+# extract annotations
+index=length(annotate)
+
+# loop through annotations
+for(i in 1:index) {
+
+  # loop through each annotation`
+  annotate_index=annotate[[i]]
+  
+  # ID
+  annotate_id=xml_attr(annotate_index, "id")
+  
+  # ANNOTATION
+  annotate_all=xml_find_all(annotate_index, "infon")
+  attr=xml_attr(annotate_all, "key")
+  text=xml_text(annotate_all,trim=TRUE)
+  annotate_merge=as_tibble(cbind(attr,text))
+
+  # LOCATION
+  location_all=as_tibble(unlist(xml_attrs(xml_find_all(annotate_index, "location"))))
+  offset=as.numeric(location_all[1,1])
+  length=as.numeric(location_all[2,1])
+  
+  # TEXT
+  text_all=xml_find_all(annotate_index, "text") %>% xml_text(trim=TRUE)
+
+    # import to tibble
+    feed_status[i,1]=note_id_all
+    feed_status[i,2]=annotate_id
+    feed_status[i,3]=annotate_merge %>% filter(attr=="type") %>% select(text)
+    feed_status[i,4]=annotate_merge %>% filter(attr=="identifier") %>% select(text)
+    feed_status[i,5]=annotate_merge %>% filter(attr=="annotator") %>% select(text)
+    feed_status[i,6]=annotate_merge %>% filter(attr=="updated_at") %>% select(text)
+    feed_status[i,7]=offset 
+    feed_status[i,8]=length
+    feed_status[i,9]=text_all
+   
+  }
+
+# modify for BRAT format
+
+feed_status=feed_status %>% mutate( start=offset, 
+                                    end=offset+length) %>%
+                            mutate(unique_id=case_when(class == "FEED_STATUS" ~ "T1",
+                                    class == "FEED_CLASS" ~ "T2"))
+                                                       
+                                                       
+                                                       
+                                
+
+```
+
+```{r, include=FALSE, echo=FALSE}
+
+# OUTPUT AS BRAT FORMAT
+# https://brat.nlplab.org/standoff.html
+
+# Example
+# T1	Organization 0 4	Sony
+# T2	MERGE-ORG 14 27	joint venture
+
+# DESIRED OUTPUT
+# T1	MESH:D0019 21 4	latching baby to both breasts
+# T2	MESH:D0019 14 27	joint venture
+
+
+brat=feed_status %>%
+  select(unique_id, identifier, start, end, text) %>%
+  write_tsv(., path="../data/test.txt", col_names=FALSE)
+
+
+
+```
+
+
