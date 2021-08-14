@@ -58,49 +58,46 @@ library(stringr)
 # **************************************************************************** #
 # ***************                lab_release                                              
 # **************************************************************************** #
-# rows:       16684
-# cols:       10 
-# unique id:  16684
-# repeat:     1
+# rows:       1048575
+# cols:       6 
+# unique id:  2576
+# repeat:     1:n
 # ICD9/10:    NA
+# missing:    c(" ", "9999999")   
 
 # EXTRACT DATA FROM EXCEL
 
 # import variables
 n_max=1000000
-data.file.name="lab.release";data.file.name
+data.file.name="lab_release.csv";data.file.name
 data.dir=paste0("~/ehr-database/data/raw/")
 data_import_directory=paste0(data.dir,data.file.name)
 
 # read data
-baby=read_xlsx(data_import_directory, sheet = "baby", range = NULL, col_names = TRUE,
-          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+labs=read_csv(data_import_directory, col_names = TRUE,
+          col_types=NULL,
+          na = c("NA","9999999",""), trim_ws = TRUE, skip = 0, n_max = Inf,
           guess_max = min(1000, n_max))
 
 # rename
-newdata=rename(baby, part_id = `Baby-Id`, part_dob=DOB, part_race=Race, 
-               part_ethnicity=Ethnicity, baby_birth_wt_gr=`Birth Weight (grams)`, 
-               baby_admit_date=`Admit Date`, baby_admit_source=`Admit Source`,
-               baby_nicu_los=`NICU LOS`,baby_gest_age=Gestational_Age, delivery_mode.tmp=Delivery_Mode)
+newdata=rename(labs, part_id = `Mom-ID`, ehr_lab=`Lab Name`,ehr_lab_result=`Lab Result`, 
+               ehr_lab_unit=`Lab Unit`, ehr_lab_result_no=`Lab Result (#)`,   
+               ehr_lab_date_time.raw=`Inferrred Specimen Datetime`)
 
 # unique ID? Some moms had multiple babies in data set
-length(unique(newdata$part_id)) # 16684
-length(newdata$part_id)         # 16684
-# names(newdata); head(newdata)
+length(unique(newdata$part_id)) # 2576
+length(newdata$part_id)         # 1048575
 
 ## FORMAT FOR REDCAP
 
 data_ready=newdata %>%
-  mutate(redcap_repeat_instrument="participant_demographics",
-         redcap_event_name=paste0(year(baby_admit_date),"_arm_1"),
-         baby_nicu_los=as.numeric(baby_nicu_los)) %>% 
-  mutate(delivery_mode=gsub(" ","_",delivery_mode.tmp)) %>%
-  mutate(delivery_mode=gsub(",","&",delivery_mode)) %>%
-  mutate(mombaby_status.logic=str_detect(part_id, "[Baby]"),
-         mombaby_status=if_else(mombaby_status.logic==T, "baby","mom")) %>%
+  mutate(redcap_repeat_instrument="labs",
+         ehr_lab_date_time=mdy_hm(ehr_lab_date_time.raw),
+         redcap_event_name=paste0(year(ehr_lab_date_time),"_arm_1")) %>%
+  arrange(part_id, ehr_lab_date_time) %>%
   group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
-  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name","mombaby_status",everything()) %>%
-  select(-delivery_mode.tmp, -mombaby_status.logic) 
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
+  select(-ehr_lab_date_time.raw) 
 
 dt5=data_ready
 
@@ -108,7 +105,7 @@ dt5=data_ready
 
 # export variables
 batchSize=10000; # number of rows in single output file
-data.file.name.export=as.character(dt5[2,2])
+data.file.name.export=paste0("mom_",as.character(dt5[2,2]))
 out.dir=paste0("~/ehr-database/data/processed/redcap_ready/")
 data_export_directory=paste0(out.dir,data.file.name.export)
 
