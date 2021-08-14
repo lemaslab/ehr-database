@@ -56,7 +56,7 @@ library(stringr)
 ```{r, warning=FALSE, echo=FALSE}
 
 # **************************************************************************** #
-# ***************                baby_demography                                              
+# ***************                lab_release                                              
 # **************************************************************************** #
 # rows:       16684
 # cols:       10 
@@ -68,7 +68,7 @@ library(stringr)
 
 # import variables
 n_max=1000000
-data.file.name="baby.xlsx";data.file.name
+data.file.name="lab.release";data.file.name
 data.dir=paste0("~/ehr-database/data/raw/")
 data_import_directory=paste0(data.dir,data.file.name)
 
