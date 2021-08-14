@@ -43,122 +43,72 @@ the fisrt step is X and second setep is y and the final step is Z.
 # ***************                Libraries                     *************** #
 # **************************************************************************** #
 
-library(xml2)
-library(XML) 
-library(plyr)
+library(readxl)
+library(tidyr)
+library(dplyr)
 library(tidyverse)
+library(lubridate)
 
 ```
 
 ```{r, warning=FALSE, echo=FALSE}
 
-# EXTRACT DATA FROM XML
+# EXTRACT DATA FROM EXCEL
 
 # import data
+n_max=1000000
+data.file.name="baby.xlsx";data.file.name
 
-x <- read_xml("1835_2.xml")
+# **************************************************************************** #
+# ***************                baby_demography                                              
+# **************************************************************************** #
+# rows:       16684
+# cols:       10 
+# unique id:  16684
+# repeat:     1
+# ICD9/10:    NA
 
-# DESCRIPTIVE FUNCTIONS
-# xml_name(x)
-# xml_children(x)
-# xml_text(x)
+# read data
+baby=read_xlsx(data.file.name, sheet = "baby", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max));baby
 
-# create empty tibble() for data
-feed_status <- tibble(
-  note_id= character(),
-  annotation_id = character(),
-  class = character(),
-  identifier = character(),
-  annotator = character(),
-  date = character(),
-  offset = numeric(),
-  length = numeric(),
-  text = character()
-)
+# rename
+newdata=rename(baby, part_id = `Baby-Id`, baby_dob=DOB, baby_race=Race, 
+               baby_ethnicity=Ethnicity, baby_birth_wt_gr=`Birth Weight (grams)`, 
+               baby_admit_date=`Admit Date`, baby_admit_source=`Admit Source`,
+               baby_nicu_los=`NICU LOS`,baby_gest_age=Gestational_Age, delivery_mode.tmp=Delivery_Mode);newdata
 
-# extract note ID
-passage=xml_find_all(x, "//passage/text") %>% xml_text(trim=TRUE) %>% as_tibble()
-note_id_all=last(passage$value)
+# unique ID? Some moms had multiple babies in data set
+length(unique(newdata$part_id)) # 16684
+length(newdata$part_id)         # 16684
+names(newdata); head(newdata)
 
-# extract annotations
-annotate=xml_find_all(x, "//annotation")
+## FORMAT FOR REDCAP
 
+# need to make instance more dynamic (loop within each year)
+data_ready=newdata %>%
+  mutate(redcap_repeat_instrument="baby_demography", redcap_repeat_instance=1,
+         redcap_event_name=paste0(year(baby_admit_date),"_arm_1")) %>% 
+  mutate(delivery_mode=gsub(" ","_",delivery_mode.tmp)) %>%
+  mutate(delivery_mode=gsub(",","&",delivery_mode)) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
+  select(-delivery_mode.tmp) %>%
+  na.omit(baby_nicu_los)
 
-# DESCRIPTIVE FUNCTIONS
-# xml_path(annotate)
-# xml_children(annotate)
-# xml_structure(annotate)
+## EXPORT FOR REDCAP
 
-# extract annotations
-index=length(annotate)
+dt5=data_ready
 
-# loop through annotations
-for(i in 1:index) {
-
-  # loop through each annotation`
-  annotate_index=annotate[[i]]
-  
-  # ID
-  annotate_id=xml_attr(annotate_index, "id")
-  
-  # ANNOTATION
-  annotate_all=xml_find_all(annotate_index, "infon")
-  attr=xml_attr(annotate_all, "key")
-  text=xml_text(annotate_all,trim=TRUE)
-  annotate_merge=as_tibble(cbind(attr,text))
-
-  # LOCATION
-  location_all=as_tibble(unlist(xml_attrs(xml_find_all(annotate_index, "location"))))
-  offset=as.numeric(location_all[1,1])
-  length=as.numeric(location_all[2,1])
-  
-  # TEXT
-  text_all=xml_find_all(annotate_index, "text") %>% xml_text(trim=TRUE)
-
-    # import to tibble
-    feed_status[i,1]=note_id_all
-    feed_status[i,2]=annotate_id
-    feed_status[i,3]=annotate_merge %>% filter(attr=="type") %>% select(text)
-    feed_status[i,4]=annotate_merge %>% filter(attr=="identifier") %>% select(text)
-    feed_status[i,5]=annotate_merge %>% filter(attr=="annotator") %>% select(text)
-    feed_status[i,6]=annotate_merge %>% filter(attr=="updated_at") %>% select(text)
-    feed_status[i,7]=offset 
-    feed_status[i,8]=length
-    feed_status[i,9]=text_all
-   
-  }
-
-# modify for BRAT format
-
-feed_status=feed_status %>% mutate( start=offset, 
-                                    end=offset+length) %>%
-                            mutate(unique_id=case_when(class == "FEED_STATUS" ~ "T1",
-                                    class == "FEED_CLASS" ~ "T2"))
-                                                       
-                                                       
-                                                       
-                                
-
-```
-
-```{r, include=FALSE, echo=FALSE}
-
-# OUTPUT AS BRAT FORMAT
-# https://brat.nlplab.org/standoff.html
-
-# Example
-# T1	Organization 0 4	Sony
-# T2	MERGE-ORG 14 27	joint venture
-
-# DESIRED OUTPUT
-# T1	MESH:D0019 21 4	latching baby to both breasts
-# T2	MESH:D0019 14 27	joint venture
+batchSize=10000; # number of rows in single output file
+data.file.name.export=as.character(dt5[2,2]);data.file.name.export
 
 
-brat=feed_status %>%
-  select(unique_id, identifier, start, end, text) %>%
-  write_tsv(., path="../data/test.txt", col_names=FALSE)
-
+chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+for (i in 1:length(chunks))
+  { # second loop
+  write.table(chunks[[i]],paste0(data.file.name.export,i,'.csv'),row.names=F, sep=",")
+  } # end second loop        
 
 
 ```
