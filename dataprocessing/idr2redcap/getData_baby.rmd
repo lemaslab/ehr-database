@@ -156,9 +156,10 @@ result=importRecords(
            rcon,
            import_ready,
            overwriteBehavior = c("normal", "overwrite"),
-           returnContent = c("count", "ids", "nothing"),
+           returnContent = c("count", "ids"),
            returnData = FALSE,
-           logfile = "log.txt")
+           logfile = "log.txt",
+           batch.size=1000)
 
 
 ```
