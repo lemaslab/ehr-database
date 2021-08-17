@@ -161,6 +161,17 @@ result=importRecords(
            logfile = "log.txt",
            batch.size=1000)
 
+test=REDCapR::redcap_write(
+  import_ready,
+  batch_size = 100L,
+  interbatch_delay = 0.5,
+  continue_on_error = FALSE,
+  uri,
+  api_token,
+  verbose = TRUE,
+  config_options = NULL
+)
+
 
 ```
 
