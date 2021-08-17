@@ -116,13 +116,49 @@ data_export_directory=paste0(out.dir,data.file.name.export)
 # NA: missing values are coded as "empty" in output
 
 # number of import files
-chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+# chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
 
 # export each "chunk" of redcap-ready data
-for (i in 1:length(chunks))
-  { # second loop
-  write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
-  } # end second loop        
+# for (i in 1:length(chunks))
+#   { # second loop
+#   write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
+#   } # end second loop        
+
+import_ready=as.data.frame(dt5)
+
+
+```
+
+```{r, message=FALSE}
+
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+
+library(keyringr)
+library(tidyverse)
+library(redcapAPI)
+library(REDCapR)
+library(dplyr)
+```
+
+```{r, message=FALSE}
+# Windows
+source("~/ehr-database/code/utils/utils.R")
+api_token=get_API_token("redcap_ehr2")
+
+# API and URL
+uri='https://redcap.ctsi.ufl.edu/redcap/api/'
+rcon <- redcapConnection(url=uri, token=api_token)
+
+# import data
+result=importRecords(
+           rcon,
+           import_ready,
+           overwriteBehavior = c("normal", "overwrite"),
+           returnContent = c("count", "ids", "nothing"),
+           returnData = FALSE,
+           logfile = "log.txt")
 
 
 ```
