@@ -69,7 +69,7 @@ library(stringr)
 # import variables
 n_max=1000000
 data.file.name="baby.xlsx"
-data.dir=paste0("~/ehr-database/data/raw/")
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
 data_import_directory=paste0(data.dir,data.file.name)
 
 # read data
@@ -146,7 +146,7 @@ import_ready=as.data.frame(dt5)
 # import variables
 n_max=1000000
 data.file.name="baby.xlsx"
-data.dir=paste0("~/ehr-database/data/raw/")
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
 data_import_directory=paste0(data.dir,data.file.name)
 
 # read data
@@ -215,7 +215,7 @@ data_export_directory=paste0(out.dir,data.file.name.export)
 # import variables
 n_max=1000000
 data.file.name="baby.xlsx"
-data.dir=paste0("~/ehr-database/data/raw/")
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
 data_import_directory=paste0(data.dir,data.file.name)
 
 # read data
@@ -277,7 +277,7 @@ data_export_directory=paste0(out.dir,data.file.name.export)
 # import variables
 n_max=1000000
 data.file.name="baby.xlsx"
-data.dir=paste0("~/ehr-database/data/raw/")
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
 data_import_directory=paste0(data.dir,data.file.name)
 
 # read data
@@ -341,7 +341,7 @@ data_export_directory=paste0(out.dir,data.file.name.export)
 # import variables
 n_max=1000000
 data.file.name="baby.xlsx"
-data.dir=paste0("~/ehr-database/data/raw/")
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
 data_import_directory=paste0(data.dir,data.file.name)
 
 # read data
@@ -388,7 +388,6 @@ data_export_directory=paste0(out.dir,data.file.name.export)
 
 ```
 
-
 ```{r, warning=FALSE, echo=FALSE}
 
 # **************************************************************************** #
@@ -405,7 +404,7 @@ data_export_directory=paste0(out.dir,data.file.name.export)
 # import variables
 n_max=1000000
 data.file.name="baby.xlsx"
-data.dir=paste0("~/ehr-database/data/raw/")
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
 data_import_directory=paste0(data.dir,data.file.name)
 
 # read data
@@ -476,5 +475,69 @@ data_export_directory=paste0(out.dir,data.file.name.export)
    write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
    } # end second loop      
 
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                baby_antibiotics_rx                                               
+# **************************************************************************** #
+
+# rows: 5156
+# cols: 5
+# unique id: 2717
+# repeat: 25
+# ICD9/10: NA
+
+# import variables
+n_max=1000000
+data.file.name="baby.xlsx"
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
+data_import_directory=paste0(data.dir,data.file.name)
+
+# read data
+abx=read_xlsx(data_import_directory, sheet = "antibiotics_prescription", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+
+# rename
+newdata=rename(abx, 
+               part_id = `Baby-Id`, 
+               abx_medication_order=`Med Order #`, 
+               abx_medication_code=Med_Code, 
+               abx_medication_name.raw=Medication, 
+               abx_medication_date=`Med Order Datetime`)
+
+## FORMAT FOR REDCAP
+
+data_ready=newdata %>%
+  mutate(redcap_repeat_instrument="antibiotics_rx",
+         redcap_event_name=paste0(year(abx_medication_date),"_arm_1")) %>% 
+  mutate(abx_medication_name=gsub(" ","_",abx_medication_name.raw)) %>%
+  mutate(abx_medication_name=gsub(",","&",abx_medication_name)) %>%
+  group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
+  select(-abx_medication_name.raw) 
+
+dt5=data_ready
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=10000; # number of rows in single output file
+data.file.name.export=paste0("baby_",as.character(dt5[2,2]))
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/")
+data_export_directory=paste0(out.dir,data.file.name.export)
+
+
+# number of import files
+ chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop        
 
 ```
