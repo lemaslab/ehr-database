@@ -286,19 +286,19 @@ vaccine=read_xlsx(data_import_directory, sheet = "vaccines", range = NULL, col_n
           guess_max = min(1000, n_max))
 
 # rename
-newdata=rename(vaccine, part_id = `Baby-Id`, baby_vaccine_date=Immune_Date, baby_vaccine_name.raw=Immunization_Name)
+newdata=rename(vaccine, part_id = `Baby-Id`, vaccine_date=Immune_Date, vaccine_name.raw=Immunization_Name)
 
 
 ## FORMAT FOR REDCAP
 
 data_ready=newdata %>%
   mutate(redcap_repeat_instrument="vaccines",
-         redcap_event_name=paste0(year(baby_vaccine_date),"_arm_1")) %>% 
-  mutate(baby_vaccine_name=gsub(" ","_",baby_vaccine_name.raw)) %>%
-  mutate(baby_vaccine_name=gsub(",","&",baby_vaccine_name)) %>%
+         redcap_event_name=paste0(year(vaccine_date),"_arm_1")) %>% 
+  mutate(vaccine_name=gsub(" ","_",vaccine_name.raw)) %>%
+  mutate(vaccine_name=gsub(",","&",vaccine_name)) %>%
   group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
   select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
-  select(-baby_vaccine_name.raw) 
+  select(-vaccine_name.raw) 
 
 dt5=data_ready
 
@@ -307,7 +307,7 @@ dt5=data_ready
 # export variables
 batchSize=10000; # number of rows in single output file
 data.file.name.export=paste0("baby_",as.character(dt5[2,2]))
-out.dir=paste0("~/ehr-database/data/processed/redcap_ready/")
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/vaccines/")
 data_export_directory=paste0(out.dir,data.file.name.export)
 
 
@@ -504,21 +504,21 @@ abx=read_xlsx(data_import_directory, sheet = "antibiotics_prescription", range =
 # rename
 newdata=rename(abx, 
                part_id = `Baby-Id`, 
-               abx_medication_order=`Med Order #`, 
-               abx_medication_code=Med_Code, 
-               abx_medication_name.raw=Medication, 
-               abx_medication_date=`Med Order Datetime`)
+               abx_medication_order_rx=`Med Order #`, 
+               abx_medication_code_rx=Med_Code, 
+               abx_medication_name_rx.raw=Medication, 
+               abx_medication_date_rx=`Med Order Datetime`)
 
 ## FORMAT FOR REDCAP
 
 data_ready=newdata %>%
   mutate(redcap_repeat_instrument="antibiotics_rx",
-         redcap_event_name=paste0(year(abx_medication_date),"_arm_1")) %>% 
-  mutate(abx_medication_name=gsub(" ","_",abx_medication_name.raw)) %>%
-  mutate(abx_medication_name=gsub(",","&",abx_medication_name)) %>%
+         redcap_event_name=paste0(year(abx_medication_date_rx),"_arm_1")) %>% 
+  mutate(abx_medication_name_rx=gsub(" ","_",abx_medication_name_rx.raw)) %>%
+  mutate(abx_medication_name_rx=gsub(",","&",abx_medication_name_rx)) %>%
   group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
   select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
-  select(-abx_medication_name.raw) 
+  select(-abx_medication_name_rx.raw) 
 
 dt5=data_ready
 
@@ -527,7 +527,7 @@ dt5=data_ready
 # export variables
 batchSize=10000; # number of rows in single output file
 data.file.name.export=paste0("baby_",as.character(dt5[2,2]))
-out.dir=paste0("~/ehr-database/data/processed/redcap_ready/")
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/antibiotics/")
 data_export_directory=paste0(out.dir,data.file.name.export)
 
 
@@ -541,3 +541,70 @@ data_export_directory=paste0(out.dir,data.file.name.export)
    } # end second loop        
 
 ```
+
+
+```{r, warning=FALSE, echo=FALSE}
+# **************************************************************************** #
+# ***************                baby_antibiotics_ip                                               
+# **************************************************************************** #
+
+# rows: 70367
+# cols: 6
+# unique id: 15998
+# repeat: 537
+# ICD9/10: NA
+
+# import variables
+n_max=1000000
+data.file.name="baby.xlsx"
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
+data_import_directory=paste0(data.dir,data.file.name)
+
+# read data
+abx_ip=read_xlsx(data_import_directory, sheet = "antibiotics_ip_administration", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+
+# rename
+newdata=rename(abx_ip, 
+               part_id = `Baby-Id`,
+               abx_medication_order_ip="Med Order #",
+               abx_medication_mar_ip="MAR_Action",
+               abx_medication_code_ip="Med_Code",
+               abx_medication_date_ip="Taken_Datetime",
+               abx_medication_name_ip.raw="Medication")
+
+
+## FORMAT FOR REDCAP
+
+data_ready=newdata %>%
+  mutate(redcap_repeat_instrument="antibiotics_ip",
+         redcap_event_name=paste0(year(abx_medication_date_ip),"_arm_1")) %>% 
+  mutate(abx_medication_name_ip=gsub(" ","_",abx_medication_name_ip.raw)) %>%
+  mutate(abx_medication_name_ip=gsub(",","&",abx_medication_name_ip)) %>%
+  group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
+  select(-abx_medication_name_ip.raw) 
+
+dt5=data_ready
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=10000; # number of rows in single output file
+data.file.name.export=paste0("baby_",as.character(dt5[2,2]))
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/antibiotics/")
+data_export_directory=paste0(out.dir,data.file.name.export)
+
+
+# number of import files
+ chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop        
+
+```
+
