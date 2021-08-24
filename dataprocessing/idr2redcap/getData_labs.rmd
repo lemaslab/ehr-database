@@ -69,8 +69,8 @@ library(stringr)
 
 # import variables
 n_max=1000000
-data.file.name="lab_release.csv";data.file.name
-data.dir=paste0("~/ehr-database/data/raw/")
+data.file.name="lab_release.csv"
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
 data_import_directory=paste0(data.dir,data.file.name)
 
 # read data
@@ -106,11 +106,9 @@ dt5=data_ready
 # export variables
 batchSize=10000; # number of rows in single output file
 data.file.name.export=paste0("mom_",as.character(dt5[2,2]))
-out.dir=paste0("~/ehr-database/data/processed/redcap_ready/")
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/labs/")
 data_export_directory=paste0(out.dir,data.file.name.export)
 
-
-# NA: missing values are coded as "empty" in output
 
 # number of import files
 chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
