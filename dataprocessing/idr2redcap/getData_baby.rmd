@@ -81,12 +81,7 @@ baby=read_xlsx(data_import_directory, sheet = "baby", range = NULL, col_names = 
 newdata=rename(baby, part_id = `Baby-Id`, part_dob=DOB, part_race=Race, 
                part_ethnicity=Ethnicity, baby_birth_wt_gr=`Birth Weight (grams)`, 
                baby_admit_date=`Admit Date`, baby_admit_source=`Admit Source`,
-               baby_nicu_los=`NICU LOS`,baby_gest_age=Gestational_Age, delivery_mode.tmp=Delivery_Mode)
-
-# unique ID? Some moms had multiple babies in data set
-# length(unique(newdata$part_id)) # 16684
-# length(newdata$part_id)         # 16684
-# names(newdata); head(newdata)
+               baby_nicu_los=`NICU LOS`,baby_gest_age=Gestational_Age, delivery_mode.raw=Delivery_Mode)
 
 ## FORMAT FOR REDCAP
 
@@ -94,13 +89,13 @@ data_ready=newdata %>%
   mutate(redcap_repeat_instrument="participant_demographics",
          redcap_event_name=paste0(year(baby_admit_date),"_arm_1"),
          baby_nicu_los=as.numeric(baby_nicu_los)) %>% 
-  mutate(delivery_mode=gsub(" ","_",delivery_mode.tmp)) %>%
+  mutate(delivery_mode=gsub(" ","_",delivery_mode.raw)) %>%
   mutate(delivery_mode=gsub(",","&",delivery_mode)) %>%
   mutate(mombaby_status.logic=str_detect(part_id, "[Baby]"),
          mombaby_status=if_else(mombaby_status.logic==T, "baby","mom")) %>%
-  group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  group_by(part_id,redcap_event_name,baby_admit_date) %>% mutate(redcap_repeat_instance = row_number()) %>%
   select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name","mombaby_status",everything()) %>%
-  select(-delivery_mode.tmp, -mombaby_status.logic) 
+  select(-delivery_mode.raw, -mombaby_status.logic) 
 
 dt5=data_ready
 
