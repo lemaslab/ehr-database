@@ -1,0 +1,611 @@
+---
+title: "IDR-to-Redcap: ehr data processing"
+author: "Dominick J. Lemas"
+date: "09/30/2021"
+output: html_document
+
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+
+# Author:            Dominick J. Lemas 
+# Start Date:        August 13, 2021 
+# Last Modified:      
+# IRB:               UFHealth  
+#                    
+#
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073 
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+#  (1) Descriptive statistics on IDR data. 
+#  (2) Process IDR data. 
+#  (3) Outputs for downstream import-ready files for RedCap. 
+
+
+```
+
+#### __Data Processing Summary__
+![](dataprocessing_workflow.png)
+The data processing workflow . . . 
+the first step is X and second step is y and the final step is Z. 
+
+
+```{r, include=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                Libraries                     *************** #
+# **************************************************************************** #
+
+library(readxl)
+library(tidyr)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(stringr)
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                baby_demography                                              
+# **************************************************************************** #
+# rows:       16684
+# cols:       10 
+# unique id:  16684
+# repeat:     1
+# ICD9/10:    NA
+
+# EXTRACT DATA FROM EXCEL
+
+# import variables
+n_max=1000000
+data_file_name="baby_mom_at_birth_with_payer.csv"
+data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/")
+data_import_path=paste0(data_dir,data_file_name)
+
+# read data
+baby=read_csv(data_import_path) 
+
+# rename
+newdata=rename(baby, part_id = `Deidentified_baby_ID`, part_dob=`Date of Delivery`, part_race=Race, baby_gender=Sex, 
+               part_ethnicity=Ethnicity, baby_admit_date=`Admit Date_mom`, baby_admit_source=`Admit Source`,
+               baby_gest_age=`Pediatric Gestational Age`, delivery_mode.raw=`Pediatric Delivery Type`)
+
+# drop variables 
+newdata_drop=newdata %>%
+  select(-`Birth Weight`,-Deidentified_mom_ID,-Race_mom,-Ethnicity_mom,-`Age at Encounter_mom`,-`Payer_mom`,-`Admit Height (in)`,
+         -`Admit Weight (lbs)`,-`Admit Weight (kg)`,-`Admit Height (cm)`,-`Admit BMI`)
+
+# use the lubridate OR save as an Excel as you suggested
+newdata_drop$baby_admit_date=as.Date(newdata_drop$baby_admit_date)
+
+## FORMAT FOR REDCAP
+
+data_ready=newdata_drop %>%
+  mutate(redcap_repeat_instrument="delivery",
+         redcap_event_name=paste0(year(baby_admit_date),"_arm_1"))
+
+%>%
+         mutate(delivery_mode=gsub(" ","_",delivery_mode.raw)) %>%
+  mutate(delivery_mode=gsub(",","&",delivery_mode)) %>%
+  mutate(mombaby_status.logic=str_detect(part_id, "[Baby]"),
+         mombaby_status=if_else(mombaby_status.logic==T, "baby","mom")) %>%
+  group_by(part_id,redcap_event_name,baby_admit_date) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name","mombaby_status",everything()) %>%
+  select(-delivery_mode.raw, -mombaby_status.logic) 
+
+dt5=data_ready
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=10000; # number of rows in single output file
+data.file.name.export=paste0("baby_",as.character(dt5[2,2]))
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/")
+data_export_directory=paste0(out.dir,data.file.name.export)
+
+
+# NA: missing values are coded as "empty" in output
+
+# number of import files
+ chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop        
+
+import_ready=as.data.frame(dt5)
+
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                baby_first_height                                              
+# **************************************************************************** #
+
+# rows: 16441
+# cols: 3
+# unique id: 16441
+# repeat: 1
+# ICD9/10: NA
+
+# EXTRACT DATA FROM EXCEL
+
+# import variables
+n_max=1000000
+data.file.name="baby.xlsx"
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
+data_import_directory=paste0(data.dir,data.file.name)
+
+# read data
+height=read_xlsx(data_import_directory, sheet = "first_height", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+
+# rename
+newdata=rename(height, part_id = `Baby-Id`, baby_first_ht_date=`1st Height date`, baby_first_ht_cm=`Height (cm)`)
+
+# unique ID? Some moms had multiple babies in data set
+# length(unique(newdata$part_id)) # 16684
+# length(newdata$part_id)         # 16684
+# names(newdata); head(newdata)
+
+## FORMAT FOR REDCAP
+
+data_ready=newdata %>%
+  mutate(redcap_repeat_instrument="participant_demographics",
+         redcap_event_name=paste0(year(baby_first_ht_date),"_arm_1")) %>%
+  mutate(mombaby_status.logic=str_detect(part_id, "[Baby]"),
+         mombaby_status=if_else(mombaby_status.logic==T, "baby","mom")) %>%
+  group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name","mombaby_status",everything()) %>%
+  select(-mombaby_status.logic) 
+
+dt5=data_ready
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=10000; # number of rows in single output file
+data.file.name.export=paste0("baby_ht_",as.character(dt5[2,2]))
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/")
+data_export_directory=paste0(out.dir,data.file.name.export)
+
+
+# NA: missing values are coded as "empty" in output
+
+# number of import files
+ chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop        
+
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                baby_first_head_circumference                                              
+# **************************************************************************** #
+# rows: 16353
+# cols: 3
+# unique id: 16346
+# repeat: 2
+# ICD9/10: NA
+# ICD9/10:    NA
+
+# EXTRACT DATA FROM EXCEL
+
+# import variables
+n_max=1000000
+data.file.name="baby.xlsx"
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
+data_import_directory=paste0(data.dir,data.file.name)
+
+# read data
+headcirc=read_xlsx(data_import_directory, sheet = "first_head_circumference", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+
+# rename
+newdata=rename(headcirc, part_id = `Baby-Id`, baby_first_headcirc_date=`1st Head Circumference date`, baby_first_headcirc_cm=`Head Circumference (cm)`)
+
+## FORMAT FOR REDCAP
+
+data_ready=newdata %>%
+  mutate(redcap_repeat_instrument="participant_demographics",
+         redcap_event_name=paste0(year(baby_first_headcirc_date),"_arm_1")) %>%
+  mutate(mombaby_status.logic=str_detect(part_id, "[Baby]"),
+         mombaby_status=if_else(mombaby_status.logic==T, "baby","mom")) %>%
+  group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name","mombaby_status",everything()) %>%
+  select(-mombaby_status.logic) 
+
+dt5=data_ready
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=10000; # number of rows in single output file
+data.file.name.export=paste0("baby_headcirc_",as.character(dt5[2,2]))
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/")
+data_export_directory=paste0(out.dir,data.file.name.export)
+
+
+# NA: missing values are coded as "empty" in output
+
+# number of import files
+ chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop      
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                baby_vaccines                                              
+# **************************************************************************** #
+# rows: 105611
+# cols: 3
+# unique id: 13068
+# repeat: 34
+# ICD9/10: NA
+
+# EXTRACT DATA FROM EXCEL
+
+# import variables
+n_max=1000000
+data.file.name="baby.xlsx"
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
+data_import_directory=paste0(data.dir,data.file.name)
+
+# read data
+vaccine=read_xlsx(data_import_directory, sheet = "vaccines", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+
+# rename
+newdata=rename(vaccine, part_id = `Baby-Id`, vaccine_date=Immune_Date, vaccine_name.raw=Immunization_Name)
+
+
+## FORMAT FOR REDCAP
+
+data_ready=newdata %>%
+  mutate(redcap_repeat_instrument="vaccines",
+         redcap_event_name=paste0(year(vaccine_date),"_arm_1")) %>% 
+  mutate(vaccine_name=gsub(" ","_",vaccine_name.raw)) %>%
+  mutate(vaccine_name=gsub(",","&",vaccine_name)) %>%
+  group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
+  select(-vaccine_name.raw) 
+
+dt5=data_ready
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=10000; # number of rows in single output file
+data.file.name.export=paste0("baby_",as.character(dt5[2,2]))
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/vaccines/")
+data_export_directory=paste0(out.dir,data.file.name.export)
+
+
+# NA: missing values are coded as "empty" in output
+
+# number of import files
+ chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop        
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                baby_wellvisit                                              
+# **************************************************************************** #
+
+# rows: 51441
+# cols: 5
+# unique id: 7667
+# repeat: 43
+# ICD9/10: NA
+
+# EXTRACT DATA FROM EXCEL
+
+# import variables
+n_max=1000000
+data.file.name="baby.xlsx"
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
+data_import_directory=paste0(data.dir,data.file.name)
+
+# read data
+wellvisit=read_xlsx(data_import_directory, sheet = "well_visit", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+
+# rename
+newdata=rename(wellvisit, part_id = `Baby-Id`, 
+               wellvisit_date=Observation_Date, 
+               height_cm=`Height (cm)`, 
+               weight_kgs=`Weight (kgs)`,
+               headcirc_cm=`Head Circumference (cm)`)
+
+## FORMAT FOR REDCAP
+
+data_ready=newdata %>%
+  mutate(redcap_repeat_instrument="wellness_visit",
+         redcap_event_name=paste0(year(wellvisit_date),"_arm_1")) %>%
+    group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name", everything()) 
+
+dt5=data_ready
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=10000; # number of rows in single output file
+data.file.name.export=paste0("baby_",as.character(dt5[2,2]))
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/")
+data_export_directory=paste0(out.dir,data.file.name.export)
+
+
+# NA: missing values are coded as "empty" in output
+
+# number of import files
+ chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop  
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                mom_baby_link                                              
+# **************************************************************************** #
+# rows: 29798
+# cols: 2
+# unique id: 28069
+# repeat: 5
+# ICD9/10: NA
+
+# EXTRACT DATA FROM EXCEL
+
+# import variables
+n_max=1000000
+data.file.name="baby.xlsx"
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
+data_import_directory=paste0(data.dir,data.file.name)
+
+# read data
+link=read_xlsx(data_import_directory, sheet = "mom_baby", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+
+# rename
+newdata=link %>%mutate(part_id = `Baby-Id`) %>% 
+  rename(baby_id = `Baby-Id`, 
+               baby_gender=`Baby Gender`, 
+               mom_id=`Mom-Id`,
+               mom_age_delivery=`Mom Age`,
+               health_insurance=Payer)
+
+
+# read data 2
+baby=read_xlsx(data_import_directory, sheet = "baby", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+
+
+# rename
+newdata.tmp=baby %>% rename(part_id = `Baby-Id`, part_dob=DOB, part_race=Race, 
+               part_ethnicity=Ethnicity, baby_birth_wt_gr=`Birth Weight (grams)`, 
+               baby_admit_date=`Admit Date`, baby_admit_source=`Admit Source`,
+               baby_nicu_los=`NICU LOS`,baby_gest_age=Gestational_Age, delivery_mode.tmp=Delivery_Mode) %>%
+  select(part_id,baby_admit_date)
+
+
+## MERGE admit date with mom-baby link
+data.merge=full_join(newdata,newdata.tmp) 
+
+# check for NA
+extra_NA= data.merge %>% select_if(function(x) any(is.na(x))) %>% 
+  summarise_each(funs(sum(is.na(.)))) 
+
+## FORMAT FOR REDCAP
+
+# note: # drop rows without date (cant link into redcap without date)
+
+data_ready=data.merge %>%
+  mutate(redcap_repeat_instrument="participant_demographics",
+         redcap_event_name=paste0(year(baby_admit_date),"_arm_1")) %>%
+    group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
+  drop_na(baby_admit_date)
+
+dt5=data_ready
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=10000; # number of rows in single output file
+data.file.name.export=paste0("mombaby_link_",as.character(dt5[2,2]))
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/")
+data_export_directory=paste0(out.dir,data.file.name.export)
+
+
+# NA: missing values are coded as "empty" in output
+
+# number of import files
+ chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop      
+
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                baby_antibiotics_rx                                               
+# **************************************************************************** #
+
+# rows: 5156
+# cols: 5
+# unique id: 2717
+# repeat: 25
+# ICD9/10: NA
+
+# import variables
+n_max=1000000
+data.file.name="baby.xlsx"
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
+data_import_directory=paste0(data.dir,data.file.name)
+
+# read data
+abx=read_xlsx(data_import_directory, sheet = "antibiotics_prescription", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+
+# rename
+newdata=rename(abx, 
+               part_id = `Baby-Id`, 
+               abx_medication_order_rx=`Med Order #`, 
+               abx_medication_code_rx=Med_Code, 
+               abx_medication_name_rx.raw=Medication, 
+               abx_medication_date_rx=`Med Order Datetime`)
+
+## FORMAT FOR REDCAP
+
+data_ready=newdata %>%
+  mutate(redcap_repeat_instrument="antibiotics_rx",
+         redcap_event_name=paste0(year(abx_medication_date_rx),"_arm_1")) %>% 
+  mutate(abx_medication_name_rx=gsub(" ","_",abx_medication_name_rx.raw)) %>%
+  mutate(abx_medication_name_rx=gsub(",","&",abx_medication_name_rx)) %>%
+  group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
+  select(-abx_medication_name_rx.raw) 
+
+dt5=data_ready
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=10000; # number of rows in single output file
+data.file.name.export=paste0("baby_",as.character(dt5[2,2]))
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/antibiotics/")
+data_export_directory=paste0(out.dir,data.file.name.export)
+
+
+# number of import files
+ chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop        
+
+```
+
+
+```{r, warning=FALSE, echo=FALSE}
+# **************************************************************************** #
+# ***************                baby_antibiotics_ip                                               
+# **************************************************************************** #
+
+# rows: 70367
+# cols: 6
+# unique id: 15998
+# repeat: 537
+# ICD9/10: NA
+
+# import variables
+n_max=1000000
+data.file.name="baby.xlsx"
+data.dir=paste0("~/ehr-database/data/raw/dataset_01/")
+data_import_directory=paste0(data.dir,data.file.name)
+
+# read data
+abx_ip=read_xlsx(data_import_directory, sheet = "antibiotics_ip_administration", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+
+# rename
+newdata=rename(abx_ip, 
+               part_id = `Baby-Id`,
+               abx_medication_order_ip="Med Order #",
+               abx_medication_mar_ip="MAR_Action",
+               abx_medication_code_ip="Med_Code",
+               abx_medication_date_ip="Taken_Datetime",
+               abx_medication_name_ip.raw="Medication")
+
+
+## FORMAT FOR REDCAP
+
+data_ready=newdata %>%
+  mutate(redcap_repeat_instrument="antibiotics_ip",
+         redcap_event_name=paste0(year(abx_medication_date_ip),"_arm_1")) %>% 
+  mutate(abx_medication_name_ip=gsub(" ","_",abx_medication_name_ip.raw)) %>%
+  mutate(abx_medication_name_ip=gsub(",","&",abx_medication_name_ip)) %>%
+  group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
+  select(-abx_medication_name_ip.raw) 
+
+dt5=data_ready
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=10000; # number of rows in single output file
+data.file.name.export=paste0("baby_",as.character(dt5[2,2]))
+out.dir=paste0("~/ehr-database/data/processed/redcap_ready/antibiotics/")
+data_export_directory=paste0(out.dir,data.file.name.export)
+
+
+# number of import files
+ chunks=split(dt5, floor(0:(nrow(dt5)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_directory,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop        
+
+```
+
