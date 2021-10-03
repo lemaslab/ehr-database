@@ -56,13 +56,130 @@ library(stringr)
 ```{r, warning=FALSE, echo=FALSE}
 
 # **************************************************************************** #
+# ***************                demographics                                             
+# **************************************************************************** #
+# rows:            28530
+# cols:            20 
+# unique baby id:  28530
+# repeat:          1
+# ICD9/10:         NA
+
+# variables
+# part_id, mombaby_status, part_gender, part_ethnicity, part_race
+
+
+```
+
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
 # ***************                baby_delivery                                             
 # **************************************************************************** #
-# rows:       16684
-# cols:       10 
-# unique id:  16684
-# repeat:     1
-# ICD9/10:    NA
+# rows:            28530
+# cols:            20 
+# unique baby id:  28530
+# repeat:          1
+# ICD9/10:         NA
+
+# variables
+# part_id, part_dob, delivery_mode, baby_admit_date, part_race
+
+
+# EXTRACT DATA FROM EXCEL
+
+# import variables
+n_max=1000000
+data_file_name="baby_mom_at_birth_with_payer.csv"
+data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/")
+data_import_path=paste0(data_dir,data_file_name)
+
+# read data
+delivery=read_csv(data_import_path) 
+
+# rename
+# note: renaming to eliminate spaces EVEN THOUGH we will rename or drop later.
+newdata=rename(delivery, 
+               baby_id = `Deidentified_baby_ID`, 
+               baby_race=Race,
+               baby_ethnicity=Ethnicity, 
+               part_dob=`Date of Delivery`, 
+               baby_birth_wt_gr=`Birth Weight`,
+               delivery_mode.raw=`Pediatric Delivery Type`,
+               delivery_admit_source=`Admit Source`,
+               baby_gest_age=`Pediatric Gestational Age`, 
+               baby_gender=Sex, 
+               mom_id=Deidentified_mom_ID,
+               delivery_admit_date=`Admit Date_mom`, 
+               mom_race=Race_mom,
+               mom_ethnicity=Ethnicity_mom,
+               mom_age_delivery=`Age at Encounter_mom`,
+               health_insurance=Payer_mom,
+               mom_admit_height_in=`Admit Height (in)`,
+               mom_admit_weight_lbs=`Admit Weight (lbs)`,
+               mom_admit_weight_kgs=`Admit Weight (kg)`,
+               mom_admit_height_cm=`Admit Height (cm)`,
+               mom_admit_bmi=`Admit BMI` )
+
+# drop DEMOGRAPHIC variables
+delivery_select=newdata %>%
+  select(-mom_race,-mom_ethnicity,-baby_race, -baby_ethnicity)
+
+# format dates
+delivery_ready = delivery_select %>%
+  mutate(part_dob=mdy_hm(part_dob),
+         baby_admit_date=mdy(delivery_admit_date))
+
+# FORMAT FOR REDCAP
+
+data_ready=baby_ready %>%
+  mutate(redcap_repeat_instrument="delivery",
+         redcap_event_name=paste0(year(baby_admit_date),"_arm_1")) %>%
+         mutate(delivery_mode=gsub(" ","_",delivery_mode.raw)) %>%
+  mutate(delivery_mode=gsub(",","&",delivery_mode),
+         part_id=paste0("baby-",baby_id),
+         baby_id=paste0("baby-",baby_id),
+         mombaby_status="baby") %>%
+  group_by(part_id,redcap_event_name,baby_admit_date) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name","mombaby_status",everything()) %>%
+  select(-delivery_mode.raw) 
+
+data_ready
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=10000; # number of rows in single output file
+data_file_name_export=paste0("baby_",as.character(data_ready[2,2]))
+output_dir=paste0("~/ehr-database/data/processed/redcap_ready/delivery/")
+data_export_path=paste0(output_dir,data_file_name_export)
+
+# Note: expecting to expot to PATH: ~/ehr-database/data/processed/redcap_ready/delivery/
+# NA: missing values are coded as "empty" in output
+
+# number of import files
+ chunks=split(data_ready, floor(0:(nrow(data_ready)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_path,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop        
+
+
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                mom_delivery                                             
+# **************************************************************************** #
+# rows:           28530
+# cols:           20 
+# unique mom id:  22075
+# repeat:         
+# ICD9/10:        NA
 
 # EXTRACT DATA FROM EXCEL
 
@@ -99,7 +216,8 @@ newdata=rename(delivery,
                mom_admit_height_cm=`Admit Height (cm)`,
                mom_admit_bmi=`Admit BMI` )
 
-# drop (most of) MOM variables & baby anthros
+
+# drop (most of) BABY variables & MOM anthros
 baby=newdata %>%
   select(-mom_race,-baby_birth_wt_gr,-mom_race, -mom_ethnicity,-mom_age_delivery,
          -mom_admit_height_in, -mom_admit_weight_lbs, -mom_admit_weight_kgs,
