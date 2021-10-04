@@ -102,28 +102,34 @@ bmi=read_csv(data_import_path)
 newdata=rename(bmi, 
                part_id = `Deidentified_mom_ID`, 
                encounter_type=`Encounter Type`,
-               baby_ethnicity=`Last Stamped BMI on encounter`, 
+               prenatal_bmi=`Last Stamped BMI on encounter`, 
                encounter_date=`Last Stamped BMI on encounter datetime`
                )
 
 # format dates
-delivery_ready = newdata %>%
-  mutate(part_dob=mdy_hm(encounter_date),
-         delivery_admit_date=mdy(delivery_admit_date))
+bmi_ready = newdata %>%
+  mutate(encounter_date=mdy_ms(encounter_date),
+         encounter_date=mdy(encounter_date))
+
+# format dates
+bmi_ready = newdata %>%
+  mutate(encounter_date_tmp=as.POSIXct(encounter_date, format="%m/%d/%Y %H:%M"),
+         encounter_date=format(strptime(encounter_date_tmp, 
+                                             format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-encounter_date_tmp)
+
+
 
 # FORMAT FOR REDCAP
 
-data_ready=newdata %>%
-  mutate(encounter_date=mdy_hm(encounter_date)) %>%
+data_ready=bmi_ready %>%
+  mutate(encounter_date=ymd_hms(encounter_date)) %>%
   mutate(redcap_repeat_instrument="anthropometrics",
-         redcap_event_name=paste0(year(encounter_date),"_arm_1")) %>%
-         mutate(delivery_mode=gsub(" ","_",delivery_mode.raw)) %>%
-  mutate(delivery_mode=gsub(",","&",delivery_mode),
-         part_id=paste0("baby-",baby_id),
-         baby_id=paste0("baby-",baby_id)) %>%
-  group_by(part_id,redcap_event_name,delivery_admit_date) %>% mutate(redcap_repeat_instance = row_number()) %>%
-  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
-  select(-delivery_mode.raw,-baby_id) 
+         redcap_event_name=paste0(year(encounter_date),"_arm_1"),
+         measure_units="kg/m2") %>%
+  mutate(part_id=paste0("mom-",part_id)) %>%
+  group_by(part_id,redcap_event_name,encounter_date) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) 
+
 
 data_ready
 
@@ -131,8 +137,8 @@ data_ready
 
 # export variables
 batchSize=10000; # number of rows in single output file
-data_file_name_export=paste0("baby_",as.character(data_ready[2,2]))
-output_dir=paste0("~/ehr-database/data/processed/redcap_ready/delivery/")
+data_file_name_export=paste0("mom_bmi_",as.character(data_ready[2,2]))
+output_dir=paste0("~/ehr-database/data/processed/redcap_ready/anthropometrics/")
 data_export_path=paste0(output_dir,data_file_name_export)
 
 # Note: expecting to expot to PATH: ~/ehr-database/data/processed/redcap_ready/delivery/
