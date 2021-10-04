@@ -139,6 +139,8 @@ baby_ready = data_ready %>%
   mutate(redcap_repeat_instance = row_number()) %>%
   select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything(),-baby_id )
 
+# Dim: 28530 rows & 9 columns
+
 # create mom data
 mom_ready = data_ready %>%
   select(mom_id , mom_race, mom_ethnicity, delivery_admit_date) %>%
@@ -149,14 +151,17 @@ mom_ready = data_ready %>%
          part_ethnicity=mom_ethnicity ) %>%
   mutate(redcap_repeat_instrument="demographics",
          redcap_event_name=paste0(year(delivery_admit_date),"_arm_1")) %>% 
-  group_by(part_id,redcap_event_name,delivery_admit_date) %>% 
+  group_by(part_id) %>% 
   mutate(redcap_repeat_instance = row_number()) %>%
   filter(redcap_repeat_instance==1) %>%
   select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything(),-mom_id)
+
+# Dim: 22075 rows & 9 columns
+
   
 # combine mom & baby
 
-data_final=data_ready=bind_rows(baby_ready,mom_ready) %>%
+data_final=bind_rows(baby_ready,mom_ready) %>%
   ungroup() %>% select(-delivery_admit_date)
 
 
@@ -172,7 +177,7 @@ data_export_path=paste0(output_dir,data_file_name_export)
 # NA: missing values are coded as "empty" in output
 
 # number of import files
- chunks=split(data_ready, floor(0:(nrow(data_ready)-1)/batchSize))
+ chunks=split(data_final, floor(0:(nrow(data_final)-1)/batchSize))
 
 # export each "chunk" of redcap-ready data
  for (i in 1:length(chunks))
