@@ -1,5 +1,5 @@
 ---
-title: "IDR-to-Redcap: ehr data processing"
+title: "IDR-to-Redcap: delivery"
 author: "Dominick J. Lemas"
 date: "09/30/2021"
 output: html_document
@@ -108,7 +108,7 @@ newdata=rename(delivery,
                delivery_mode.raw=`Pediatric Delivery Type`,
                delivery_admit_source=`Admit Source`,
                baby_gest_age=`Pediatric Gestational Age`, 
-               baby_gender=Sex, 
+               part_gender=Sex, 
                mom_id=Deidentified_mom_ID,
                delivery_admit_date=`Admit Date_mom`, 
                mom_race=Race_mom,
