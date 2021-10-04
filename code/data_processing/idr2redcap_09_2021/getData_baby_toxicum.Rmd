@@ -1,17 +1,10 @@
 ---
 title: 'IDR-to-RedCap: ehr data processing'
 author: "Hailey Ballard"
-date: "10/3/2021"
+date: "10/4/2021"
 output: html_document
 ---
 
----
-title: "IDR-to-Redcap: ehr data processing"
-author: "Dominick J. Lemas"
-date: "09/30/2021"
-output: html_document
-
----
 
 ```{r, include=FALSE}
 ##-------------- 
@@ -20,7 +13,7 @@ output: html_document
 # **************************************************************************** #
 
 # Author:            Hailey Ballard
-# Start Date:        October 03, 2021 
+# Start Date:        October 04, 2021 
 # Last Modified:      
 # IRB:               UFHealth  
 #                    
@@ -64,11 +57,11 @@ library(stringr)
 ```{r, warning=FALSE, echo=FALSE}
 
 # **************************************************************************** #
-# ***************                baby_vaccines                                            
+# ***************                baby_toxicum                                            
 # **************************************************************************** #
-# rows:            28529
-# cols:            3 
-# unique baby id:  28529
+# rows:            28530
+# cols:            5 
+# unique baby id:  28530
 # repeat:          1
 # ICD9/10:         NA
 
@@ -80,52 +73,49 @@ library(stringr)
 
 # import variables
 n_max=1000000
-data_file_name="baby_vacinne.csv"
+data_file_name="baby_toxicum.csv"
 data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/")
 data_import_path=paste0(data_dir,data_file_name)
 
 # read data
-vaccines=read_csv(data_import_path) 
+toxicum=read_csv(data_import_path) 
 
 # rename
 # note: renaming to eliminate spaces EVEN THOUGH we will rename or drop later.
-newdata=rename(vaccines, 
+newdata=rename(toxicum, 
                baby_id = `Deidentified_baby_ID`, 
-               vaccine_date = `Immune Date`,
-               vaccine_name = `Immunization Name`)
+               diagnosis_start = `Diagnosis Start Date`,
+               diagnosis_code = `Diagnosis Code`,
+               diagnosis_descrip = `Diagnosis Description`,
+               diagnosis_type = `Diagnosis Type`)
 
-
-# format dates
-vaccines_ready = newdata %>%
-  mutate(vaccine_date=mdy(vaccine_date))
 
 # FORMAT FOR REDCAP
 
-vaccines_ready=vaccines_ready %>%
-  mutate(redcap_repeat_instrument="Vaccines",
-         redcap_event_name=paste0(year(vaccine_date),"_arm_1")) %>%
-         mutate(vaccine_name=gsub(" ","_",vaccine_name)) %>%
-  mutate(vaccine_name=gsub(",","&",vaccine_name),
+toxicum_ready=newdata %>%
+  mutate(redcap_repeat_instrument="Toxicum",
+         redcap_event_name=paste0(year(diagnosis_start),"_arm_1")) %>%
+         mutate(diagnosis_descrip=gsub(" ","_",diagnosis_descrip)) %>%
+  mutate(diagnosis_type=gsub(" ","_",diagnosis_type),
          part_id=paste0("baby-",baby_id),
          baby_id=paste0("baby-",baby_id)) %>%
-  group_by(baby_id, redcap_event_name,vaccine_date) %>% mutate(redcap_repeat_instance = row_number()) %>%
-  select("baby_id", "redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",,everything()) 
+  group_by(baby_id, redcap_event_name,diagnosis_start) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("baby_id", "redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name", everything()) 
   
-#vaccines_ready
 
 ## EXPORT FOR REDCAP
 
 # export variables
 batchSize=10000; # number of rows in single output file
-data_file_name_export=paste0("baby_",as.character(vaccines_ready[2,2]))
-output_dir=paste0("~/ehr-database/data/processed/redcap_ready/vaccines/")
+data_file_name_export=paste0("baby_",as.character(toxicum_ready[2,2]))
+output_dir=paste0("~/ehr-database/data/processed/redcap_ready/baby_toxicum/")
 data_export_path=paste0(output_dir,data_file_name_export)
 
 # Note: expecting to expot to PATH: ~/ehr-database/data/processed/redcap_ready/delivery/
 # NA: missing values are coded as "empty" in output
 
 # number of import files
- chunks=split(vaccines_ready, floor(0:(nrow(vaccines_ready)-1)/batchSize))
+ chunks=split(toxicum_ready, floor(0:(nrow(toxicum_ready)-1)/batchSize))
 
 # export each "chunk" of redcap-ready data
  for (i in 1:length(chunks))
@@ -136,3 +126,4 @@ data_export_path=paste0(output_dir,data_file_name_export)
 
 
 ```
+
