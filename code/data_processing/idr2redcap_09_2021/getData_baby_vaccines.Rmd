@@ -94,29 +94,28 @@ newdata=rename(vaccines,
                vaccine_date = `Immune Date`,
                vaccine_name = `Immunization Name`)
 
-
-# format dates
-vaccines_ready = newdata %>%
-  mutate(vaccine_date=mdy(vaccine_date))
-
 # FORMAT FOR REDCAP
 
-vaccines_ready=vaccines_ready %>%
+vaccines_ready=newdata %>%
+  mutate(vaccine_date=mdy(vaccine_date)) %>%
   mutate(redcap_repeat_instrument="Vaccines",
-         redcap_event_name=paste0(year(vaccine_date),"_arm_1")) %>%
+         redcap_event_name=paste0(year(vaccine_date),"_arm_1"),
+         year=year(vaccine_date)) %>%
          mutate(vaccine_name=gsub(" ","_",vaccine_name)) %>%
   mutate(vaccine_name=gsub(",","&",vaccine_name),
-         part_id=paste0("baby-",baby_id),
-         baby_id=paste0("baby-",baby_id)) %>%
-  group_by(baby_id, redcap_event_name,vaccine_date) %>% mutate(redcap_repeat_instance = row_number()) %>%
-  select("baby_id", "redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",,everything()) 
+         part_id=paste0("baby-",baby_id)) %>%
+  arrange(part_id,vaccine_date) %>%
+  group_by(part_id, year) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  ungroup() %>%
+  select("part_id", "redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",,everything()) %>%
+  select(-baby_id, -year)
   
 #vaccines_ready
 
 ## EXPORT FOR REDCAP
 
 # export variables
-batchSize=10000; # number of rows in single output file
+batchSize=12000; # number of rows in single output file
 data_file_name_export=paste0("baby_",as.character(vaccines_ready[2,2]))
 output_dir=paste0("~/ehr-database/data/processed/redcap_ready/vaccines/")
 data_export_path=paste0(output_dir,data_file_name_export)
