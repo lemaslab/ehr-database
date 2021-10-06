@@ -98,7 +98,7 @@ newdata=rename(vaccines,
 
 vaccines_ready=newdata %>%
   mutate(vaccine_date=mdy(vaccine_date)) %>%
-  mutate(redcap_repeat_instrument="Vaccines",
+  mutate(redcap_repeat_instrument="vaccines",
          redcap_event_name=paste0(year(vaccine_date),"_arm_1"),
          year=year(vaccine_date)) %>%
          mutate(vaccine_name=gsub(" ","_",vaccine_name)) %>%
