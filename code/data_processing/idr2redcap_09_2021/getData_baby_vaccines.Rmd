@@ -1,5 +1,5 @@
 ---
-title: 'IDR-to-RedCap: ehr data processing'
+title: 'IDR-to-RedCap: baby vaccines'
 author: "Hailey Ballard"
 date: "10/3/2021"
 output: html_document
