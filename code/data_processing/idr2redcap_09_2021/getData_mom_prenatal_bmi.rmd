@@ -53,23 +53,6 @@ library(stringr)
 
 ```
 
-```{r, warning=FALSE, echo=FALSE}
-
-# **************************************************************************** #
-# ***************             mom-bmi-prenatal                                             
-# **************************************************************************** #
-# rows:            28530
-# cols:            20 
-# unique baby id:  28530
-# repeat:          1
-# ICD9/10:         NA
-
-# variables
-# part_id, mombaby_status, part_gender, part_ethnicity, part_race
-
-
-```
-
 
 ```{r, warning=FALSE, echo=FALSE}
 
@@ -83,7 +66,6 @@ library(stringr)
 # ICD9/10:         NA
 
 # variables
-# part_id, part_dob, delivery_mode, baby_admit_date, part_race
 
 
 # EXTRACT DATA FROM EXCEL
