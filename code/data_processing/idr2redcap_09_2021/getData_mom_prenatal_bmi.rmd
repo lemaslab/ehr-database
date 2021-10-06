@@ -101,27 +101,27 @@ bmi=read_csv(data_import_path)
 # note: renaming to eliminate spaces EVEN THOUGH we will rename or drop later.
 newdata=rename(bmi, 
                part_id = `Deidentified_mom_ID`, 
-               anthro_encounter_type=`Encounter Type`,
-               anthro_value=`Last Stamped BMI on encounter`, 
-               anthro_encounter_date=`Last Stamped BMI on encounter datetime`
+               prenatal_bmi_encounter_type=`Encounter Type`,
+               prenatal_bmi_value=`Last Stamped BMI on encounter`, 
+               prenatal_bmi_encounter_date=`Last Stamped BMI on encounter datetime`
                )
 
 # format dates
 bmi_ready = newdata %>%
-  mutate(anthro_encounter_date_tmp=as.POSIXct(anthro_encounter_date, format="%m/%d/%Y %H:%M"),
-         anthro_encounter_date=format(strptime(anthro_encounter_date_tmp, 
-                                             format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-anthro_encounter_date_tmp)
+  mutate(prenatal_bmi_encounter_date_tmp=as.POSIXct(prenatal_bmi_encounter_date, format="%m/%d/%Y %H:%M"),
+         prenatal_bmi_encounter_date=format(strptime(prenatal_bmi_encounter_date_tmp, 
+                                             format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-prenatal_bmi_encounter_date_tmp)
 
 # FORMAT FOR REDCAP
 
 data_ready=bmi_ready %>%
-  mutate(anthro_encounter_date=ymd_hms(anthro_encounter_date)) %>%
+  mutate(prenatal_bmi_encounter_date=ymd_hms(prenatal_bmi_encounter_date)) %>%
   mutate(redcap_repeat_instrument="anthropometrics",
-         redcap_event_name=paste0(year(anthro_encounter_date),"_arm_1"),
-         anthro_measure_units="kg/m2",
-         anthro_measure="PRENATAL-BMI") %>%
+         redcap_event_name=paste0(year(prenatal_bmi_encounter_date),"_arm_1"),
+         prenatal_bmi_measure_units="kg/m2",
+         prenatal_bmi_measure="PRENATAL-BMI") %>%
   mutate(part_id=paste0("mom-",part_id)) %>%
-  arrange(part_id,anthro_encounter_date) %>%
+  arrange(part_id,prenatal_bmi_encounter_date) %>%
   group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
   select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) 
 
