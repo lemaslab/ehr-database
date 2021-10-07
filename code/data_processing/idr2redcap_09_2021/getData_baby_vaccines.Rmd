@@ -6,13 +6,6 @@ date: "10/3/2021"
 output: html_document
 ---
 
----
-title: "IDR-to-Redcap: ehr data processing"
-author: "Dominick J. Lemas"
-date: "09/30/2021"
-output: html_document
-
----
 
 ```{r, include=FALSE}
 ##-------------- 
