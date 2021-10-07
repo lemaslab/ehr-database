@@ -1,13 +1,5 @@
 ---
-
-title: 'IDR-to-RedCap: baby vaccines'
-author: "Hailey Ballard"
-date: "10/3/2021"
-output: html_document
----
-
----
-title: "IDR-to-Redcap: ehr data processing"
+title: "IDR-to-Redcap: mom-prenatal-bmi"
 author: "Dominick J. Lemas"
 date: "09/30/2021"
 output: html_document
@@ -20,8 +12,8 @@ output: html_document
 # ***************                Project Overview              *************** #
 # **************************************************************************** #
 
-# Author:            Hailey Ballard
-# Start Date:        October 03, 2021 
+# Author:            Dominick J. Lemas 
+# Start Date:        October 04, 2021 
 # Last Modified:      
 # IRB:               UFHealth  
 #                    
@@ -65,67 +57,71 @@ library(stringr)
 ```{r, warning=FALSE, echo=FALSE}
 
 # **************************************************************************** #
-# ***************                baby_vaccines                                            
+# ***************              mom-bmi-prenatal                                             
 # **************************************************************************** #
-# rows:            28529
-# cols:            3 
-# unique baby id:  28529
+# rows:            28530
+# cols:            20 
+# unique baby id:  28530
 # repeat:          1
 # ICD9/10:         NA
 
 # variables
-# baby_id, vaccine_date, vaccine_name
 
 
 # EXTRACT DATA FROM EXCEL
 
 # import variables
 n_max=1000000
-data_file_name="baby_vacinne.csv"
+data_file_name="mom_BMI_prenatals.csv"
 data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/")
 data_import_path=paste0(data_dir,data_file_name)
 
 # read data
-vaccines=read_csv(data_import_path) 
+bmi=read_csv(data_import_path) 
 
 # rename
 # note: renaming to eliminate spaces EVEN THOUGH we will rename or drop later.
-newdata=rename(vaccines, 
-               baby_id = `Deidentified_baby_ID`, 
-               vaccine_date = `Immune Date`,
-               vaccine_name = `Immunization Name`)
+newdata=rename(bmi, 
+               part_id = `Deidentified_mom_ID`, 
+               prenatal_bmi_encounter_type=`Encounter Type`,
+               prenatal_bmi_value=`Last Stamped BMI on encounter`, 
+               prenatal_bmi_encounter_date=`Last Stamped BMI on encounter datetime`
+               )
+
+# format dates
+bmi_ready = newdata %>%
+  mutate(prenatal_bmi_encounter_date_tmp=as.POSIXct(prenatal_bmi_encounter_date, format="%m/%d/%Y %H:%M"),
+         prenatal_bmi_encounter_date=format(strptime(prenatal_bmi_encounter_date_tmp, 
+                                             format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-prenatal_bmi_encounter_date_tmp)
 
 # FORMAT FOR REDCAP
 
-vaccines_ready=newdata %>%
-  mutate(vaccine_date=mdy(vaccine_date)) %>%
-  mutate(redcap_repeat_instrument="vaccines",
-         redcap_event_name=paste0(year(vaccine_date),"_arm_1"),
-         year=year(vaccine_date)) %>%
-         mutate(vaccine_name=gsub(" ","_",vaccine_name)) %>%
-  mutate(vaccine_name=gsub(",","&",vaccine_name),
-         part_id=paste0("baby-",baby_id)) %>%
-  arrange(part_id,vaccine_date) %>%
-  group_by(part_id, year) %>% mutate(redcap_repeat_instance = row_number()) %>%
-  ungroup() %>%
-  select("part_id", "redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",,everything()) %>%
-  select(-baby_id, -year)
-  
-#vaccines_ready
+data_ready=bmi_ready %>%
+  mutate(prenatal_bmi_encounter_date=ymd_hms(prenatal_bmi_encounter_date)) %>%
+  mutate(redcap_repeat_instrument="anthropometrics",
+         redcap_event_name=paste0(year(prenatal_bmi_encounter_date),"_arm_1"),
+         prenatal_bmi_measure_units="kg/m2",
+         prenatal_bmi_measure="PRENATAL-BMI") %>%
+  mutate(part_id=paste0("mom-",part_id)) %>%
+  arrange(part_id,prenatal_bmi_encounter_date) %>%
+  group_by(part_id,redcap_event_name) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) 
+
+data_ready
 
 ## EXPORT FOR REDCAP
 
 # export variables
-batchSize=12000; # number of rows in single output file
-data_file_name_export=paste0("baby_",as.character(vaccines_ready[2,2]))
-output_dir=paste0("~/ehr-database/data/processed/redcap_ready/vaccines/")
+batchSize=10000; # number of rows in single output file
+data_file_name_export=paste0("mom_bmi_",as.character(data_ready[2,2]))
+output_dir=paste0("~/ehr-database/data/processed/redcap_ready/anthropometrics/")
 data_export_path=paste0(output_dir,data_file_name_export)
 
 # Note: expecting to expot to PATH: ~/ehr-database/data/processed/redcap_ready/delivery/
 # NA: missing values are coded as "empty" in output
 
 # number of import files
- chunks=split(vaccines_ready, floor(0:(nrow(vaccines_ready)-1)/batchSize))
+ chunks=split(data_ready, floor(0:(nrow(data_ready)-1)/batchSize))
 
 # export each "chunk" of redcap-ready data
  for (i in 1:length(chunks))
@@ -134,4 +130,6 @@ data_export_path=paste0(output_dir,data_file_name_export)
    } # end second loop        
 
 
+
 ```
+
