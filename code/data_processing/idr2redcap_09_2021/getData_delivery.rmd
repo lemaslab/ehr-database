@@ -33,7 +33,7 @@ output: html_document
 ```
 
 #### __Data Processing Summary__
-![](dataprocessing_workflow.png)
+![](data_processing_workflow.png)
 The data processing workflow . . . 
 the first step is X and second step is y and the final step is Z. 
 
@@ -70,7 +70,8 @@ library(stringr)
 
 n_max=1000000
 data_file_name="baby_mom_at_birth_with_payer.csv"
-data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/")
+# data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/")
+data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/")
 data_import_path=paste0(data_dir,data_file_name)
 
 # read data
@@ -144,7 +145,7 @@ data_ready
 batchSize=12000; # number of rows in single output file
 data_file_name_export=paste0("baby_",as.character(data_ready[2,2]))
 #output_dir=paste0("~/ehr-database/data/processed/redcap_ready/delivery/")
-output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/redcap_ready/")
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/delivery/")
 
 data_export_path=paste0(output_dir,data_file_name_export)
 
