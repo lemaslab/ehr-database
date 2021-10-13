@@ -1,9 +1,8 @@
 ---
-title: "IDR-to-Redcap: delivery"
-author: "Dominick J. Lemas"
-date: "09/30/2021"
-output: html_document
-
+title: 'IDR-to-Redcap: delivery'
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r, include=FALSE}
@@ -301,7 +300,9 @@ The processed data is stored on UF/HOBI sharedrive: `r output_dir`
 
 #### __Data Processing Statistics__
 
+The raw data contains `r dim(delivery)[1]` rows and `r dim(delivery)[2]` columns. There are `r length(unique(newdata$baby_id))` unique baby-ids and `r length(unique(newdata$mom_id))` unique mom-ids. 
 
+The names of column variables includes: `r names(newdata)`
 
 
 ##### __CTSI/NIH Grant Information__
