@@ -46,7 +46,7 @@ library(stringr)
 ```
 
 ```{r, include=FALSE, message=FALSE, warning=FALSE}
-# Data Processing Notea
+# Data Processing Notes
 
 # IDR
 release_date="Fri 9/24/2021 9:47 AM"
@@ -57,7 +57,7 @@ idr_analyst_email="leimcdevitt@ufl.edu"
 dataprocessing_date=format(Sys.time(), "%a %b %d %X %Y")
 lemaslab_analyst="Dominick Lemas"
 lemaslab_analyst_email="djlemas@ufl.edu"
-lemaslab_code="ehr-database/code/data_processing/idr2redcap_09_2021/getData_delivery.rmd"
+lemaslab_code="ehr-database/code/data_processing/idr2redcap_09_2021/"
 
 ```
 
@@ -184,16 +184,15 @@ The raw data is stored on UF/HOBI sharedrive: `r data_dir`
 
 The processed data is stored on UF/HOBI sharedrive: `r output_dir`
 
-The processed data included `r length(chunks)` files with `r format(batchSize, scientific = F, digits = 0)` rows within each file.
-
 ![](data_processing_workflow.png)
 
 #### __Data Processing Statistics__
 
 The raw data contains `r dim(delivery)[1]` rows and `r dim(delivery)[2]` columns. There are `r length(unique(newdata$baby_id))` unique baby-ids. 
 
-The names of column variables includes: `r names(newdata)`
+The names of column variables includes: `r names(data_ready)`
 
+The processed data included `r length(chunks)` files with `r format(batchSize, scientific = F, digits = 0)` rows within each file.
 
 ##### __CTSI/NIH Grant Information__
 
