@@ -1,8 +1,7 @@
 ---
-title: "IDR-to-Redcap: demographics"
-author: "Dominick J. Lemas"
-output: html_document
-
+title: 'IDR-to-Redcap: delivery-baby'
+output:
+  html_document: default
 ---
 
 ```{r, include=FALSE}
@@ -12,9 +11,10 @@ output: html_document
 # **************************************************************************** #
 
 # Author:            Dominick J. Lemas 
-# Start Date:        October 01, 2021 
+# Start Date:        October 04, 2021 
 # Last Modified:     October 12, 2021 
-# IRB:               IRB protocol IRB201601899 
+# IRB:               IRB protocol IRB201601899  
+#                    
 #
 # version: R version 4.0.3 (2020-10-10)
 # version: Rstudio version Version 1.3.1073 
@@ -26,6 +26,7 @@ output: html_document
 #  (1) Descriptive statistics on IDR data. 
 #  (2) Process IDR data. 
 #  (3) Outputs for downstream import-ready files for RedCap. 
+
 
 ```
 
@@ -60,24 +61,21 @@ lemaslab_code="ehr-database/code/data_processing/idr2redcap_09_2021/"
 
 ```
 
-```{r, warning=FALSE, echo=FALSE}
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
 
 # **************************************************************************** #
-# ***************                demographics                                             
+# ***************              baby-delivery                                             
 # **************************************************************************** #
 # rows:            28530
 # cols:            20 
 # unique baby id:  28530
-# unique mom id:   22075
-
-
-# variables
-# part_id, mombaby_status, part_gender, part_ethnicity, part_race
+# repeat:          1
+# ICD9/10:         NA
 
 
 # EXTRACT DATA FROM EXCEL
 
-# import variables
 n_max=1000000
 data_file_name="baby_mom_at_birth_with_payer.csv"
 # data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/")
@@ -88,17 +86,17 @@ data_import_path=paste0(data_dir,data_file_name)
 delivery=read_csv(data_import_path, col_types = cols()) 
 
 # rename
-# note: renaming to eliminate spaces EVEN THOUGH we will rename or drop later.
+# note: renaming to eliminate spaces 
 newdata=rename(delivery, 
                baby_id = `Deidentified_baby_ID`, 
-               baby_race=Race,
-               baby_ethnicity=Ethnicity, 
+               part_race=Race,
+               part_ethnicity=Ethnicity, 
                part_dob=`Date of Delivery`, 
-               baby_birth_wt_gr=`Birth Weight`,
+               birth_wt_gr=`Birth Weight`,
                delivery_mode.raw=`Pediatric Delivery Type`,
                delivery_admit_source=`Admit Source`,
-               baby_gest_age=`Pediatric Gestational Age`, 
-               part_gender=Sex, 
+               gest_age=`Pediatric Gestational Age`, 
+               gender=Sex, 
                mom_id=Deidentified_mom_ID,
                delivery_admit_date=`Admit Date_mom`, 
                mom_race=Race_mom,
@@ -111,81 +109,59 @@ newdata=rename(delivery,
                mom_admit_height_cm=`Admit Height (cm)`,
                mom_admit_bmi=`Admit BMI` )
 
-# drop DEMOGRAPHIC variables
-demo_select=newdata %>%
-  select(mom_race,
-         mom_ethnicity,
-         baby_race,
-         baby_ethnicity,
-         part_gender,
-         mom_id,
-         baby_id,
-         delivery_admit_date)
+baby=newdata %>%
+  select(-mom_race,-mom_race, 
+         -mom_ethnicity,
+         -mom_age_delivery,
+         -mom_admit_height_in, 
+         -mom_admit_weight_lbs, 
+         -mom_admit_weight_kgs,
+         -mom_admit_height_cm, 
+         -mom_admit_bmi, 
+         -mom_id,
+         -part_race,
+         -part_ethnicity,
+         -gender)
 
 # format dates
-demo_ready = demo_select %>%
-  mutate(delivery_admit_date=mdy(delivery_admit_date))
+baby_ready = baby %>%
+  mutate(part_dob=mdy_hm(part_dob),
+         delivery_admit_date=mdy(delivery_admit_date))
 
 # FORMAT FOR REDCAP
 
-data_ready=demo_ready %>%
-  mutate(redcap_repeat_instrument="demographics",
+data_ready=baby_ready %>%
+  mutate(redcap_repeat_instrument="delivery",
          redcap_event_name=paste0(year(delivery_admit_date),"_arm_1")) %>%
-  mutate(baby_id=paste0("baby-",baby_id),
-         mom_id=paste0("mom-",mom_id)) 
+         mutate(delivery_mode=gsub(" ","_",delivery_mode.raw)) %>%
+  mutate(delivery_mode=gsub(",","&",delivery_mode),
+         part_id=paste0("baby-",baby_id),
+         baby_id=paste0("baby-",baby_id),
+         birth_wt_units="GRAMS",
+         birth_wt_measure="BIRTH-WEIGHT",
+         gest_age_measure="GESTATIONAL-AGE",
+         gest_age_units="WEEK DAY/WK") %>%
+  group_by(part_id,redcap_event_name,delivery_admit_date) %>% mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
+  select(-delivery_mode.raw,-baby_id) 
 
-# create baby data
-baby_ready = data_ready %>%
-  select(baby_id, baby_race, baby_ethnicity, part_gender, delivery_admit_date) %>%
-  mutate(part_id=baby_id,
-         mombaby_status="baby") %>%
-  rename(part_race=baby_race,
-         part_ethnicity=baby_ethnicity) %>%
-  mutate(redcap_repeat_instrument="demographics",
-         redcap_event_name=paste0(year(delivery_admit_date),"_arm_1")) %>% 
-  group_by(part_id,redcap_event_name,delivery_admit_date) %>% 
-  mutate(redcap_repeat_instance = row_number()) %>%
-  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything(),-baby_id )
-
-# Dim: 28530 rows & 9 columns
-
-# create mom data
-mom_ready = data_ready %>%
-  select(mom_id , mom_race, mom_ethnicity, delivery_admit_date) %>%
-  mutate(part_id=mom_id,
-         part_gender="FEMALE",
-         mombaby_status="mom") %>%
-  rename(part_race=mom_race ,
-         part_ethnicity=mom_ethnicity ) %>%
-  mutate(redcap_repeat_instrument="demographics",
-         redcap_event_name=paste0(year(delivery_admit_date),"_arm_1")) %>% 
-  group_by(part_id) %>% 
-  mutate(redcap_repeat_instance = row_number()) %>%
-  filter(redcap_repeat_instance==1) %>%
-  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything(),-mom_id)
-
-# Dim: 22075 rows & 9 columns
-
-  
-# combine mom & baby
-
-data_final=bind_rows(baby_ready,mom_ready) %>%
-  ungroup() %>% select(-delivery_admit_date)
+data_ready
 
 ## EXPORT FOR REDCAP
 
 # export variables
 batchSize=12000; # number of rows in single output file
-data_file_name_export=paste0("ALL_",as.character(data_final[2,2]))
-# output_dir=paste0("~/ehr-database/data/processed/redcap_ready/demographics/")
-output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/demographics/")
+data_file_name_export=paste0("baby_",as.character(data_ready[2,2]))
+# output_dir=paste0("~/ehr-database/data/processed/redcap_ready/delivery/")
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/delivery/")
+
 data_export_path=paste0(output_dir,data_file_name_export)
 
 # Note: expecting to expot to PATH: ~/ehr-database/data/processed/redcap_ready/delivery/
 # NA: missing values are coded as "empty" in output
 
 # number of import files
- chunks=split(data_final, floor(0:(nrow(data_final)-1)/batchSize))
+ chunks=split(data_ready, floor(0:(nrow(data_ready)-1)/batchSize))
 
 # export each "chunk" of redcap-ready data
  for (i in 1:length(chunks))
@@ -193,7 +169,9 @@ data_export_path=paste0(output_dir,data_file_name_export)
    write.table(chunks[[i]],paste0(data_export_path,i,'.csv'),row.names=F,na = "", sep=",")
    } # end second loop        
 
+
 ```
+
 #### __Data Summary__
 Electronic health record (EHR) data were released from the UF Integrated Data Repository (IDR) by `r idr_analyst` on `r release_date` which includes Protected Health Information and are provided to you at your request and are intended solely for use in the research approved by IRB protocol IRB201601899. The data represents the cohort of patients presenting to University of Florida who had a baby delivery between June, 2011 and September, 2021. Note: this study required 25 hours of analyst time. The data are released to you in your role for this study as described in your IRB documents. Please ensure that appropriate safeguards as described in UF Health and/or University of Florida policies are implemented to protect the integrity of the PHI.
 
@@ -210,9 +188,9 @@ The processed data is stored on UF/HOBI sharedrive: `r output_dir`
 
 #### __Data Processing Statistics__
 
-The raw data contains `r dim(delivery)[1]` rows and `r dim(delivery)[2]` columns. There are `r length(unique(newdata$mom_id))` unique ids. 
+The raw data contains `r dim(delivery)[1]` rows and `r dim(delivery)[2]` columns. There are `r length(unique(newdata$baby_id))` unique baby-ids. 
 
-The names of column variables includes: `r names(data_final)`
+The names of column variables includes: `r names(data_ready)`
 
 The processed data included `r length(chunks)` files with `r format(batchSize, scientific = F, digits = 0)` rows within each file.
 
@@ -221,5 +199,4 @@ The processed data included `r length(chunks)` files with `r format(batchSize, s
 In accordance with NIH requirements, all publications, presentations and proposals supported in whole or in part by the UF CTSI or its services must cite the appropriate NIH grant number(s). When using data and services from the IDR, please use the following citation language.
 
 We acknowledge the University of Florida Integrated Data Repository (IDR) and the UF Health Office of the Chief Data Officer for providing the analytic data set for this project. Additionally, the Research reported in this publication was supported by the National Center for Advancing Translational Sciences of the National Institutes of Health under University of Florida Clinical and Translational Science Awards UL1 TR000064 and UL1TR001427. The content of this publication, presentation and/or proposal is solely the responsibility of the authors and does not necessarily represent the official views of the National Institutes of Health.
-
 
