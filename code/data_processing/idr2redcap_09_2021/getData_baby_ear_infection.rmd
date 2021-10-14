@@ -76,8 +76,8 @@ lemaslab_code="ehr-database/code/data_processing/idr2redcap_09_2021/"
 
 # import variables
 n_max=100000000
-data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/baby_data/")
-# data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/baby_data/")
+# data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/baby_data/")
+data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/baby_data/")
 
 # import data-01
 data_file_name="baby_ear_infection.csv"
