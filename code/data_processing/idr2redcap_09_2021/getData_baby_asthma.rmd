@@ -76,8 +76,8 @@ lemaslab_code="ehr-database/code/data_processing/idr2redcap_09_2021/"
 
 # import variables
 n_max=100000000
-data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/baby_data/")
-# data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/baby_data/")
+# data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/baby_data/")
+data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/baby_data/")
 
 # import data-01
 data_file_name="baby_asthma.csv"
@@ -112,9 +112,9 @@ data_ready=data %>%
 
 # export variables
 batchSize=12000; # number of rows in single output file
-data_file_name_export=paste0("baby_asthma",as.character(data_ready[2,2]))
-output_dir=paste0("~/ehr-database/data/processed/redcap_ready/baby_asthma/")
-# output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/baby_asthma/")
+data_file_name_export=paste0("baby_asthma_",as.character(data_ready[2,2]))
+# output_dir=paste0("~/ehr-database/data/processed/redcap_ready/baby_asthma/")
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/baby_asthma/")
 
 data_export_path=paste0(output_dir,data_file_name_export)
 
