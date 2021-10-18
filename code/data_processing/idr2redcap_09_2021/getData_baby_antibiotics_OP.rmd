@@ -86,33 +86,33 @@ data=read_csv(data_import_path, col_types = cols())
 # rename
 newdata=rename(data, 
                part_id = `Deidentified_baby_ID`, 
-               abx_ip_date = `Taken Datetime`,
-               abx_ip_name = `Med Order Display Name`,
-               abx_ip_type = `Medication History Category`,
-               abx_ip_status = `Med Status Category`,
-               abx_ip_therapy_class = `Med Therapy Class`,
-               abx_ip_pharm_class= `Pharmacy Class`,
-               abx_ip_pharm_subclass= `Pharmacy Subclass`,
-               abx_ip_rxnorm_code = `Rxnorm Code`
+               abx_op_date = `Med Order Datetime`,
+               abx_op_name = `Med Order Display Name`,
+               abx_op_type = `Medication History Category`,
+               abx_op_therapy_class = `Med Therapy Class`,
+               abx_op_pharm_class= `Pharmacy Class`,
+               abx_op_pharm_subclass= `Pharmacy Subclass`,
+               abx_op_rxnorm_code = `Rxnorm Code`
                )
 
 # format dates
 data_formatted = newdata %>%
-  mutate(abx_ip_date_tmp=as.POSIXct(abx_ip_date, format="%m/%d/%Y %H:%M"),
-         abx_ip_date=format(strptime(abx_ip_date_tmp, 
-                                             format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-abx_ip_date_tmp)
+  mutate(abx_op_date_tmp=as.POSIXct(abx_op_date, format="%m/%d/%Y %H:%M"),
+         abx_op_date=format(strptime(abx_op_date_tmp, 
+                                             format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-abx_op_date_tmp)
 
 # FORMAT FOR REDCAP
 
 data_ready=data_formatted %>%
-  mutate(abx_ip_date=ymd_hms(abx_ip_date)) %>%
+  mutate(abx_op_date=ymd_hms(abx_op_date)) %>%
   mutate(redcap_repeat_instrument="antibiotics",
-         redcap_event_name=paste0(year(abx_ip_date),"_arm_1"),
-         year=year(abx_ip_date)) %>%
-         mutate(abx_ip_name=gsub(" ","_",abx_ip_name)) %>%
-  mutate(abx_ip_name=gsub(",","&",abx_ip_name),
+         redcap_event_name=paste0(year(abx_op_date),"_arm_1"),
+         year=year(abx_op_date),
+         abx_op_status= "Out-Patient") %>%
+         mutate(abx_op_name=gsub(" ","_",abx_op_name)) %>%
+  mutate(abx_op_name=gsub(",","&",abx_op_name),
          part_id=paste0("baby-",part_id)) %>%
-  arrange(part_id,abx_ip_date) %>%
+  arrange(part_id,abx_op_date) %>%
   group_by(part_id, year) %>% mutate(redcap_repeat_instance = row_number()) %>%
   ungroup() %>% select(-year) %>%
   select("part_id", "redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything())
@@ -121,13 +121,10 @@ data_ready=data_formatted %>%
 
 # export variables
 batchSize=12000; # number of rows in single output file
-data_file_name_export=paste0("baby_abx_ip_",as.character(data_ready[2,2]))
+data_file_name_export=paste0("baby_abx_op_",as.character(data_ready[2,2]))
 # output_dir=paste0("~/ehr-database/data/processed/redcap_ready/antibiotics/")
 output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/antibiotics/")
 data_export_path=paste0(output_dir,data_file_name_export)
-
-# Note: expecting to expot to PATH: ~/ehr-database/data/processed/redcap_ready/delivery/
-# NA: missing values are coded as "empty" in output
 
 # number of import files
  chunks=split(data_ready, floor(0:(nrow(data_ready)-1)/batchSize))
