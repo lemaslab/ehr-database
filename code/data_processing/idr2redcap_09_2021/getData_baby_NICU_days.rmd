@@ -91,49 +91,48 @@ data=read_csv(data_import_path, col_types = cols())
 # note: renaming to eliminate spaces EVEN THOUGH we will rename or drop later.
 newdata=rename(data, 
                part_id = `Deidentified_baby_ID`, 
-               NICU_LOS_days=`NICU LOS (days)`,
-               NICU_enter_date=`Enter DateTime`, 
-               NICU_exit_date=`Exit DateTime`
+               nicu_los_days=`NICU LOS (days)`,
+               nicu_enter_date=`Enter DateTime`, 
+               nicu_exit_date=`Exit DateTime`
                )
 
 # format dates
 data_formatted = newdata %>%
-  mutate(NICU_enter_date_tmp=as.POSIXct(NICU_enter_date, 
+  mutate(nicu_enter_date_tmp=as.POSIXct(nicu_enter_date, 
                                                  format="%m/%d/%Y %H:%M"),
-         NICU_enter_date=format(strptime(NICU_enter_date_tmp, 
-                                                format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-NICU_enter_date_tmp)
+         nicu_enter_date=format(strptime(nicu_enter_date_tmp, 
+                                                format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-nicu_enter_date_tmp) %>%
+  mutate(nicu_exit_date_tmp=as.POSIXct(nicu_exit_date , 
+                                                 format="%m/%d/%Y %H:%M"),
+         nicu_exit_date =format(strptime(nicu_exit_date_tmp, 
+                                                format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-nicu_exit_date_tmp)
+  
 
 # FORMAT FOR REDCAP
 
-data_ready=bmi_ready %>%
-  mutate(wellvisit_date=ymd_hms(wellvisit_date)) %>%
-  mutate(redcap_repeat_instrument="anthropometrics",
-         redcap_event_name=paste0(year(wellvisit_date),"_arm_1"),
-                                  year=year(wellvisit_date),
-         wellvisit_wt_units="POUNDS",
-         wellvisit_wt_measure="WEIGHT",
-         wellvisit_ht_units="CENTIMETERS",
-         wellvisit_wt_measure="HEIGHT",
-         wellvisit_headcir_units="CENTIMETERS",
-         wellvisit_headcir_measure="HEAD_CIRCUMFERENCE") %>%
+data_ready=data_formatted %>%
+  mutate(nicu_enter_date=ymd_hms(nicu_enter_date)) %>%
+  mutate(redcap_repeat_instrument="delivery",
+         redcap_event_name=paste0(year(nicu_enter_date),"_arm_1"),
+                                  year=year(nicu_enter_date),
+         nicu_los_units="DAYS",
+         nicu_los_measure="NICU LENGTH-OF-STAY") %>%
   mutate(part_id=paste0("baby-",part_id)) %>%
-  arrange(part_id,wellvisit_date) %>%
+  arrange(part_id,nicu_enter_date) %>%
   group_by(part_id,year) %>% mutate(redcap_repeat_instance = row_number()) %>%
-  ungroup() %>% select(-year) %>%
-  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) 
+  ungroup() %>% select(-year, -`Date of delivery`) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) %>%
+  drop_na()
   
 
 ## EXPORT FOR REDCAP
 
 # export variables
 batchSize=12000; # number of rows in single output file
-data_file_name_export=paste0("baby_wellvisit_",as.character(data_ready[2,2]))
-# output_dir=paste0("~/ehr-database/data/processed/redcap_ready/anthropometrics/")
-output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/anthropometrics/")
+data_file_name_export=paste0("baby_NICU_",as.character(data_ready[2,2]))
+# output_dir=paste0("~/ehr-database/data/processed/redcap_ready/delivery/")
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/delivery/")
 data_export_path=paste0(output_dir,data_file_name_export)
-
-# Note: expecting to expot to PATH: ~/ehr-database/data/processed/redcap_ready/delivery/
-# NA: missing values are coded as "empty" in output
 
 # number of import files
  chunks=split(data_ready, floor(0:(nrow(data_ready)-1)/batchSize))
