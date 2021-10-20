@@ -87,55 +87,47 @@ data=read_csv(data_import_path, col_types = cols())
 
 # rename
 # note: renaming to eliminate spaces EVEN THOUGH we will rename or drop later.
-newdata=rename(op_antibiotics, 
+newdata=rename(data, 
                part_id = `Deidentified_mom_ID`, 
-               med_category = `Medication History Category`,
-               date_time_taken = `Med Order Datetime`,
-               med_name = `Med Order Display Name`,
-               med_therapy_class = `Med Therapy Class`,
-               pharm_class = `Pharmacy Class`,
-               pharm_subclass = `Pharmacy Subclass`,
-               rxnorm_code = `Rxnorm Code`)
+               abx_op_type = `Medication History Category`,
+               abx_op_date = `Med Order Datetime`,
+               abx_op_name = `Med Order Display Name`,
+               abx_op_therapy_class = `Med Therapy Class`,
+               abx_op_pharm_class = `Pharmacy Class`,
+               abx_op_pharm_subclass = `Pharmacy Subclass`,
+               abx_op_rxnorm_code = `Rxnorm Code`)
 
 # format dates
-newdata = newdata %>%
-  mutate(date_time_taken_tmp=as.POSIXct(date_time_taken, format="%m/%d/%Y %H:%M"),
-         date_time_taken=format(strptime(date_time_taken_tmp, 
-                                             format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-date_time_taken_tmp)
+data_formatted = newdata %>%
+  mutate(abx_op_date_tmp=as.POSIXct(abx_op_date, format="%m/%d/%Y %H:%M"),
+         abx_op_date=format(strptime(abx_op_date_tmp, 
+                                             format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-abx_op_date_tmp)
 
 
 # FORMAT FOR REDCAP
-
-data_ready=newdata %>%
-  mutate(redcap_repeat_instrument="op_antibiotics",
-         redcap_event_name=paste0(year(date_time_taken),"_arm_1"),
-         year=year(date_time_taken)) %>%
-  mutate(med_name=gsub(" ","_",med_name),
-         med_category=gsub(" ","_",med_category),
-         med_therapy_class=gsub(" ","_",med_therapy_class),
-         pharm_class=gsub(" ","_",pharm_class),
-         pharm_subclass=gsub(" ","_",pharm_subclass),
+data_ready=data_formatted %>%
+  mutate(abx_op_date=ymd_hms(abx_op_date)) %>%
+  mutate(redcap_repeat_instrument="antibiotics",
+         redcap_event_name=paste0(year(abx_op_date),"_arm_1"),
+         year=year(abx_op_date),
+         abx_op_status= "Out-Patient") %>%
+         mutate(abx_op_name=gsub(" ","_",abx_op_name)) %>%
+  mutate(abx_op_name=gsub(",","&",abx_op_name),
          part_id=paste0("mom-",part_id)) %>%
-  arrange(part_id,date_time_taken) %>%
+  arrange(part_id,abx_op_date) %>%
   group_by(part_id, year) %>% mutate(redcap_repeat_instance = row_number()) %>%
-  ungroup() %>%
-  select("part_id", "redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",,everything()) %>%
-  select(-year)
-  
-#prenatals_ready
+  ungroup() %>% select(-year) %>%
+  select("part_id", "redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything())
 
 ## EXPORT FOR REDCAP
 
 # export variables
 batchSize=12000; # number of rows in single output file
-data_file_name_export=paste0("mom_",as.character(data_ready[2,2]))
+data_file_name_export=paste0("mom_abx_op_",as.character(data_ready[2,2]))
 # output_dir=paste0("~/ehr-database/data/processed/redcap_ready/antibiotics/")
-#output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/antibiotics/")
-output_dir=paste0("Y:/DJLEMAS/EHR_Data/processed/redcap_ready/antibiotics/")
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/antibiotics/")
+# output_dir=paste0("Y:/DJLEMAS/EHR_Data/processed/redcap_ready/antibiotics/")
 data_export_path=paste0(output_dir,data_file_name_export)
-
-# Note: expecting to expot to PATH: ~/ehr-database/data/processed/redcap_ready/antibiotics/
-# NA: missing values are coded as "empty" in output
 
 # number of import files
  chunks=split(data_ready, floor(0:(nrow(data_ready)-1)/batchSize))
@@ -164,7 +156,7 @@ The processed data is stored on UF/HOBI sharedrive: `r output_dir`
 
 #### __Data Processing Statistics__
 
-The raw data contains `r dim(vaccines)[1]` rows and `r dim(vaccines)[2]` columns. There are `r length(unique(data_ready$part_id))` unique ids. 
+The raw data contains `r dim(data)[1]` rows and `r dim(data)[2]` columns. There are `r length(unique(data_ready$part_id))` unique ids. 
 
 The names of column variables includes: `r names(data_ready)`
 
