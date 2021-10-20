@@ -161,7 +161,7 @@ The processed data is stored on UF/HOBI sharedrive: `r output_dir`
 
 #### __Data Processing Statistics__
 
-The raw data contains `r dim(bmi)[1]` rows and `r dim(bmi)[2]` columns. There are `r length(unique(newdata$part_id))` unique ids. 
+The raw data contains `r dim(data)[1]` rows and `r dim(data)[2]` columns. There are `r length(unique(newdata$part_id))` unique ids. 
 
 The names of column variables includes: `r names(data_ready)`
 
