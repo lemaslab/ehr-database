@@ -81,42 +81,42 @@ lemaslab_code="ehr-database/code/data_processing/idr2redcap_09_2021/"
 n_max=1000000
 data_file_name="mom_height_weight_prenatals.csv"
 # data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/")
-#data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/mom_data/")
-data_dir=paste0("Y:/DJLEMAS/EHR_Data/raw/dataset_09_2021/mom_data/")
+data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/mom_data/")
+# data_dir=paste0("Y:/DJLEMAS/EHR_Data/raw/dataset_09_2021/mom_data/")
 data_import_path=paste0(data_dir,data_file_name)
 
 # read data
-prenatal_hw=read_csv(data_import_path, col_types = cols()) 
+data=read_csv(data_import_path, col_types = cols()) 
 
 # rename
 # note: renaming to eliminate spaces EVEN THOUGH we will rename or drop later.
-newdata=rename(prenatal_hw, 
+newdata=rename(data, 
                part_id = `Deidentified_mom_ID`, 
-               encounter_type = `Encounter Type`,
-               date_time= `Height&Weight Datetime`,
-               prenatal_weight = `Weight (lb)`,
-               prenatal_height = `Height (in)`
+               prenatal_encounter_type = `Encounter Type`,
+               prenatal_encounter_date= `Height&Weight Datetime`,
+               prenatal_wt_lbs = `Weight (lb)`,
+               prenatal_ht_in = `Height (in)`
                )
 
 # format dates
-newdata = newdata %>%
-  mutate(date_time_tmp=as.POSIXct(date_time, format="%m/%d/%Y %H:%M"),
-         date_time=format(strptime(date_time_tmp, 
-                                             format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-date_time_tmp)
+data_formatted = newdata %>%
+  mutate(prenatal_encounter_date_tmp=as.POSIXct(prenatal_encounter_date, format="%m/%d/%Y %H:%M"),
+         prenatal_encounter_date=format(strptime(prenatal_encounter_date_tmp, 
+                                             format='%Y-%m-%d %H:%M:%S'), '%Y-%m-%d %I:%M:%S %p')) %>%  select(-prenatal_encounter_date_tmp)
 
 # FORMAT FOR REDCAP
 
-data_ready=newdata %>%
-  mutate(date_time=ymd_hms(date_time)) %>%
+data_ready=data_formatted %>%
+  mutate(prenatal_encounter_date=ymd_hms(prenatal_encounter_date)) %>%
   mutate(redcap_repeat_instrument="anthropometrics",
-         redcap_event_name=paste0(year(date_time),"_arm_1"),
-                                  year=year(date_time),
-         prenatal_weight_units="POUNDS",
-         prenatal_weight_measure="WEIGHT",
-         prenatal_height_units="INCHES",
-         prenatal_height_measure="HEIGHT") %>%
+         redcap_event_name=paste0(year(prenatal_encounter_date),"_arm_1"),
+                                  year=year(prenatal_encounter_date),
+         prenatal_wt_units="POUNDS",
+         prenatal_wt_measure="WEIGHT",
+         prenatal_ht_units="INCHES",
+         prenatal_ht_measure="HEIGHT") %>%
   mutate(part_id=paste0("mom-",part_id)) %>%
-  arrange(part_id,date_time) %>%
+  arrange(part_id,prenatal_encounter_date) %>%
   group_by(part_id,year) %>% mutate(redcap_repeat_instance = row_number()) %>%
   ungroup() %>% select(-year) %>%
   select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything()) 
@@ -126,14 +126,11 @@ data_ready=newdata %>%
 
 # export variables
 batchSize=12000; # number of rows in single output file
-data_file_name_export=paste0("mom_height_weight_prenatals_",as.character(data_ready[2,2]))
+data_file_name_export=paste0("mom_prenatal_hw_",as.character(data_ready[2,2]))
 # output_dir=paste0("~/ehr-database/data/processed/redcap_ready/anthropometrics/")
-# output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/anthropometrics/")
-output_dir=paste0("Y:/DJLEMAS/EHR_Data/processed/redcap_ready/anthropometrics/")
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/anthropometrics/")
+# output_dir=paste0("Y:/DJLEMAS/EHR_Data/processed/redcap_ready/anthropometrics/")
 data_export_path=paste0(output_dir,data_file_name_export)
-
-# Note: expecting to expot to PATH: ~/ehr-database/data/processed/redcap_ready/delivery/
-# NA: missing values are coded as "empty" in output
 
 # number of import files
  chunks=split(data_ready, floor(0:(nrow(data_ready)-1)/batchSize))
@@ -162,7 +159,7 @@ The processed data is stored on UF/HOBI sharedrive: `r output_dir`
 
 #### __Data Processing Statistics__
 
-The raw data contains `r dim(bmi)[1]` rows and `r dim(bmi)[2]` columns. There are `r length(unique(newdata$part_id))` unique ids. 
+The raw data contains `r dim(data)[1]` rows and `r dim(data)[2]` columns. There are `r length(unique(newdata$part_id))` unique ids. 
 
 The names of column variables includes: `r names(data_ready)`
 
