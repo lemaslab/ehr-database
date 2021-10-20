@@ -1,5 +1,5 @@
 ---
-title: 'IDR-to-RedCap: mom OP antbiotics'
+title: 'IDR-to-RedCap: mom antibiotics-OP'
 output: html_document
 ---
 
@@ -64,7 +64,7 @@ lemaslab_code="ehr-database/code/data_processing/idr2redcap_09_2021/"
 ```{r, include=FALSE, message=FALSE, warning=FALSE}
 
 # **************************************************************************** #
-# ***************                mom_op_antibiotics                                          
+# ***************                mom_antibiotics_OP                                          
 # **************************************************************************** #
 # rows:            217102      
 # cols:            3 
@@ -78,12 +78,12 @@ lemaslab_code="ehr-database/code/data_processing/idr2redcap_09_2021/"
 n_max=1000000
 data_file_name="mom_OP_antibiotic.csv"
 # data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/mom/data")
-#data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/mom_data/")
-data_dir=paste0("Y:/DJLEMAS/EHR_Data/raw/dataset_09_2021/mom_data/")
+data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/mom_data/")
+# data_dir=paste0("Y:/DJLEMAS/EHR_Data/raw/dataset_09_2021/mom_data/")
 data_import_path=paste0(data_dir,data_file_name)
 
 # read data
-op_antibiotics=read_csv(data_import_path, col_types = cols()) 
+data=read_csv(data_import_path, col_types = cols()) 
 
 # rename
 # note: renaming to eliminate spaces EVEN THOUGH we will rename or drop later.
