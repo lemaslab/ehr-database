@@ -1,5 +1,5 @@
 ---
-title: 'IDR-to-RedCap: mom cancer codes'
+title: 'IDR-to-RedCap: mom mortality and comorbidity codes'
 output: html_document
 ---
 
@@ -77,26 +77,28 @@ data_dir=paste0("~/ehr-database/data/raw/dataset_10_2021/")
 # data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_10_2021/")
 
 # import data-01
-data_file_name="mom_cancer_ICD9.csv"
+data_file_name="mom_diagnosis_ICD9.csv"
 data_import_path=paste0(data_dir,data_file_name)
 data01=read_csv(data_import_path, col_types = cols()) %>% 
   rename(part_id = `Deidentified_mom_ID`, 
-         cancer_dx_date = `Diagnosis Start Date`,
-         cancer_dx_code = `Diagnosis Code`,
-         cancer_dx_descrip = `Diagnosis Description`,
-         cancer_dx_type = `Diagnosis Type`) %>%
-  mutate(cancer_icd_code="ICD9")
+         perinatal_dx_date = `Diagnosis Start Date`,
+         perinatal_dx_code = `Diagnosis Code`,
+         perinatal_dx_descrip = `Diagnosis Description`,
+         perinatal_dx_type = `Diagnosis Type`) %>%
+  mutate(perinatal_dx_code=as.character(perinatal_dx_code),
+         perinatal_icd_code="ICD9")
 
 # import data-02
-data_file_name="mom_cancer_ICD10.csv"
+data_file_name="mom_diagnosis_ICD10.csv"
 data_import_path=paste0(data_dir,data_file_name)
 data02=read_csv(data_import_path, col_types = cols()) %>% 
   rename(part_id = `Deidentified_mom_ID`, 
-         cancer_dx_date = `Diagnosis Start Date`,
-         cancer_dx_code = `Diagnosis Code`,
-         cancer_dx_descrip = `Diagnosis Description`,
-         cancer_dx_type = `Diagnosis Type`) %>%
-  mutate(cancer_icd_code="ICD10")
+         perinatal_dx_date = `Diagnosis Start Date`,
+         perinatal_dx_code = `Diagnosis Code`,
+         perinatal_dx_descrip = `Diagnosis Description`,
+         perinatal_dx_type = `Diagnosis Type`) %>%
+  mutate(perinatal_dx_code=as.character(perinatal_dx_code),
+         perinatal_icd_code="ICD10")
 
 # combine data-sets
 newdata=bind_rows(data01, data02) 
@@ -105,13 +107,13 @@ newdata=bind_rows(data01, data02)
 
 data_ready=newdata %>%
   mutate(redcap_repeat_instrument="diagnosis_codes",
-         cancer_dx_code_type="CANCER",
-         redcap_event_name=paste0(year(cancer_dx_date),"_arm_1")) %>%
-         mutate(cancer_dx_descrip=gsub(" ","_",cancer_dx_descrip)) %>%
-  mutate(cancer_dx_type=gsub(" ","_",cancer_dx_type),
+         perinatal_dx_code_type="PERINATAL",
+         redcap_event_name=paste0(year(perinatal_dx_date),"_arm_1")) %>%
+         mutate(perinatal_dx_descrip=gsub(" ","_",perinatal_dx_descrip)) %>%
+  mutate(perinatal_dx_type=gsub(" ","_",perinatal_dx_type),
          part_id=paste0("mom-",part_id),
-         year=year(cancer_dx_date)) %>%
-  arrange(part_id,cancer_dx_date) %>%
+         year=year(perinatal_dx_date)) %>%
+  arrange(part_id,perinatal_dx_date) %>%
   group_by(part_id, year) %>% mutate(redcap_repeat_instance = row_number()) %>%
   ungroup() %>%
   select("part_id", "redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name", everything()) %>%
@@ -122,9 +124,9 @@ data_ready=newdata %>%
 
 # export variables
 batchSize=12000; # number of rows in single output file
-data_file_name_export=paste0("mom_",as.character(data_ready[2,2]))
-# output_dir=paste0("~/ehr-database/data/processed/redcap_ready/cancer/")
-output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/cancer/")
+data_file_name_export=paste0("mom_mortality_",as.character(data_ready[2,2]))
+# output_dir=paste0("~/ehr-database/data/processed/redcap_ready/mortality/")
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/mortality/")
 
 data_export_path=paste0(output_dir,data_file_name_export)
 
