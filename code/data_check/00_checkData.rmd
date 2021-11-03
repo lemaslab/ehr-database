@@ -1,0 +1,217 @@
+---
+title: "mom-baby: EDA 2011-2021"
+author: "Dominick Lemas"
+date: "11/03/2021"
+output: html_document
+
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+
+# Author:      Dominick Lemas
+# Date:        Sept 29, 2020 
+# Modify:      Feb 10, 2020
+# IRB:         UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899) 
+
+# version: R version 4.0.2 (2020-06-22)
+# version: Rstudio version Version 1.3.959 
+
+# **************************************************************************** #
+# ***************                Description                   *************** #
+# **************************************************************************** #
+
+# PLAN: Access redcap via API and pull/format/clean data for downstream analysis.
+# Note: vpn must be active
+
+# keyringr: https://cran.r-project.org/web/packages/keyringr/vignettes/Avoiding_plain_text_passwords_in_R_with_keyringr.html
+
+```
+
+
+```{r, message=FALSE}
+
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+
+library(keyringr)
+library(tidyverse)
+library(redcapAPI)
+library(REDCapR)
+library(dplyr)
+library(plyr)
+```
+
+```{r, message=FALSE}
+# Windows
+source("~/ehr-database/code/utils/utils.R")
+api_token=get_API_token("redcap_ehr2")
+```
+
+```{r}
+#Windows users with spaces in file path
+api_token <- decrypt_dpapi_pw("C:\\Users\\'Claire Layton'\\DPAPI\\passwords\\DESKTOP-OEIJUDH\\redcap_ehr.txt")
+print(api_token)
+
+```
+
+```{r, message=FALSE}
+# Mac, you need to store your API code in your keychain first
+# api_token <- decrypt_kc_pw("redcap_ehr")
+```
+
+```{r, message=FALSE}
+# API and URL
+uri='https://redcap.ctsi.ufl.edu/redcap/api/'
+rcon <- redcapConnection(url=uri, token=api_token)
+
+# variables of interest
+desired_fields_v1=c("part_id","mombaby_status","part_gender",
+                    "part_ethnicity","part_race","part_dob",
+                    "delivery_mode","birth_wt_measure","birth_wt_gr",
+                    "birth_wt_units","delivery_admit_date",
+                    "delivery_admit_source","gest_age_measure",
+                    "gest_age","gest_age_units","baby_nicu_los",
+                    "mom_admit_bmi_measure","mom_admit_bmi",
+                    "mom_admit_bmi_units","mom_admit_wt_measure",
+                    "mom_admit_wt_lbs","mom_admit_wt_lbs_units",
+                    "mom_admit_wt_kgs","mom_admit_wt_kgs_units",
+                    "mom_admit_ht_measure","mom_admit_ht_in",
+                    "mom_admit_ht_in_units","mom_admit_ht_cm",
+                    "mom_admit_ht_cm_units","mom_admit_age_measure",
+                    "mom_admit_age_yr","mom_admit_age_yr_units",
+                    "health_insurance","delivery_zipcode",
+                    "delivery_zipcode9","nicu_los_days",
+                    "nicu_enter_date","nicu_exit_date",
+                    "nicu_los_units","nicu_los_measure")
+
+desired_records_v1=c("baby-1","baby-2","baby-3","baby-4")
+
+desired_forms=c("labs")
+
+# Access data
+data = redcap_read_oneshot(
+  uri,
+  api_token,
+  fields = desired_fields_v1,
+  records = desired_records_v1,
+  forms = desired_forms,
+  raw_or_label_headers = "raw")$data
+
+data = data %>%
+  as_tibble() %>%
+  filter(redcap_repeat_instrument =="demographics") 
+
+#Get initial counts of babies and moms before any kind of subsetting
+counts_unique_baby_ids = ddply(data,  .(part_id), nrow)
+#16,711 unique babies and 13,856 unique moms
+
+# Save the data in your local laptop (Github path: /data)
+save(list=c("data"),file="~/mombaby-ehr-SDoH/data/raw/data.RData")
+```
+
+
+
+############################################
+############################################
+#Code for retrieving number of visits per baby (up to 10)
+
+```{r}
+#NOTE: This code takes a few minutes to run but only needs to be run once. It creates a file in your local laptop.
+#Code to isolate babies that were seen in the health system multiple times
+desired_events_visits10 = c("visit_1_arm_1", "visit_2_arm_1", "visit_3_arm_1", "visit_4_arm_1", 
+                            "visit_5_arm_1", "visit_6_arm_1", "visit_7_arm_1", "visit_8_arm_1",
+                            "visit_9_arm_1", "visit_10_arm_1")
+
+#subset to fields that are dates
+desired_fields_visits10 = c("part_id", "mom_id2", "baby_immune_date", "baby_obs_date", "baby_med_date", 
+                            "baby_med_ip_date", "baby_asthma_date", "baby_fa_date", 
+                            "baby_ear_infect_date", "baby_eczema_date", "baby_sebaceous_date", "baby_hemangioma_date",
+                            "baby_obesity_date", "baby_asthma_hosp_date", "baby_derm_hosp_date",
+                            "baby_ear_hosp_date", "baby_eczema_hosp_date", "baby_fa_hosp_date",
+                            "baby_hemang_hosp_date", "baby_sebaceous_hosp_date", "baby_obesity_hosp_date",
+                            "baby_erythema_hosp_date")
+
+# Identify visit dates to sort out babies with repeat appointments in the health system
+data_for_health_service_inclusion=redcap_read_oneshot(
+  uri,
+  api_token,
+  events = desired_events_visits10,
+  fields = desired_fields_visits10,
+  #records = desired_records_v1,
+  raw_or_label_headers = "raw")$data
+
+data_for_health_service_inclusion = data_for_health_service_inclusion %>%
+  as_tibble()
+
+#Get list of baby ids
+baby_ids <- as.list(unique(data_for_health_service_inclusion$part_id))
+data_for_health_service_inclusion = data_for_health_service_inclusion %>%
+  filter(str_detect(part_id, "Baby"))
+  
+
+#Set up matrix and index for for loop
+counts_of_visits <- matrix(0, ncol = 1, nrow = length(baby_ids), byrow = T)
+index = 1
+for(i in baby_ids) {
+  baby_i_subset = data_for_health_service_inclusion %>% filter(data_for_health_service_inclusion$part_id == i)
+  event_names = as.list(unique(baby_i_subset$redcap_event_name))
+  
+  counts_of_visits[index, 1] <- length(event_names)
+  #print(length(event_names))
+  index = index + 1
+}
+
+#cbind baby ids with visits per baby
+counts_of_visits <- data.frame(counts_of_visits)
+baby_ids <- as.data.frame(do.call(rbind, baby_ids)) 
+visits_per_baby <- cbind(baby_ids, counts_of_visits)
+names(visits_per_baby) <- c("baby_ids", "number_of_visits")
+
+visits_per_baby = visits_per_baby %>%
+  as_tibble()
+
+filter(str_detect(part_id, "Baby")) %>%
+
+visits_per_baby = subset()
+length(unique(id_data$part_id[str_detect(id_data$part_id, "Baby")]))
+#Save the data in your local laptop (Github path: /data)
+save(list=c("visits_per_baby"),file="~/mombaby-ehr-SDoH/data/raw/visits_per_baby.RData")
+```
+
+###############################
+###############################
+```{r}
+#Claire's Work In Progress Importing Baby Well Visits
+desired_fields_v1=c("part_id", "baby_race", "baby_ethnicity",   
+                    "baby_dob", "baby_birth_wt_gr", "delivery_mode", 
+                    "baby_gest_age", "baby_gender", "mom_id2", 
+                    "mom_age_delivery", "payer", "baby_zip_code", 
+                    "part_id2", "mom_baby_link_complete", 
+                    "mom_race_link", "mom_ethnicity_link", "delivery_mode",
+                    "mom_age_delivery", "payer", "baby_zipcode9", "baby_nicu_los", "days2_baby_wellvisit", "baby_obs_date")
+            
+# Access data
+data=redcap_read_oneshot(
+  uri,
+  api_token,
+  fields = desired_fields_v1,
+  #records = desired_records_v1,
+  raw_or_label_headers = "label")$data
+
+data=data %>%
+  as_tibble()
+
+ddply(data,  .(part_id), summarise,  mean_birth_weights = mean(baby_birth_wt_gr))
+wellvisit_count = ddply(data,  .(part_id,'Repeat Instrument' == baby_wellvisit), nrow)
+wellvisit_count = data %>% 
+  group_by(part_id, 'Repeat Instrument') %>% 
+  summarise(n = n())
+wellvisit_count <- ddply(data, .(part_id, 'Repeat Instrument'), summarise, 
+                   Count = sum(days2_baby_wellvisit != NA))
+```
+
