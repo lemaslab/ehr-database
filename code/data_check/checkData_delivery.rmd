@@ -27,6 +27,11 @@ output: html_document
 # PLAN: Access redcap via API and pull/format/clean data for downstream analysis.
 # Note: vpn must be active
 
+# Next steps
+#- function to call the IDs and events
+#- function to batch pull EHR data by year/event and combine into final dataset. 
+
+
 ```
 
 
@@ -58,36 +63,71 @@ print(api_token)
 ```
 
 ```{r, message=FALSE}
-# Mac, you need to store your API code in your keychain first
-# api_token <- decrypt_kc_pw("redcap_ehr")
+# import variables
+n_max=1000000
+data_file_name="part_id.csv"
+data_dir=paste0("~/ehr-database/data/raw/part_id/")
+data_import_path=paste0(data_dir,data_file_name)
+
+# read data
+part_id_list=read_csv(data_import_path, col_types = cols()) %>% 
+  dplyr::rename(baby_id = Deidentified_baby_ID, 
+               mom_id=Deidentified_mom_ID) %>%
+  mutate(baby_id=paste0("baby-",baby_id),
+         mom_id=paste0("mom-",mom_id)) 
+
+# mom-baby
+mom_list=unique(part_id_list$mom_id)
+baby_list=unique(part_id_list$baby_id)
+
+# extract participants
+part_id_list=c(mom_list,baby_list)
+
+
 ```
 
 ```{r, message=FALSE}
+
+
 # API and URL
 uri='https://redcap.ctsi.ufl.edu/redcap/api/'
 rcon <- redcapConnection(url=uri, token=api_token)
 
 # variables of interest
-desired_fields_v1=c("part_id","mombaby_status","lab_date",
+desired_fields_v1=c("part_id","lab_date",
                     "lab_name","lab_result","lab_result_value",
                     "lab_unit","labs_complete")
 
-# desired_records_v1=c("baby-1","baby-2","baby-3","baby-4")
+# variables of interest
+desired_fields_v2=c("part_id","mombaby_status")
 
-ds=NULL
-test=REDCapR::redcap_read(batch_size=10000, redcap_uri=uri, token=api_token)$data
+# meta data
+meta=redcap_metadata_read(uri,  api_token)
 
+# limited pull
+# event_list=c("2011_arm_1")
+forms_list=c("labs")
+records_list=c("mom-1","mom-2")
 
+records_list=mom_list
 
-desired_forms=c("labs")
+# pull lab data by event/year and combine. next steps.
+
+test1=redcap_read(batch_size=150, 
+                  redcap_uri=uri, 
+                  token=api_token,
+                  events=event_list,
+                  records=records_list,
+                  fields=desired_fields_v1)$data 
+
 
 # Access data
 data = redcap_read_oneshot(
   uri,
   api_token,
   fields = desired_fields_v1,
-  #records = desired_records_v1,
-  forms = desired_forms,
+  records = records,
+  # forms = desired_forms,
   raw_or_label_headers = "raw")$data
 
 data = data %>%
