@@ -11,11 +11,18 @@ get_API_token <- function(credential_label){
 #' Get RedCap Data
 #' Description: Return tibble with ehr data.
 #' @return tibble containing: part_id + "variable-of-interest"
-getData_redcap <- function(api_token,uri,records,variables,event_list){
+getData_redcap <- function(api_token,uri,records,variables,event_list,col_types){
+  
+  # parameters to troubleshoot
+  # records=mom_list[1:1500]
+  # event_list=c("2011_arm_1")
+  # uri='https://redcap.ctsi.ufl.edu/redcap/api/'
+  # api_token
+  
   # create part_id batch
     batchSize=100
     chunks=split(records, floor(1:(length(records))/batchSize))
-
+    
   # START LOOP  
     pages <- list()
     
@@ -25,7 +32,8 @@ getData_redcap <- function(api_token,uri,records,variables,event_list){
                           token=api_token,
                           events=event_list,
                           records=chunks[[i]],
-                          fields=variables)$data
+                          fields=variables,
+                          col_types=col_types)$data
       pages[[i]] <- redcap_data
       } # END LOOP
     redcap_final=bind_rows(pages)

@@ -70,11 +70,26 @@ variables=c("part_id","cancer_dx_date",
                     "cancer_dx_code","cancer_dx_descrip","cancer_dx_type",
                     "cancer_icd_code","cancer_dx_code_type")
 
+# Specify the column types.
+col_types <- readr::cols(
+      part_id  = readr::col_character(),
+      redcap_event_name = readr::col_factor(),
+      redcap_repeat_instrument = readr::col_factor(),
+      redcap_repeat_instance = readr::col_factor(),
+      cancer_dx_date = readr::col_date(),
+      cancer_dx_code = readr::col_factor(),
+      cancer_dx_descrip  = readr::col_character(),
+      cancer_dx_type = readr::col_factor(),
+      cancer_icd_code = readr::col_factor(),
+      cancer_dx_code_type = readr::col_factor()
+     )
+
+
 # Participants
-records=mom_list
+records=mom_list[1:10000]
 event_list=c("2011_arm_1")
-batchSize=1500
-chunks=split(records, floor(1:(length(records))/batchSize))
+#batchSize=1500
+#chunks=split(records, floor(1:(length(records))/batchSize))
 
 
 
@@ -85,12 +100,13 @@ chunks=split(records, floor(1:(length(records))/batchSize))
 
 #    for(i in 1:length(chunks)){
 
-      redcap_2011=getData_redcap(api_token,uri,chunks[[i]],variables,event_list) 
+      redcap_2011=getData_redcap(api_token,uri,records,variables,event_list,col_types) 
 
 data_2011=redcap_2011 %>%
   filter(redcap_repeat_instrument=="diagnosis_codes") 
 
 pages[[i]] <- data_2011
+
 
 }
 
