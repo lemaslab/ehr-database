@@ -120,6 +120,19 @@ data_ready=newdata %>%
 
 ## EXPORT FOR REDCAP
 
+# data-import check (downstream)
+length(unique(data_ready$part_id))
+length(unique(newdata$part_id))
+data_check=unique(data_ready$part_id)
+length(data_check)
+
+# file name
+file_name="check_mom_cancer.rda"
+#data_check_directory=paste0("~/mombaby-ehr-nlp/data/processed/redcap_check/") 
+data_check_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_check/")
+data_check_path=paste0(data_check_directory,file_name)
+data_check %>% save(data_check, file=data_check_path)
+
 # export variables
 batchSize=12000; # number of rows in single output file
 data_file_name_export=paste0("mom_",as.character(data_ready[2,2]))
