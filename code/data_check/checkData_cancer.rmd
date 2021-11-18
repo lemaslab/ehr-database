@@ -94,29 +94,51 @@ event_list=c("2011_arm_1")
 
 
   # START LOOP  
-    pages <- list()
-    
-    for(i in 1:3){
+    data_list <- list()
 
-#    for(i in 1:length(chunks)){
+ for(i in 1:length(event_list)){
 
-      redcap_2011=getData_redcap(api_token,uri,records,variables,event_list,col_types) 
+      redcap=getData_redcap(api_token,uri,records,variables,event_list[i],col_types) 
 
-data_2011=redcap_2011 %>%
+data_final=redcap %>%
   filter(redcap_repeat_instrument=="diagnosis_codes") 
 
-pages[[i]] <- data_2011
+data_list[[i]] <- data_final 
+return(data_list)
+ }
+    redcap_final=bind_rows(data_list) %>% as_tibble()
+    
 
+    V:\FACULTY\DJLEMAS\EHR_Data\processed\redcap_check
+    
+    ## EXPORT FOR REDCAP
+data_file_name_export=paste0("mom_cancer.rda")
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/cancer/")
 
-}
+data_export_path=paste0(output_dir,data_file_name_export)
+
+    
+```
+
+```{r, message=FALSE}
+
+df=redcap_final
+
+# unique participants. should be 1341 with 24249 rows
+length(unique(df$part_id))
+x=unique(df$part_id)
+
+# who is not in df
+outersect(x, y)
 
 
 
 
 ```
 
+
 ```{r, message=FALSE}
-ggplot(data, aes(x = cancer_dx_code)) +
+ggplot(redcap_final, aes(x = cancer_dx_code)) +
   geom_bar()
 
 ```

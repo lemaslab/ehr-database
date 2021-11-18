@@ -8,6 +8,16 @@ get_API_token <- function(credential_label){
   return(token)
   } # END FUNCTION
 
+#' Outersect Function
+#' Description: To find the non-duplicated elements between two or more vector
+
+outersect <- function(x, y) {
+  sort(c(setdiff(x, y),
+         setdiff(y, x)))
+} # END FUNCTION
+
+
+
 #' Get RedCap Data
 #' Description: Return tibble with ehr data.
 #' @return tibble containing: part_id + "variable-of-interest"

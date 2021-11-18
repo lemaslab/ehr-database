@@ -80,7 +80,7 @@ data_dir=paste0("~/ehr-database/data/raw/dataset_10_2021/")
 data_file_name="mom_cancer_ICD9.csv"
 data_import_path=paste0(data_dir,data_file_name)
 data01=read_csv(data_import_path, col_types = cols()) %>% 
-  rename(part_id = `Deidentified_mom_ID`, 
+  dplyr::rename(part_id = Deidentified_mom_ID, 
          cancer_dx_date = `Diagnosis Start Date`,
          cancer_dx_code = `Diagnosis Code`,
          cancer_dx_descrip = `Diagnosis Description`,
@@ -91,7 +91,7 @@ data01=read_csv(data_import_path, col_types = cols()) %>%
 data_file_name="mom_cancer_ICD10.csv"
 data_import_path=paste0(data_dir,data_file_name)
 data02=read_csv(data_import_path, col_types = cols()) %>% 
-  rename(part_id = `Deidentified_mom_ID`, 
+  dplyr::rename(part_id = `Deidentified_mom_ID`, 
          cancer_dx_date = `Diagnosis Start Date`,
          cancer_dx_code = `Diagnosis Code`,
          cancer_dx_descrip = `Diagnosis Description`,
