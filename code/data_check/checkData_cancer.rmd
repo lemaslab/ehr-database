@@ -93,15 +93,18 @@ records=mom_list
 
 # pull data
 start_time = Sys.time()
-redcap=getData_redcap(api_token,uri,records,variables,col_types) 
+df=getData_redcap(api_token,uri,records,variables,col_types) %>%
+  filter(redcap_repeat_instrument=="diagnosis_codes") %>% as_tibble() 
 end_time = Sys.time()
 end_time - start_time
 
-df=redcap %>%
-  filter(redcap_repeat_instrument=="diagnosis_codes") %>% as_tibble()
+```
+
+```{r, message=FALSE}
 
 # check the redcap data: unique participants
 length(unique(df$part_id))
+redcap_part_id=df$part_id
 
 # check against raw data
 
@@ -111,13 +114,14 @@ file_name="check_mom_cancer.rda"
 data_check_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_check/")
 data_check_path=paste0(data_check_directory,file_name)
 load(file=data_check_path)
+raw_part_id=data_check
     
-    ## EXPORT FOR REDCAP
-data_file_name_export=paste0("mom_cancer.rda")
-output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/cancer/")
+# compare raw/redcap data
+length(intersect(redcap_part_id,raw_part_id))
+length(outersect(redcap_part_id,raw_part_id))
 
-data_export_path=paste0(output_dir,data_file_name_export)
 
+# Data are equivalent
     
 ```
 
