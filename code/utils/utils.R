@@ -21,7 +21,7 @@ outersect <- function(x, y) {
 #' Get RedCap Data
 #' Description: Return tibble with ehr data.
 #' @return tibble containing: part_id + "variable-of-interest"
-getData_redcap <- function(api_token,uri,records,variables,event_list,col_types){
+getData_redcap <- function(api_token,uri,records,variables,col_types){
   
   # parameters to troubleshoot
   # records=mom_list[1:1500]
@@ -40,7 +40,6 @@ getData_redcap <- function(api_token,uri,records,variables,event_list,col_types)
       redcap_data=redcap_read(batch_size=200, 
                           redcap_uri=uri, 
                           token=api_token,
-                          events=event_list,
                           records=chunks[[i]],
                           fields=variables,
                           col_types=col_types)$data

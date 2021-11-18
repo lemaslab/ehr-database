@@ -86,30 +86,31 @@ col_types <- readr::cols(
 
 
 # Participants
-records=mom_list[1:10000]
-event_list=c("2011_arm_1")
+records=mom_list
+# event_list=c("2011_arm_1")
 #batchSize=1500
 #chunks=split(records, floor(1:(length(records))/batchSize))
 
+# pull data
+start_time = Sys.time()
+redcap=getData_redcap(api_token,uri,records,variables,col_types) 
+end_time = Sys.time()
+end_time - start_time
 
+df=redcap %>%
+  filter(redcap_repeat_instrument=="diagnosis_codes") %>% as_tibble()
 
-  # START LOOP  
-    data_list <- list()
+# check the redcap data: unique participants
+length(unique(df$part_id))
 
- for(i in 1:length(event_list)){
+# check against raw data
 
-      redcap=getData_redcap(api_token,uri,records,variables,event_list[i],col_types) 
-
-data_final=redcap %>%
-  filter(redcap_repeat_instrument=="diagnosis_codes") 
-
-data_list[[i]] <- data_final 
-return(data_list)
- }
-    redcap_final=bind_rows(data_list) %>% as_tibble()
-    
-
-    V:\FACULTY\DJLEMAS\EHR_Data\processed\redcap_check
+# file name
+file_name="check_mom_cancer.rda"
+#data_check_directory=paste0("~/mombaby-ehr-nlp/data/processed/redcap_check/") 
+data_check_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_check/")
+data_check_path=paste0(data_check_directory,file_name)
+load(file=data_check_path)
     
     ## EXPORT FOR REDCAP
 data_file_name_export=paste0("mom_cancer.rda")
