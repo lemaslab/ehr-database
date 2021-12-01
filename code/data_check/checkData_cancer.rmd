@@ -104,6 +104,24 @@ end_time - start_time
 
 ```{r, message=FALSE}
 
+# what cancer codes do we have in dataset?
+
+codes=df %>%
+  select(cancer_dx_code) %>% unique()
+  
+# export unique codes
+
+data_file_name_export="mom_cancer_codes.csv"
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/output/medical_codes/")
+data_export_path=paste0(output_dir,data_file_name_export)
+write.table(codes,data_export_path,row.names=F,na = "", sep=",")
+
+
+```
+
+
+```{r, message=FALSE}
+
 # check the redcap data: unique participants
 length(unique(df$part_id))
 redcap_part_id=df$part_id
