@@ -31,6 +31,8 @@ output: html_document
 #- function to call the IDs and events
 #- function to batch pull EHR data by year/event and combine into final dataset. 
 
+# keyringR set up
+#  https://cran.r-project.org/web/packages/keyringr/vignettes/Avoiding_plain_text_passwords_in_R_with_keyringr.html
 
 ```
 
