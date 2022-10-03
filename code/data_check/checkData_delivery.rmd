@@ -1,7 +1,7 @@
 ---
-title: "mom-baby: EDA 2011-2021"
+title: "checkData() - labs"
 author: "Dominick Lemas"
-date: "11/03/2021"
+date: "11/15/2021"
 output: html_document
 
 ---
@@ -13,8 +13,8 @@ output: html_document
 # **************************************************************************** #
 
 # Author:      Dominick Lemas
-# Date:        Sept 29, 2020 
-# Modify:      Feb 10, 2020
+# Date:        Nov 15, 2020 
+# Modify:      
 # IRB:         UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899) 
 
 # version: R version 4.0.2 (2020-06-22)
@@ -27,7 +27,10 @@ output: html_document
 # PLAN: Access redcap via API and pull/format/clean data for downstream analysis.
 # Note: vpn must be active
 
-# keyringr: https://cran.r-project.org/web/packages/keyringr/vignettes/Avoiding_plain_text_passwords_in_R_with_keyringr.html
+# Next steps
+#- function to call the IDs and events
+#- function to batch pull EHR data by year/event and combine into final dataset. 
+
 
 ```
 
@@ -44,130 +47,99 @@ library(redcapAPI)
 library(REDCapR)
 library(dplyr)
 library(plyr)
-<<<<<<< HEAD
-=======
-
-# redcapAPI install problem: first install "chron" and "labelVector" and then "redcapapi" from tar.gz
-# REDCapR install problem: install "REDCapR" from tar.gz 
-
-
->>>>>>> parent of 17436cd (cache)
 ```
 
 ```{r, message=FALSE}
 # Windows
-<<<<<<< HEAD
 source("~/ehr-database/code/utils/utils.R")
+source("~/ehr-database/code/utils/params.R")
 api_token=get_API_token("redcap_ehr2")
-=======
-source("~/BEACH-reports/code/utils/utils.R")
-api_token=get_API_token("beach_api")
->>>>>>> parent of 17436cd (cache)
-```
 
-```{r}
-#Windows users with spaces in file path
-<<<<<<< HEAD
-api_token <- decrypt_dpapi_pw("C:\\Users\\'Claire Layton'\\DPAPI\\passwords\\DESKTOP-OEIJUDH\\redcap_ehr.txt")
-print(api_token)
-=======
-# api_token <- decrypt_dpapi_pw("C:\\Users\\'Claire Layton'\\DPAPI\\passwords\\DESKTOP-OEIJUDH\\redcap_ehr.txt")
-# print(api_token)
->>>>>>> parent of 17436cd (cache)
-
-```
-
-```{r, message=FALSE}
-# Mac, you need to store your API code in your keychain first
-# api_token <- decrypt_kc_pw("redcap_ehr")
-```
-
-```{r, message=FALSE}
 # API and URL
 uri='https://redcap.ctsi.ufl.edu/redcap/api/'
 rcon <- redcapConnection(url=uri, token=api_token)
 
+```
+
+```{r, message=FALSE}
+
+#' Description: Return tibble with ehr data.
+#' @return data.frame containing: unix-date/time, value (wat)
+
+variables=c("part_id","lab_date",
+                    "lab_name","lab_result","lab_result_value",
+                    "lab_unit","labs_complete")
+records=mom_list[1:1000]
+event_list=c("2011_arm_1")
+# forms="labs"
+
+redcap_final=getData_redcap(api_token,uri,records,variables,event_list) 
+
+data=redcap_final %>%
+  filter(redcap_repeat_instrument=="labs")
+
+# check data-pull
+length(unique(redcap_final$part_id))    
+    
+outersect <- function(x, y) {
+  sort(c(setdiff(x, y),
+         setdiff(y, x)))
+}
+
+y=unique(redcap_final$part_id)
+x=unique(records)
+
+outersect(y,x)
+
+
+
+```
+
+
+
+```{r, message=FALSE}
+
+
 # variables of interest
-<<<<<<< HEAD
-desired_fields_v1=c("part_id","mombaby_status","part_gender",
-                    "part_ethnicity","part_race","part_dob",
-                    "delivery_mode","birth_wt_measure","birth_wt_gr",
-                    "birth_wt_units","delivery_admit_date",
-                    "delivery_admit_source","gest_age_measure",
-                    "gest_age","gest_age_units","baby_nicu_los",
-                    "mom_admit_bmi_measure","mom_admit_bmi",
-                    "mom_admit_bmi_units","mom_admit_wt_measure",
-                    "mom_admit_wt_lbs","mom_admit_wt_lbs_units",
-                    "mom_admit_wt_kgs","mom_admit_wt_kgs_units",
-                    "mom_admit_ht_measure","mom_admit_ht_in",
-                    "mom_admit_ht_in_units","mom_admit_ht_cm",
-                    "mom_admit_ht_cm_units","mom_admit_age_measure",
-                    "mom_admit_age_yr","mom_admit_age_yr_units",
-                    "health_insurance","delivery_zipcode",
-                    "delivery_zipcode9","nicu_los_days",
-                    "nicu_enter_date","nicu_exit_date",
-                    "nicu_los_units","nicu_los_measure")
+desired_fields_v1=c("part_id","lab_date",
+                    "lab_name","lab_result","lab_result_value",
+                    "lab_unit","labs_complete")
 
-desired_records_v1=c("baby-1","baby-2","baby-3","baby-4")
+# variables of interest
+desired_fields_v2=c("part_id","mombaby_status")
 
-desired_forms=c("labs")
-=======
-fields_v1=c("test_id", "beach_closeout_start", "beach_baseline_closeout",  
-            "beach_3tri_closeout","beach_2wk_closeout","beach_2mo_closeout",
-            "beach_6mo_closeout","beach_12mo_closeout","beach_exit_closeout",
-            "beach_closeout_complete")
+# meta data
+meta=redcap_metadata_read(uri,  api_token)
 
-# fields_v1=c("test_id")
+# limited pull
+# event_list=c("2011_arm_1")
+forms_list=c("labs")
+records_list=c("mom-1","mom-2")
 
-# records_v1=c("BLS001A","BLS002A")
+records_list=mom_list
 
-forms=c("participant_study_overview")
+# pull lab data by event/year and combine. next steps.
 
-events=c("baseline_arm_1")
+test1=redcap_read(batch_size=150, 
+                  redcap_uri=uri, 
+                  token=api_token,
+                  events=event_list,
+                  records=records_list,
+                  fields=desired_fields_v1)$data 
 
-# subset by variables, records, events 
-data = redcap_read(
-  redcap_uri=uri,
-  token = api_token,
-  fields = fields_v1,
- # records = records_v1,
-  events = events,
-  raw_or_label_headers = "raw")$data
-
-# subset by form (all records) 
-data = redcap_read(
-  redcap_uri=uri,
-  token = api_token,
-  fields = fields_v1,
-  forms = forms,
-  events = events,
-  raw_or_label_headers = "raw")$data
->>>>>>> parent of 17436cd (cache)
 
 # Access data
 data = redcap_read_oneshot(
   uri,
   api_token,
-<<<<<<< HEAD
   fields = desired_fields_v1,
-  records = desired_records_v1,
-  forms = desired_forms,
+  records = records,
+  # forms = desired_forms,
   raw_or_label_headers = "raw")$data
 
-=======
-  fields = fields_v1,
-  records = records_v1,
-  forms = forms,
-  raw_or_label_headers = "raw")$data
-
-```
-
-
-```{r, message=FALSE}
->>>>>>> parent of 17436cd (cache)
 data = data %>%
   as_tibble() %>%
-  filter(redcap_repeat_instrument =="demographics") 
+  filter(redcap_repeat_instrument =="labs") 
 
 #Get initial counts of babies and moms before any kind of subsetting
 counts_unique_baby_ids = ddply(data,  .(part_id), nrow)
