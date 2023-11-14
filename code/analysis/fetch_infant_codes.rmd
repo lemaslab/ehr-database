@@ -105,7 +105,12 @@ data_directory="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2
 # combine infant ICD9/10 code
 infant_codes=rbind(baby_asthma,baby_ear_infection,baby_eczema,baby_food_allergy,baby_hemangonia,baby_nevus,baby_obesity,
                    baby_sebor,baby_toxicum)
-  
+
+# export infant codes to sharedrive
+export_directory="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/"
+export_name="infant_codes.RData"
+export_path=paste0(export_directory,export_name)
+save(infant_codes,file=export_path)
 ```
 
 `
