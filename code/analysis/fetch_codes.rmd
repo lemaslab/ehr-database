@@ -1,0 +1,112 @@
+---
+title: "mom-baby: fetch codes"
+author: "Dominick Lemas"
+date: "11/14/2023"
+output: html_document
+
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+
+# Author:      Dominick Lemas
+# Date:        Nov 14, 2023 
+# Modify:      
+# IRB:         UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899) 
+
+# R version 4.3.1 (2023-06-16 ucrt) -- "Beagle Scouts"
+# Copyright (C) 2023 The R Foundation for Statistical Computing
+# Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+# **************************************************************************** #
+# ***************                Description                   *************** #
+# **************************************************************************** #
+
+# PLAN: consolidate ICD9/10 codes into a single file
+
+```
+
+
+```{r, message=FALSE}
+
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+
+
+library(tidyverse)
+
+
+```
+
+```{r, message=FALSE}
+
+# 10year_data>2021>dataset_09_2021>baby_data
+
+data_directory="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/baby_data/"
+
+# baby_asthma
+#----------------
+  file="baby_asthma"
+  path=paste0(data_directory,file,".csv")
+  baby_asthma=read_csv(file=path)
+
+# baby_ear_infection
+#----------------
+  file="baby_ear_infection"
+  path=paste0(data_directory,file,".csv")
+  baby_ear_infection=read_csv(file=path)
+
+# baby_eczema
+#----------------
+  file="baby_eczema"
+  path=paste0(data_directory,file,".csv")
+  baby_eczema=read_csv(file=path)
+  
+# baby_food_allergy
+#----------------
+  file="baby_food_allergy"
+  path=paste0(data_directory,file,".csv")
+  baby_food_allergy=read_csv(file=path)
+
+# baby_hemangonia
+#----------------
+  file="baby_hemangonia"
+  path=paste0(data_directory,file,".csv")
+  baby_hemangonia=read_csv(file=path)
+  
+# baby_nevus
+#----------------
+  file="baby_nevus"
+  path=paste0(data_directory,file,".csv")
+  baby_nevus=read_csv(file=path)
+
+# baby_obesity
+#----------------
+  file="baby_obesity"
+  path=paste0(data_directory,file,".csv")
+  baby_obesity=read_csv(file=path)  
+  
+# baby_sebor
+#----------------
+  file="baby_sebor"
+  path=paste0(data_directory,file,".csv")
+  baby_sebor=read_csv(file=path)  
+
+# baby_toxicum
+#----------------
+  file="baby_toxicum"
+  path=paste0(data_directory,file,".csv")
+  baby_toxicum=read_csv(file=path)  
+  
+# combine infant ICD9/10 code
+infant_codes=rbind(baby_asthma,baby_ear_infection,baby_eczema,baby_food_allergy,baby_hemangonia,baby_nevus,baby_obesity,
+                   baby_sebor,baby_toxicum)
+  
+```
+
+`
+
