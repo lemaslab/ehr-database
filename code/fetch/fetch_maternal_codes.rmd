@@ -65,7 +65,7 @@ data_directory="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/"
 #----------------
   file="mom_cancer_ICD10"
   path=paste0(data_directory,"2021/dataset_10_2021/",file,".csv")
-  mom_cancer_ICD10=read_csv(file=path)%>%
+  mom_cancer_ICD10=read_csv(file=path) %>%
     rename(deidentified_mom_id=Deidentified_mom_ID,
            diagnosis_start_date="Diagnosis Start Date",
            diagnosis_code="Diagnosis Code",
@@ -78,46 +78,65 @@ data_directory="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/"
   path=paste0(data_directory,"2021/dataset_10_2021/",file,".csv")
   mom_diagnosis_ICD9=read_csv(file=path) %>%
     mutate(diagnosis_start_date=mdy(diagnosis_start_date))
-  
-  
-maternal_codes=rbind(mom_cancer_ICD9,mom_cancer_ICD10,mom_diagnosis_ICD9),mom_diagnosis_ICD10),
-                     mom_comorbidities_list_bateman_ICD9_release,mom_comorbidities_list_ICD9_release,
-                     mom_comorbidities_list_ICD10_release,maternal_release,selfharm_release,
-                     mom_cancer_release)
 
 # mom_diagnosis_ICD10
 #----------------
   file="mom_diagnosis_ICD10"
   path=paste0(data_directory,"2021/dataset_10_2021/",file,".csv")
-  mom_diagnosis_ICD10=read_csv(file=path)
-    
+  mom_diagnosis_ICD10=read_csv(file=path) %>%
+    mutate(diagnosis_start_date=mdy(diagnosis_start_date))
+  str(mom_diagnosis_ICD10)
+  
 # 10year_data>2022>dataset_03_2022
 
 # mom_comorbidities_list_bateman_ICD9_release
 #----------------
   file="mom_comorbidities_list_bateman_ICD9_release"
   path=paste0(data_directory,"2022/dataset_03_2022/",file,".csv")
-  mom_comorbidities_list_bateman_ICD9_release=read_csv(file=path)
+  mom_comorbidities_list_bateman_ICD9_release=read_csv(file=path) %>%
+    rename(deidentified_mom_id=Deidentified_mom_ID,
+           diagnosis_start_date="Diagnosis Start Date",
+           diagnosis_code="Diagnosis Code",
+           diagnosis_description="Diagnosis Description",
+           diagnosis_type="Diagnosis Type") %>%
+    mutate(diagnosis_start_date=mdy(diagnosis_start_date))
 
 # mom_comorbidities_list_ICD9_release
 #----------------
   file="mom_comorbidities_list_ICD9_release"
   path=paste0(data_directory,"2022/dataset_03_2022/",file,".csv")
-  mom_comorbidities_list_ICD9_release=read_csv(file=path)
+  mom_comorbidities_list_ICD9_release=read_csv(file=path) %>%
+    rename(deidentified_mom_id=Deidentified_mom_ID,
+           diagnosis_start_date="Diagnosis Start Date",
+           diagnosis_code="Diagnosis Code",
+           diagnosis_description="Diagnosis Description",
+           diagnosis_type="Diagnosis Type") %>%
+    mutate(diagnosis_start_date=mdy(diagnosis_start_date))
 
 # mom_comorbidities_list_ICD10_release
 #----------------
   file="mom_comorbidities_list_ICD10_release"
   path=paste0(data_directory,"2022/dataset_03_2022/",file,".csv")
-  mom_comorbidities_list_ICD10_release=read_csv(file=path)
-
+  mom_comorbidities_list_ICD10_release=read_csv(file=path) %>%
+    rename(deidentified_mom_id=Deidentified_mom_ID,
+           diagnosis_start_date="Diagnosis Start Date",
+           diagnosis_code="Diagnosis Code",
+           diagnosis_description="Diagnosis Description",
+           diagnosis_type="Diagnosis Type") %>%
+    mutate(diagnosis_start_date=mdy(diagnosis_start_date))
+  
 # 10year_data>2022>dataset_07_2022
   
 # maternal_release
 #----------------
   file="maternal_release"
   path=paste0(data_directory,"2022/dataset_07_2022/",file,".csv")
-  maternal_release=read_csv(file=path)
+  maternal_release=read_csv(file=path) %>%
+    rename(deidentified_mom_id=Deidentified_mom_ID,
+           diagnosis_start_date="Diagnosis Start Date",
+           diagnosis_code="Diagnosis Code",
+           diagnosis_description="Diagnosis Description",
+           diagnosis_type="Diagnosis Type") 
 
 # 10year_data>2022>dataset_10_2022
   
@@ -125,7 +144,9 @@ maternal_codes=rbind(mom_cancer_ICD9,mom_cancer_ICD10,mom_diagnosis_ICD9),mom_di
 #----------------
   file="selfharm_release"
   path=paste0(data_directory,"2022/dataset_10_2022/",file,".csv")
-  selfharm_release=read_csv(file=path)
+  selfharm_release=read_csv(file=path) %>%
+    select(deidentified_mom_id,diagnosis_start_date,diagnosis_code,diagnosis_description,diagnosis_type) %>%
+    mutate(diagnosis_start_date=mdy(diagnosis_start_date))
 
 # 10year_data>2023>dataset_03_2023
   
@@ -133,27 +154,30 @@ maternal_codes=rbind(mom_cancer_ICD9,mom_cancer_ICD10,mom_diagnosis_ICD9),mom_di
 #----------------
   file="mom_cancer_release"
   path=paste0(data_directory,"2023/dataset_03_2023/",file,".csv")
-  mom_cancer_release=read_csv(file=path)
+  mom_cancer_release=read_csv(file=path) %>%
+    rename(deidentified_mom_id=Deidentified_mom_ID,
+           diagnosis_start_date="Diagnosis Start Date",
+           diagnosis_code="Diagnosis Code",
+           diagnosis_description="Diagnosis Description",
+           diagnosis_type="Diagnosis Type") %>%
+    select(deidentified_mom_id,diagnosis_start_date,diagnosis_code,diagnosis_description,diagnosis_type) %>%
+    mutate(diagnosis_start_date=mdy(diagnosis_start_date))
 
 # combine ICD9/10 code
-  
-maternal_codes=rbind(mom_cancer_ICD9,mom_cancer_ICD10,mom_diagnosis_ICD9,mom_diagnosis_ICD10),
-                     mom_comorbidities_list_bateman_ICD9_release,mom_comorbidities_list_ICD9_release,
-                     mom_comorbidities_list_ICD10_release,maternal_release,selfharm_release,
-                     mom_cancer_release)  
-  
-  
-maternal_codes=rbind(mom_cancer_ICD9,mom_cancer_ICD10,mom_diagnosis_ICD9,mom_diagnosis_ICD10,
-                     mom_comorbidities_list_bateman_ICD9_release,mom_comorbidities_list_ICD9_release,
-                     mom_comorbidities_list_ICD10_release,maternal_release,selfharm_release,
-                     mom_cancer_release)
-
+maternal_codes=rbind(mom_cancer_ICD9,mom_cancer_ICD10,
+                         mom_diagnosis_ICD9,mom_diagnosis_ICD10,
+                         mom_comorbidities_list_bateman_ICD9_release,
+                         mom_comorbidities_list_ICD9_release,
+                         mom_comorbidities_list_ICD10_release,
+                         maternal_release,
+                         selfharm_release,
+                         mom_cancer_release)
 
 # export infant codes to sharedrive
 export_directory="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/"
 export_name="maternal_codes.RData"
 export_path=paste0(export_directory,export_name)
-save(infant_codes,file=export_path)
+save(maternal_codes,file=export_path)
 ```
 
 `
