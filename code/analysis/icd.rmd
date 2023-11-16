@@ -38,6 +38,7 @@ output: html_document
 
 # devtools::install_github("jackwasey/icd")
 # remotes::install_github("DHLab-TSENG/dxpr")
+library(devtools)
 library(tidyverse)
 library(icd)
 library(dxpr)

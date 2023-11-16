@@ -1,0 +1,160 @@
+---
+title: "mom-baby: fetch maternal codes"
+author: "Dominick Lemas"
+date: "11/14/2023"
+output: html_document
+
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+
+# Author:      Dominick Lemas
+# Date:        Nov 14, 2023 
+# Modify:      
+# IRB:         UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899) 
+
+# R version 4.3.1 (2023-06-16 ucrt) -- "Beagle Scouts"
+# Copyright (C) 2023 The R Foundation for Statistical Computing
+# Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+# **************************************************************************** #
+# ***************                Description                   *************** #
+# **************************************************************************** #
+
+# PLAN: consolidate ICD9/10 codes into a single file
+
+```
+
+
+```{r, message=FALSE}
+
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+
+
+library(tidyverse)
+library(lubridate)
+
+
+```
+
+```{r, message=FALSE}
+
+data_directory="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/"
+
+# 10year_data>2021>dataset_10_2021
+
+# mom_cancer_ICD9
+#----------------
+  file="mom_cancer_ICD9"
+  path=paste0(data_directory,"2021/dataset_10_2021/",file,".csv")
+  mom_cancer_ICD9=read_csv(file=path) %>%
+    rename(deidentified_mom_id=Deidentified_mom_ID,
+           diagnosis_start_date="Diagnosis Start Date",
+           diagnosis_code="Diagnosis Code",
+           diagnosis_description="Diagnosis Description",
+           diagnosis_type="Diagnosis Type")
+    
+
+# mom_cancer_ICD10
+#----------------
+  file="mom_cancer_ICD10"
+  path=paste0(data_directory,"2021/dataset_10_2021/",file,".csv")
+  mom_cancer_ICD10=read_csv(file=path)%>%
+    rename(deidentified_mom_id=Deidentified_mom_ID,
+           diagnosis_start_date="Diagnosis Start Date",
+           diagnosis_code="Diagnosis Code",
+           diagnosis_description="Diagnosis Description",
+           diagnosis_type="Diagnosis Type")
+  
+# mom_diagnosis_ICD9
+#----------------
+  file="mom_diagnosis_ICD9"
+  path=paste0(data_directory,"2021/dataset_10_2021/",file,".csv")
+  mom_diagnosis_ICD9=read_csv(file=path) %>%
+    mutate(diagnosis_start_date=mdy(diagnosis_start_date))
+  
+  
+maternal_codes=rbind(mom_cancer_ICD9,mom_cancer_ICD10,mom_diagnosis_ICD9),mom_diagnosis_ICD10),
+                     mom_comorbidities_list_bateman_ICD9_release,mom_comorbidities_list_ICD9_release,
+                     mom_comorbidities_list_ICD10_release,maternal_release,selfharm_release,
+                     mom_cancer_release)
+
+# mom_diagnosis_ICD10
+#----------------
+  file="mom_diagnosis_ICD10"
+  path=paste0(data_directory,"2021/dataset_10_2021/",file,".csv")
+  mom_diagnosis_ICD10=read_csv(file=path)
+    
+# 10year_data>2022>dataset_03_2022
+
+# mom_comorbidities_list_bateman_ICD9_release
+#----------------
+  file="mom_comorbidities_list_bateman_ICD9_release"
+  path=paste0(data_directory,"2022/dataset_03_2022/",file,".csv")
+  mom_comorbidities_list_bateman_ICD9_release=read_csv(file=path)
+
+# mom_comorbidities_list_ICD9_release
+#----------------
+  file="mom_comorbidities_list_ICD9_release"
+  path=paste0(data_directory,"2022/dataset_03_2022/",file,".csv")
+  mom_comorbidities_list_ICD9_release=read_csv(file=path)
+
+# mom_comorbidities_list_ICD10_release
+#----------------
+  file="mom_comorbidities_list_ICD10_release"
+  path=paste0(data_directory,"2022/dataset_03_2022/",file,".csv")
+  mom_comorbidities_list_ICD10_release=read_csv(file=path)
+
+# 10year_data>2022>dataset_07_2022
+  
+# maternal_release
+#----------------
+  file="maternal_release"
+  path=paste0(data_directory,"2022/dataset_07_2022/",file,".csv")
+  maternal_release=read_csv(file=path)
+
+# 10year_data>2022>dataset_10_2022
+  
+# selfharm_release
+#----------------
+  file="selfharm_release"
+  path=paste0(data_directory,"2022/dataset_10_2022/",file,".csv")
+  selfharm_release=read_csv(file=path)
+
+# 10year_data>2023>dataset_03_2023
+  
+# mom_cancer_release
+#----------------
+  file="mom_cancer_release"
+  path=paste0(data_directory,"2023/dataset_03_2023/",file,".csv")
+  mom_cancer_release=read_csv(file=path)
+
+# combine ICD9/10 code
+  
+maternal_codes=rbind(mom_cancer_ICD9,mom_cancer_ICD10,mom_diagnosis_ICD9,mom_diagnosis_ICD10),
+                     mom_comorbidities_list_bateman_ICD9_release,mom_comorbidities_list_ICD9_release,
+                     mom_comorbidities_list_ICD10_release,maternal_release,selfharm_release,
+                     mom_cancer_release)  
+  
+  
+maternal_codes=rbind(mom_cancer_ICD9,mom_cancer_ICD10,mom_diagnosis_ICD9,mom_diagnosis_ICD10,
+                     mom_comorbidities_list_bateman_ICD9_release,mom_comorbidities_list_ICD9_release,
+                     mom_comorbidities_list_ICD10_release,maternal_release,selfharm_release,
+                     mom_cancer_release)
+
+
+# export infant codes to sharedrive
+export_directory="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/"
+export_name="maternal_codes.RData"
+export_path=paste0(export_directory,export_name)
+save(infant_codes,file=export_path)
+```
+
+`
+
