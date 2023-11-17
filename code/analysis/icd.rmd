@@ -38,7 +38,7 @@ output: html_document
 
 # devtools::install_github("jackwasey/icd")
 # remotes::install_github("DHLab-TSENG/dxpr")
-library(devtools)
+# library(devtools)
 library(tidyverse)
 library(icd)
 library(dxpr)
@@ -48,6 +48,8 @@ library(dxpr)
 ```{r, message=FALSE}
 
 load(file="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/infant_codes.RData")
+load(file="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/maternal_codes.RData")
+
 
 # https://dhlab-tseng.github.io/dxpr/articles/Eng_Diagnosis.html
 
@@ -55,40 +57,20 @@ load(file="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analys
 
 ```{r, message=FALSE}
 
-head(infant_codes)
-names(infant_codes)
-
-data=infant_codes %>%
-  select(Deidentified_baby_ID,'Diagnosis Start Date','Diagnosis Code') %>%
-  rename(baby_id=Deidentified_baby_ID,
-         diagnosis_code='Diagnosis Code',
-         diagnosis_start_date='Diagnosis Start Date') %>%
-  as.data.frame()
-data$baby_id=as.character(data$baby_id)
-str(data)
-
-data_icd <- icdDxDecimalToShort(dxDataFile = data,
-                            icdColName = diagnosis_code,         
-                            dateColName = diagnosis_start_date,
-                            icd10usingDate = "2015/10/01")
-table(data_icd$ICD)
-data_icd$Error
-
-CCS_description <- icdDxToCCS(dxDataFile = data,
-                              idColName = baby_id,
-                              icdColName = diagnosis_code,        
-                              dateColName = diagnosis_start_date,
-                              icd10usingDate = "2015-10-01",
-                              isDescription = TRUE)
-
+# demo data
 
 head(sampleDxFile)
 str(sampleDxFile)
 
+# convert decimal-->short
 short <- icdDxDecimalToShort(dxDataFile = sampleDxFile,
                             icdColName = ICD,         
                             dateColName = Date,
                             icd10usingDate = "2015/10/01")
+
+# look at output
+table(short$ICD)
+short$Error
 
 CCS_description <- icdDxToCCS(dxDataFile = sampleDxFile,
                               idColName = ID,
@@ -96,6 +78,33 @@ CCS_description <- icdDxToCCS(dxDataFile = sampleDxFile,
                               dateColName = Date,
                               icd10usingDate = "2015-10-01",
                               isDescription = TRUE)
+CCS_description
+
+
+
+
+
+# infant codes
+data=infant_codes %>% as.data.frame()
+head(data)
+names(data)
+str(data)
+
+data_icd <- icdDxDecimalToShort(dxDataFile = data,
+                            icdColName = diagnosis_code,         
+                            dateColName = diagnosis_start_date,
+                            icd10usingDate = "2015/10/01")
+
+CCS_description <- icdDxToCCS(dxDataFile = data,
+                              idColName = deidentified_baby_id,
+                              icdColName = diagnosis_code,        
+                              dateColName = diagnosis_start_date,
+                              icd10usingDate = "2015-10-01",
+                              isDescription = TRUE)
+
+
+
+
 
 head(CCS_description$groupedDT, 5)
 head(CCS_description$groupedDT, 5)
