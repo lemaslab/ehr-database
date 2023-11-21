@@ -57,6 +57,21 @@ load(file="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analys
 
 ```{r, message=FALSE}
 
+data=maternal_codes %>%
+  select(deidentified_mom_id,diagnosis_code)
+data$deidentified_mom_id=as.character(data$deidentified_mom_id)
+
+comorbid_charlson(data)
+charlson(data)
+
+
+
+
+```
+
+
+```{r, message=FALSE}
+
 # demo data
 
 head(sampleDxFile)
@@ -102,11 +117,8 @@ CCS_description <- icdDxToCCS(dxDataFile = data,
                               icd10usingDate = "2015-10-01",
                               isDescription = TRUE)
 
-
-
-
-
-head(CCS_description$groupedDT, 5)
-head(CCS_description$groupedDT, 5)
+CCS_description$groupedDT
+CCS_description$summarised_groupedDT
+CCS_description$Error
 
 ```
