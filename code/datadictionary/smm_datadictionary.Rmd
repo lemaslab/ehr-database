@@ -1,0 +1,100 @@
+---
+title: "cancer data dictionary"
+author: "Dominick Lemas"
+date: "2023-11-20"
+output: html_document
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+
+# Author:            Dominick J. Lemas
+# Start Date:        11/20/2023 
+# Date Modify:       
+# Project:           
+# IRB:               
+#                   
+# R version 4.3.1 (2023-06-16 ucrt) -- "Beagle Scouts"
+# Copyright (C) 2023 The R Foundation for Statistical Computing
+# Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+# **************************************************************************** #
+# ***************                Description                   *************** #
+# **************************************************************************** #
+
+# PLAN: check the cancer codes in data dictionary vs codes we have already requested
+
+
+
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readxl)
+library(tidyverse)
+library(tibble)
+library(ggplot2)
+library(icd)
+library(dxpr)
+
+
+```
+
+
+```{r setup, include=FALSE}
+
+# SMM
+#-------------
+# smm=read_excel("E:/documents/ehr-database/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx", sheet = "SMM")
+
+smm=read_excel("~/ehr-database/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx", sheet = "SMM")
+
+
+    
+
+
+
+```
+
+
+```{r setup, include=FALSE}
+
+# load the raw icd data
+
+load(file="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/maternal_codes.RData")
+
+# convert "decimal" --> "short" format
+data_icd <- icdDxDecimalToShort(dxDataFile = maternal_codes,
+                            icdColName = diagnosis_code,         
+                            dateColName = diagnosis_start_date,
+                            icd10usingDate = "2015/10/01")
+
+data_icd$ICD
+
+data.maternal=maternal_codes %>%
+  mutate()
+
+
+```
+
+```{r setup, include=FALSE}
+
+# unique codes
+maternal_data_tmp=maternal_codes %>%
+  select(diagnosis_code,diagnosis_description)
+codes=unique(maternal_data_tmp$diagnosis_code) %>% as_tibble()
+
+# convert codes with ICD package
+cancer_match=cancer %>%
+  mutate(match=ifelse(Code %in% codes )==T, TRUE, FALSE)
+
+
+
+
+```
+
+```
