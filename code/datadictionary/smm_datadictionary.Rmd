@@ -34,12 +34,17 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+# remotes::install_github("AndreSjuve/dretools")
+
 library(readxl)
 library(tidyverse)
 library(tibble)
 library(ggplot2)
 library(icd)
 library(dxpr)
+library(stringr)
+
+# https://stackoverflow.com/questions/21843352/replace-decimal-point-from-strings-in-entire-column
 
 
 ```
@@ -52,10 +57,33 @@ library(dxpr)
 # smm=read_excel("E:/documents/ehr-database/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx", sheet = "SMM")
 
 smm=read_excel("~/ehr-database/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx", sheet = "SMM") %>%
-  rename(icd_short=Code)
+  rename(icd_decimal=Code) %>%
+  mutate(icd_short= gsub("\\.", "",icd_decimal)) %>%
+  select(icd_decimal,icd_short)
 
+
+condition=read_excel("~/ehr-database/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx", sheet = "Category_condition") %>%
+  rename(icd_decimal=Code) %>%
+  mutate(icd_short= gsub("\\.", "",icd_decimal)) %>%
+  select(icd_decimal,icd_short)
+
+# unique smm-codes from data-dictionary
+smm_codes_unique=unique(smm$icd_short)
+length(smm_codes_unique)                    # 622
+
+# unique condition-codes from data-dictionary
+condition_codes_unique=unique(condition$icd_short)
+length(condition_codes_unique)                       # 1458
+
+
+# how many codes intersection?
+length(intersect(smm_codes_unique,condition_codes_unique))  # 108 intersect
+
+# combine smm and conditions
+smm_conditions=rbind(smm,condition)
 
 ```
+
 
 
 ```{r setup, include=FALSE}
@@ -79,10 +107,21 @@ maternal_codes_short=cbind(maternal_codes,data_icd$ICD) %>%
 ```{r setup, include=FALSE}
 
 # unique smm-codes from data-dictionary
-cancer_codes_unique=unique(cancer$icd_short)
-length(cancer_codes_unique)                    # 2132
+smm_codes_unique=unique(smm$icd_short)
+length(smm_codes_unique)                    # 622
 
+# unique icd codes from data-raw
+icd_codes_unique=unique(maternal_codes_short$icd_short)
+length(icd_codes_unique)                       # 4996
 
+# how many codes intersection?
+length(intersect(smm_codes_unique,icd_codes_unique))  # 166 intersect
+
+# create match variable
+smm_condition_match=smm_conditions %>%
+  mutate(match_smm=ifelse((icd_short %in% icd_codes_unique), 1, 0))
+
+table(smm_condition_match$match_smm)
 
 
 ```
