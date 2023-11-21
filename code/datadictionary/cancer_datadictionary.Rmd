@@ -91,6 +91,7 @@ length(intersect(cancer_codes_unique,icd_codes_unique))  # 502 intersect
 cancer_match=cancer %>%
   mutate(match=ifelse((icd_short %in% icd_codes_unique), 1, 0))
 
+# need to go through and match the codes we have already requested and expand new selection
 
 
 
