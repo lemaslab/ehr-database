@@ -38,6 +38,7 @@ library(readxl)
 library(tidyverse)
 library(tibble)
 library(ggplot2)
+library(icd)
 
 ```
 
@@ -45,10 +46,11 @@ library(ggplot2)
 ```{r setup, include=FALSE}
 
 # cancer codes
-cancer=read_excel("E:/documents/ehr-database/documents/datadictionary/oneflorida/oneflorida_pregnancy_cancer_codes_10_2023.xlsx")
+#-------------
+    # cancer=read_excel("E:/documents/ehr-database/documents/datadictionary/oneflorida/oneflorida_pregnancy_cancer_codes_10_2023.xlsx")
 
-# SMM
-smm=read_excel("E:/documents/ehr-database/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx", sheet = "SMM")
+    cancer=read_excel("~/ehr-database/documents/datadictionary/oneflorida/oneflorida_pregnancy_cancer_codes_10_2023.xlsx") %>%
+  rename(icd_short=Code)
 
 
 ```
@@ -56,21 +58,38 @@ smm=read_excel("E:/documents/ehr-database/documents/datadictionary/oneflorida/Pr
 
 ```{r setup, include=FALSE}
 
-load(file="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/infant_codes.RData")
 load(file="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/maternal_codes.RData")
 
+# convert "decimal" --> "short" format
+data_icd <- icdDxDecimalToShort(dxDataFile = maternal_codes,
+                            icdColName = diagnosis_code,         
+                            dateColName = diagnosis_start_date,
+                            icd10usingDate = "2015/10/01")
+
+# merge into data.frame
+data_icd$ICD
+maternal_codes_short=cbind(maternal_codes,data_icd$ICD) %>%
+  rename(icd_short=ICD)
+
+
 ```
 
 ```{r setup, include=FALSE}
 
-# unique codes
-maternal_data_tmp=maternal_codes %>%
-  select(diagnosis_code,diagnosis_description)
-codes=unique(maternal_data_tmp$diagnosis_code) %>% as_tibble()
+# unique cancer-codes from data-dictionary
+cancer_codes_unique=unique(cancer$icd_short)
+length(cancer_codes_unique)                    # 2132
 
-# convert codes with ICD package
+# unique icd codes from data-raw
+icd_codes_unique=unique(maternal_codes_short$icd_short)
+length(icd_codes_unique)                       # 4996
+
+# how many codes intersection?
+length(intersect(cancer_codes_unique,icd_codes_unique))  # 502 intersect
+
+# create match variable
 cancer_match=cancer %>%
-  mutate(match=ifelse(Code %in% codes )==T, TRUE, FALSE)
+  mutate(match=ifelse((icd_short %in% icd_codes_unique), 1, 0))
 
 
 
