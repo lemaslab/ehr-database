@@ -1,0 +1,80 @@
+---
+title: "cancer data dictionary"
+author: "Dominick Lemas"
+date: "2023-11-20"
+output: html_document
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+
+# Author:            Dominick J. Lemas
+# Start Date:        11/20/2023 
+# Date Modify:       
+# Project:           
+# IRB:               
+#                   
+# R version 4.3.1 (2023-06-16 ucrt) -- "Beagle Scouts"
+# Copyright (C) 2023 The R Foundation for Statistical Computing
+# Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+# **************************************************************************** #
+# ***************                Description                   *************** #
+# **************************************************************************** #
+
+# PLAN: check the cancer codes in data dictionary vs codes we have already requested
+
+
+
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readxl)
+library(tidyverse)
+library(tibble)
+library(ggplot2)
+
+```
+
+
+```{r setup, include=FALSE}
+
+# cancer codes
+cancer=read_excel("E:/documents/ehr-database/documents/datadictionary/oneflorida/oneflorida_pregnancy_cancer_codes_10_2023.xlsx")
+
+# SMM
+smm=read_excel("E:/documents/ehr-database/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx", sheet = "SMM")
+
+
+```
+
+
+```{r setup, include=FALSE}
+
+load(file="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/infant_codes.RData")
+load(file="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/maternal_codes.RData")
+
+```
+
+```{r setup, include=FALSE}
+
+# unique codes
+maternal_data_tmp=maternal_codes %>%
+  select(diagnosis_code,diagnosis_description)
+codes=unique(maternal_data_tmp$diagnosis_code) %>% as_tibble()
+
+# convert codes with ICD package
+cancer_match=cancer %>%
+  mutate(match=ifelse(Code %in% codes )==T, TRUE, FALSE)
+
+
+
+
+```
+
+```
