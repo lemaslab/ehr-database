@@ -4,5 +4,5 @@
 .Ruserdata
 .html
 
-data/*/*
+#data/*/*
 !README.md
