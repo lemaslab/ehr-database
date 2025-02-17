@@ -38,12 +38,14 @@ library(readxl)
 library(tidyverse)
 library(tibble)
 library(ggplot2)
-library(icd)
-library(dxpr)
+# library(icd)  # need to find another package to work with ICD
+# library(dxpr)
 library(stringr)
 
 # https://stackoverflow.com/questions/21843352/replace-decimal-point-from-strings-in-entire-column
 
+# Define working directory
+working_dir <- "C:/Users/djlemas/Documents/GitHub/ehr-database"
 
 ```
 
@@ -54,13 +56,13 @@ library(stringr)
 #-------------
 # smm=read_excel("E:/documents/ehr-database/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx", sheet = "SMM")
 
-smm=read_excel("~/ehr-database/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx", sheet = "SMM") %>%
+smm=read_excel(paste0(working_dir,"/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx"), sheet = "SMM") %>%
   rename(icd_decimal=Code) %>%
   mutate(icd_short= gsub("\\.", "",icd_decimal)) %>%
   select(icd_decimal,icd_short)
 
 
-condition=read_excel("~/ehr-database/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx", sheet = "Category_condition") %>%
+condition=read_excel(paste0(working_dir,"/documents/datadictionary/oneflorida/PregnancyOutcomes_variables_20231031.xlsx"), sheet = "Category_condition") %>%
   rename(icd_decimal=Code) %>%
   mutate(icd_short= gsub("\\.", "",icd_decimal)) %>%
   select(icd_decimal,icd_short)
@@ -80,6 +82,27 @@ length(intersect(smm_codes_unique,condition_codes_unique))  # 108 intersect
 # combine smm and conditions
 smm_conditions=rbind(smm,condition)
 
+# Create a distinct export dataset with relevant columns
+export <- smm_conditions %>%
+  distinct()
+
+# Define output directory and file paths
+output_directory <- file.path(working_dir, "data", "processed")
+csv_file <- file.path(output_directory, "smm_codes_oneflorida.csv")
+rda_file <- file.path(output_directory, "smm_codes_oneflorida.RData")
+
+# Ensure the output directory exists
+if (!dir.exists(output_directory)) {
+  dir.create(output_directory, recursive = TRUE)
+}
+
+# Save export dataset to CSV and RData files
+write.csv(export, csv_file, row.names = FALSE)
+save(export, file = rda_file)
+
+# Print success message
+message("Exported data successfully to:\n", csv_file, "\n", rda_file)
+
 ```
 
 
@@ -96,9 +119,6 @@ load(file = "V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/anal
 #   dateColName = "diagnosis_start_date",
 #   icd10usingDate = "2015/10/01"
 # )
-
-# Define working directory
-working_dir <- "C:/Users/djlemas/Documents/GitHub/ehr-database"
 
 # Create a distinct export dataset with relevant columns
 export <- maternal_codes %>%
