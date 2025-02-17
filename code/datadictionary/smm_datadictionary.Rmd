@@ -13,7 +13,7 @@ output: html_document
 
 # Author:            Dominick J. Lemas
 # Start Date:        11/20/2023 
-# Date Modify:       
+# Date Modify:       02/17/2025
 # Project:           
 # IRB:               
 #                   
@@ -26,8 +26,6 @@ output: html_document
 # **************************************************************************** #
 
 # PLAN: check the smm codes in data dictionary vs codes we have already requested
-
-
 
 ```
 
@@ -88,20 +86,41 @@ smm_conditions=rbind(smm,condition)
 
 ```{r setup, include=FALSE}
 
-load(file="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/maternal_codes.RData")
+# Load maternal codes dataset
+load(file = "V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/analysis_ready/maternal_codes.RData")
 
-# convert "decimal" --> "short" format
-data_icd <- icdDxDecimalToShort(dxDataFile = maternal_codes,
-                            icdColName = diagnosis_code,         
-                            dateColName = diagnosis_start_date,
-                            icd10usingDate = "2015/10/01")
+# Convert ICD codes from decimal to short format (uncomment when needed)
+# data_icd <- icdDxDecimalToShort(
+#   dxDataFile = maternal_codes,
+#   icdColName = "diagnosis_code",         
+#   dateColName = "diagnosis_start_date",
+#   icd10usingDate = "2015/10/01"
+# )
 
-# merge into data.frame
-data_icd$ICD
-maternal_codes_short=cbind(maternal_codes,data_icd$ICD) %>%
-  rename(icd_short=ICD)
+# Define working directory
+working_dir <- "C:/Users/djlemas/Documents/GitHub/ehr-database"
 
+# Create a distinct export dataset with relevant columns
+export <- maternal_codes %>%
+  select(diagnosis_code, diagnosis_description) %>%
+  distinct()
 
+# Define output directory and file paths
+output_directory <- file.path(working_dir, "data", "processed")
+csv_file <- file.path(output_directory, "smm_codes_we_have.csv")
+rda_file <- file.path(output_directory, "smm_codes_we_have.RData")
+
+# Ensure the output directory exists
+if (!dir.exists(output_directory)) {
+  dir.create(output_directory, recursive = TRUE)
+}
+
+# Save export dataset to CSV and RData files
+write.csv(export, csv_file, row.names = FALSE)
+save(export, file = rda_file)
+
+# Print success message
+message("Exported data successfully to:\n", csv_file, "\n", rda_file)
 ```
 
 ```{r setup, include=FALSE}
