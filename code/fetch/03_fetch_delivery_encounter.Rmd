@@ -182,7 +182,7 @@ mom_baby_link_tmp=mom_baby_link_02_2025 %>%
   select(part_id_infant, delivery_id)
 
 # ----------------------------------------------------------------------- #
-# Step 3: merge cancer data with mom-baby link and compute derived variables
+# Step 3: merge data with mom-baby link and compute derived variables
 # ----------------------------------------------------------------------- #
 delivery_encounter_tmp2 =full_join(delivery_encounter_tmp, mom_baby_link_tmp, by = "part_id_infant") %>%
   select(part_id_infant,part_id_mom,delivery_id,everything())
