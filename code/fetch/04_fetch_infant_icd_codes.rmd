@@ -166,7 +166,7 @@ load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_02_2025.rd
 wellbaby_icd_codes_infant_tmp2 =full_join(wellbaby_icd_codes_infant_tmp, mom_baby_link_02_2025 , by = "part_id_infant") %>%
   mutate(
           # Compute days-to-diagnosis relative to date-of-birth
-        dx2delivery_days = as.numeric(dx_date - ymd(part_dob_infant))) 
+        dx2delivery_days = as.numeric(ymd(dx_date) - ymd(part_dob_infant))) 
 
 # rename
 wellbaby_icd_codes_infant_02_2025=wellbaby_icd_codes_infant_tmp2
