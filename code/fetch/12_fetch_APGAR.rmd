@@ -1,0 +1,130 @@
+---
+title: "fetch_data: APGAR (February 2025)"
+author: "Dominick Lemas"
+date: "11/14/2024"
+output: html_document
+---
+
+```{r, include=FALSE}
+# **************************************************************************** #
+#                             PROJECT OVERVIEW                                 #
+# **************************************************************************** #
+
+# Author:        Dominick Lemas
+# Date:          November 14, 2024
+# Last Modified: February 18, 2025
+# IRB Protocol:  UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899)
+
+# R Version:     4.3.1 (2023-06-16, ucrt) -- "Beagle Scouts"
+# Platform:      x86_64-w64-mingw32/x64 (64-bit)
+# Copyright:     © 2023 The R Foundation for Statistical Computing
+
+# **************************************************************************** #
+#                              DESCRIPTION                                     #
+# **************************************************************************** #
+
+# Project Plan:
+# - Access flat files stored on the shared drive.
+# - Perform data pull, formatting, and cleaning for downstream analyses.
+
+# Notes:
+# - VPN connection must be active to access the shared drive.
+
+# Objective:
+# - Export APGAR data as an RDA file.
+
+# **************************************************************************** #
+#                              LIBRARIES                                       #
+# **************************************************************************** #
+
+# Load necessary libraries
+library(tidyverse)  # For data wrangling and visualization
+library(lubridate)  # For handling dates and times
+
+# **************************************************************************** #
+
+```
+
+
+```{r, message=FALSE}
+# ----------------------------------------------------------------------- #
+# Step 1: Pull Data
+# ----------------------------------------------------------------------- #
+
+# Specify the data directory and file name
+data_directory <- "V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_07_2022/"
+file_name <- "Apgar_score_release.csv"
+data_path <- paste0(data_directory, file_name)
+
+# Import APGAR data and process
+apgar_infant_tmp <- read_csv(data_path) %>%
+  rename(
+    # Rename columns to standardized variable names
+    part_id_infant_tmp = Deidentified_baby_ID,        # Temporary ID for infant
+    apgar_skin_1min = `Apgar skin color 1 minute`,    # Skin color score at 1 minute
+    apgar_skin_5min = `Apgar skin color 5 minute`,    # Skin color score at 5 minutes
+    apgar_hrt_1min = `Apgar heart rate 1 minute`,     # Heart rate score at 1 minute
+    apgar_hrt_5min = `Apgar heart rate 5 minute`,     # Heart rate score at 5 minutes
+    apgar_grimace_1min = `Apgar grimace 1 minute`,    # Grimace score at 1 minute
+    apgar_grimace_5min = `Apgar grimace 5 minute`,    # Grimace score at 5 minutes
+    apgar_tone_1min = `Apgar muscle tone 1 minute`,   # Muscle tone score at 1 minute
+    apgar_tone_5min = `Apgar muscle tone 5 minute`,   # Muscle tone score at 5 minutes
+    apgar_breathing_1min = `Apgar breathing 1 minute`,# Breathing score at 1 minute
+    apgar_breathing_5min = `Apgar breathing 5 minute`,# Breathing score at 5 minutes
+    apgar_total_1min = `Apgar score 1 minute`,        # Total APGAR score at 1 minute
+    apgar_total_5min = `Apgar score 5 minute`         # Total APGAR score at 5 minutes
+  ) %>%
+  mutate(
+    # Create a standardized participant ID
+    part_id_infant = paste0("infant-", part_id_infant_tmp)
+  ) %>%
+  select(
+    # Drop temporary ID column and reorder columns
+    -part_id_infant_tmp, 
+    part_id_infant, everything()
+  ) %>%
+  mutate(apgar5min_score_low = if_else(apgar_total_5min <= 6, 1, 0)) 
+
+# **************************************************************************** #
+
+```
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+
+# ----------------------------------------------------------------------- #
+# Step 3: load mom-baby link data
+# ----------------------------------------------------------------------- #
+load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_02_2025.rda") 
+
+mom_baby_link_02_2025_tmp=mom_baby_link_02_2025 %>%
+  select(part_id_infant, delivery_id)
+
+# ----------------------------------------------------------------------- #
+# Step 4: merge data with mom-baby link and compute derived variables
+# ----------------------------------------------------------------------- #
+apgar_infant_tmp2 =full_join(apgar_infant_tmp, mom_baby_link_02_2025_tmp , by = "part_id_infant") %>%
+  select(part_id_infant,delivery_id,everything())
+
+# rename
+apgar_infant_02_2025=apgar_infant_tmp2
+
+```
+
+
+```{r, message=FALSE}
+# ----------------------------------------------------------------------- #
+# Step 5: export to sharedrive
+# ----------------------------------------------------------------------- #
+
+# Define export file name and directory
+file_name <- "apgar_infant_02_2025.rda"
+data_export_directory <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/"
+data_export_path <- paste0(data_export_directory, file_name)
+
+# Save the processed apgar dataset
+save(apgar_infant_02_2025, file = data_export_path)
+
+# Confirmation message
+message("File successfully saved to: ", data_export_path)
+
+```
