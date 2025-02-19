@@ -1,0 +1,119 @@
+---
+title: "fetch_data: prenatals (February 2025)"
+author: "Dominick Lemas"
+date: "11/07/2024"
+output: html_document
+---
+
+```{r, include=FALSE}
+# **************************************************************************** #
+# ***************                Project Overview              
+# **************************************************************************** #
+
+# Author:            Dominick Lemas
+# Start Date:        November 06, 2024 
+# Last Modified:     February 18, 2025 
+# IRB:               UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899)  
+#                    
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073 
+
+# **************************************************************************** #
+# ***************                Description                   
+# **************************************************************************** #
+# PLAN: Access flat files on sharedrive, pull/format/clean data for downstream.
+# NOTE: vpn must be active
+# OBJECTIVE: Export prenatal as rda file.
+```
+
+
+```{r, include=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                Libraries                     *************** #
+# **************************************************************************** #
+
+library(tidyverse)
+library(lubridate)
+
+```
+
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+
+# ----------------------------------------------------------------------- #
+# Step 1: Pull Data
+# ----------------------------------------------------------------------- #
+# rows:            217102      
+# cols:            3 
+# unique baby id:  23265
+# repeat:          1
+# ICD9/10:         NA
+
+# data-directory
+#-----------------
+data_file_name="mom_prenatals.csv"
+# data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/mom/data")
+data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/mom_data/")
+data_import_path=paste0(data_dir,data_file_name)
+
+# read data
+prenatal_bp_mom_tmp=read_csv(data_import_path, col_types = cols()) %>%
+  rename(part_id_mom_tmp = `Deidentified_mom_ID`, 
+         race_mom = `Race`,
+         ethnicity_mom = `Ethnicity`,
+         appt_date_time = `Appt_date_time`,
+         encounter_type = `Encounter Type`,
+         prenatal_bp_mm = `BP`,
+         prenatal_bp_date_time = `BP Datetime`) %>%
+  mutate(appt_date_time=mdy_hms(appt_date_time),
+         prenatal_bp_date_time=ymd_hms(prenatal_bp_date_time)) %>%
+  mutate(part_id_mom=paste0("mom-",part_id_mom_tmp)) %>%
+  select(-part_id_mom_tmp) %>% 
+  select(part_id_mom, everything())
+
+```
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+
+# ----------------------------------------------------------------------- #
+# Step 2: load mom-baby link data
+# ----------------------------------------------------------------------- #
+load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_02_2025.rda") 
+
+# ----------------------------------------------------------------------- #
+# Step 3: merge data with mom-baby link and compute derived variables
+# ----------------------------------------------------------------------- #
+prenatal_bp_mom_tmp2 <- full_join(prenatal_bp_mom_tmp, mom_baby_link_02_2025, by = "part_id_mom") %>%
+  mutate(
+    appt_date_time = as_date(appt_date_time),  # Convert to Date (removes time component)
+    part_dob_infant = as_date(part_dob_infant),  # Ensure proper Date format
+
+    # Compute days-to-diagnosis relative to date-of-birth
+    dx2delivery_days = if_else(
+      complete.cases(appt_date_time, part_dob_infant), 
+      as.numeric(difftime(appt_date_time, part_dob_infant, units = "days")), 
+      NA_real_  # Preserve NA values
+    )
+  ) %>%
+  select(part_id_mom,part_id_infant,delivery_id, everything()) %>%
+  drop_na(prenatal_bp_mm) 
+
+# rename
+prenatal_bp_mom_02_2025=prenatal_bp_mom_tmp2
+
+```
+
+
+```{r, message=FALSE}
+
+# ----------------------------------------------------------------------- #
+# Step 4: export to sharedrive
+# ----------------------------------------------------------------------- #
+
+## EXPORT to Sharedrive
+file_name="prenatal_bp_mom_02_2025.rda"
+data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/") 
+data_export_path=paste0(data_export_directory,file_name)
+prenatal_bp_mom_02_2025 %>% save(prenatal_bp_mom_02_2025, file=data_export_path)
+```
