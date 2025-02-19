@@ -82,10 +82,18 @@ load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_02_2025.rd
 # ----------------------------------------------------------------------- #
 # Step 3: merge data with mom-baby link and compute derived variables
 # ----------------------------------------------------------------------- #
-prenatal_htwt_mom_tmp2 =full_join(prenatal_htwt_mom_tmp, mom_baby_link_02_2025 , by = "part_id_mom") %>%
+prenatal_htwt_mom_tmp2 <- full_join(prenatal_htwt_mom_tmp, mom_baby_link_02_2025, by = "part_id_mom") %>%
   mutate(
-          # Compute days-to-diagnosis relative to date-of-birth
-        dx2delivery_days = as.numeric(encounter_date - ymd(part_dob_infant))) 
+    encounter_date = as_date(encounter_date),  # Ensure proper Date format
+    part_dob_infant = as_date(part_dob_infant),  # Ensure proper Date format
+
+    # Compute days-to-diagnosis relative to date-of-birth
+    dx2delivery_days = if_else(
+      complete.cases(encounter_date, part_dob_infant),
+      as.numeric(difftime(encounter_date, part_dob_infant, units = "days")), 
+      NA_real_  # Preserve NA values
+    )
+  )
 
 # rename
 prenatal_htwt_mom_02_2025=prenatal_htwt_mom_tmp2
