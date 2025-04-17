@@ -1,5 +1,5 @@
 ---
-title: "fetch_data: mom-baby link (April 2025, add Jacksonville)"
+title: "fetch_data: mom-baby link (April 2025; Jacksonville)"
 author: "Dominick Lemas"
 date: "04/17/2025"
 output:
@@ -15,8 +15,8 @@ output:
 # ****************************************************************************** #
 
 # Author:            Dominick Lemas
-# Start Date:        November 09, 2024
-# Last Modified:     April 17, 2025
+# Start Date:        April 17, 2025
+# Last Modified:     
 # IRB:               UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899)
 
 # Software Versions:
@@ -65,16 +65,16 @@ source(paste0(working_dir,"/code/functions/all_functions.R"))
 # - Prepare data for downstream analysis.
 
 # Dataset Summary:
-# - Rows:            28,530
-# - Columns:         3
-# - Unique Mom IDs:  22,075
-# - Unique Infant IDs: 28,530
-# - Repeats:         1
-# - ICD9/10:         NA
+# - Rows:            
+# - Columns:         
+# - Unique Mom IDs:  
+# - Unique Infant IDs: 
+# - Repeats:         
+# - ICD9/10:         
 
 # Data Directory:
-data_file_name <- "baby_mom_link.csv"
-data_dir <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/")
+data_file_name <- "baby_mom_link_Jax.csv"
+data_dir <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/")
 data_import_path <- paste0(data_dir, data_file_name)
 
 # Data Import and Transformation:
@@ -107,22 +107,22 @@ mom_baby_link_tmp <- read_csv(data_import_path, col_types = cols()) %>%
 # - Prepare data for analysis.
 
 # Dataset Summary:
-# - Rows:            28,530
-# - Columns:         20
-# - Unique Baby IDs: 28,530
-# - Repeats:         1
-# - ICD9/10:         NA
+# - Rows:            
+# - Columns:         
+# - Unique Baby IDs: 
+# - Repeats:         
+# - ICD9/10:         
 
 # Data Directory:
-data_dir <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/")
-data_file_name <- "baby_mom_at_birth_with_payer.csv"
+data_dir <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/")
+data_file_name <- "baby_mom_at_birth_Jax.csv"
 data_import_path <- paste0(data_dir, data_file_name)
 
 # Updated Data Transformation Pipeline
 delivery_encounter <- read_csv(data_import_path, col_types = cols()) %>%
   rename(
-    part_id_mom_tmp = deidentified_mom_id,
-    part_id_infant_tmp = deidentified_baby_id
+    part_id_mom_tmp = Deidentified_mom_ID,
+    part_id_infant_tmp = Deidentified_baby_ID
   ) %>%
   mutate(
     part_id_mom = paste0("mom-", part_id_mom_tmp),
@@ -146,8 +146,6 @@ delivery_encounter <- read_csv(data_import_path, col_types = cols()) %>%
     gestational_age_weeks_total = gestational_age_weeks + (gestational_age_days / 7)
   ) %>%
   select(-gestational_age_parsed, -gestational_age_days, -gestational_age_weeks)
-
-
 
 ```
 
@@ -182,7 +180,10 @@ mom_baby_link <- left_join(mom_baby_link_tmp, delivery_encounter) %>%
   select(part_id_mom, part_id_infant, delivery_id, everything())
 
 # rename
-mom_baby_link_02_2025=mom_baby_link
+GNV_mom_baby_link_04_2025=mom_baby_link %>%
+  mutate(part_id_mom=paste0("GNV-",part_id_mom),
+         part_id_infant=paste0("GNV-",part_id_infant),
+         delivery_id=paste0("GNV-",delivery_id))
 
 ```
 
@@ -196,12 +197,14 @@ mom_baby_link_02_2025=mom_baby_link
 # - Save the file to the shared drive for further analysis.
 
 # File Name and Export Path:
-file_name <- "mom_baby_link_02_2025.rda"
-data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/")
-data_export_path <- paste0(data_export_directory, file_name)
+file_name <- "GNV_mom_baby_link"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
+data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
+data_export_path <- paste0(data_export_directory, file_name_path)
 
 # Export the data:
-mom_baby_link_02_2025 %>%
-  save(mom_baby_link_02_2025, file = data_export_path)
+GNV_mom_baby_link_04_2025 %>%
+  save(GNV_mom_baby_link_04_2025, file = data_export_path)
 
 ```
