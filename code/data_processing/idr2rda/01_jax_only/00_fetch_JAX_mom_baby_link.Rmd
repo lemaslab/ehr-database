@@ -42,8 +42,8 @@ output:
 # ****************************************************************************** #
 
 # directory
-# working_dir="C:/Users/djlemas/OneDrive/Documents/ehr-database"
-working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
+working_dir="C:/Users/djlemas/OneDrive/Documents/ehr-database"
+#working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
 
 # Load required packages
 library(tidyverse)   # Comprehensive R package for data science
@@ -180,10 +180,10 @@ mom_baby_link <- left_join(mom_baby_link_tmp, delivery_encounter) %>%
   select(part_id_mom, part_id_infant, delivery_id, everything())
 
 # rename
-GNV_mom_baby_link_04_2025=mom_baby_link %>%
-  mutate(part_id_mom=paste0("GNV-",part_id_mom),
-         part_id_infant=paste0("GNV-",part_id_infant),
-         delivery_id=paste0("GNV-",delivery_id))
+JAX_mom_baby_link_04_2025=mom_baby_link %>%
+  mutate(part_id_mom=paste0("JAX-",part_id_mom),
+         part_id_infant=paste0("JAX-",part_id_infant),
+         delivery_id=paste0("JAX-",delivery_id))
 
 ```
 
@@ -197,14 +197,14 @@ GNV_mom_baby_link_04_2025=mom_baby_link %>%
 # - Save the file to the shared drive for further analysis.
 
 # File Name and Export Path:
-file_name <- "GNV_mom_baby_link"
+file_name <- "JAX_mom_baby_link"
 timestamp <- format(Sys.time(), "_%Y%m%d")
 file_name_path=paste0(file_name,timestamp,".rda")
-data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
+data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/JAX/")
 data_export_path <- paste0(data_export_directory, file_name_path)
 
 # Export the data:
-GNV_mom_baby_link_04_2025 %>%
-  save(GNV_mom_baby_link_04_2025, file = data_export_path)
+JAX_mom_baby_link_04_2025 %>%
+  save(JAX_mom_baby_link_04_2025, file = data_export_path)
 
 ```

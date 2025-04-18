@@ -1,0 +1,98 @@
+---
+title: "fetch_data: mom-baby link (April 2025; Gainesville & Jacksonville)"
+author: "Dominick Lemas"
+date: "04/18/2025"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r, include=FALSE}
+# ****************************************************************************** #
+#                                  Project Overview                               
+# ****************************************************************************** #
+
+# Author:            Dominick Lemas
+# Start Date:        April 18, 2025
+# Last Modified:     
+# IRB:               UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899)
+
+# Software Versions:
+# - R version:       4.4.1 (2024-06-14)
+# - RStudio version: 1.3.1073
+
+# ****************************************************************************** #
+#                                  Description                                    
+# ****************************************************************************** #
+
+# PLAN:
+# - Access rda files on the shared drive
+# - Combine GNV and JAX data for downstream analyses
+
+# NOTE:
+# - Ensure VPN is active to access the shared drive
+
+# OBJECTIVE:
+# - Export mom-baby link as an RDA file
+
+# ****************************************************************************** #
+#                                  Libraries                                      
+# ****************************************************************************** #
+
+# directory
+working_dir="C:/Users/djlemas/OneDrive/Documents/ehr-database"
+#working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
+
+# Load required packages
+library(tidyverse)   # Comprehensive R package for data science
+library(lubridate)   # Simplifies date and time manipulation
+
+```
+
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+
+# **************************************************************************** #
+#                   baby_mom_link Data Import                           
+# **************************************************************************** #
+
+# GAINESVILLE Data Directory:
+data_file_name <- "GNV_mom_baby_link_20250417.rda"
+data_dir <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
+
+# JACKSONVILLE Data Directory:
+data_file_name <- "JAX_mom_baby_link_20250418.rda"
+data_dir <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/JAX/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
+
+# merge data
+mom_baby_link_ALL=rbind(GNV_mom_baby_link_04_2025, JAX_mom_baby_link_04_2025)
+
+```
+
+```{r, message=FALSE}
+# **************************************************************************** #
+#                      Export Processed Mom-Baby Link Data                     
+# **************************************************************************** #
+
+# Task:
+# - Export the processed mom_baby_link data as an RDA file.
+# - Save the file to the shared drive for further analysis.
+
+# File Name and Export Path:
+file_name <- "mom_baby_link_ALL"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
+data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/")
+data_export_path <- paste0(data_export_directory, file_name_path)
+
+# Export the data:
+mom_baby_link_ALL %>%
+  save(mom_baby_link_ALL, file = data_export_path)
+
+```
