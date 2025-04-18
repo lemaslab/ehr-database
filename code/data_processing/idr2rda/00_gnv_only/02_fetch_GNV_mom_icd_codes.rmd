@@ -1,7 +1,7 @@
 ---
-title: "fetch_data: all maternal codes (February 2025)"
+title: "fetch_data: all maternal codes (April 2025; Gainesville)"
 author: "Dominick Lemas"
-date: "11/14/2023"
+date: "04/18/2025"
 output: html_document
 ---
 
@@ -13,7 +13,7 @@ output: html_document
 
 # Author:            Dominick Lemas
 # Start Date:        Nov 14, 2023 
-# Last Modified:     Feb 18, 2025  
+# Last Modified:     Apr 18, 2025  
 # IRB:         UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899) 
 #
 # Software Versions:
@@ -203,6 +203,10 @@ mom_all_icd_codes=rbind(mom_diagnosis_ICD9,mom_diagnosis_ICD10,
                      selfharm_release,
                      cancer_icd_codes_mom)
 
+# rename
+GNV_mom_all_icd_codes_04_2025=mom_all_icd_codes %>%
+  mutate(part_id_mom=paste0("GNV-",part_id_mom))
+
 ```
 
 ```{r}
@@ -210,18 +214,18 @@ mom_all_icd_codes=rbind(mom_diagnosis_ICD9,mom_diagnosis_ICD10,
 # ----------------------------------------------------------------------- #
 # Step 2: load mom-baby link data
 # ----------------------------------------------------------------------- #
-load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_02_2025.rda")
+load("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/mom_baby_link_ALL_20250418.rda")
 
 # ----------------------------------------------------------------------- #
 # Step 3: merge cancer data with mom-baby link and compute derived variables
 # ----------------------------------------------------------------------- #
-mom_all_icd_codes_tmp2 =full_join(mom_all_icd_codes, mom_baby_link_02_2025, by = "part_id_mom") %>%
+mom_all_icd_codes_tmp2 =full_join(GNV_mom_all_icd_codes_04_2025, mom_baby_link_ALL, by = "part_id_mom") %>%
   mutate(
           # Compute days-to-diagnosis relative to date-of-birth
         dx2delivery_days = as.numeric(dx_date - ymd(part_dob_infant))) 
 
 # rename
-mom_all_icd_codes_02_2025=mom_all_icd_codes_tmp2
+GNV_mom_icd_codes_04_2025=mom_all_icd_codes_tmp2
 ```
 
 ```{r, message=FALSE}
@@ -231,10 +235,12 @@ mom_all_icd_codes_02_2025=mom_all_icd_codes_tmp2
 # ----------------------------------------------------------------------- #
 
 ## EXPORT to Sharedrive
-file_name="mom_all_icd_codes_02_2025.rda"
-data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/") 
-data_export_path=paste0(data_export_directory,file_name)
-mom_all_icd_codes_02_2025 %>% save(mom_all_icd_codes_02_2025, file=data_export_path)
+file_name="GNV_mom_icd_codes"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
+data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
+data_export_path=paste0(data_export_directory,file_name_path)
+GNV_mom_icd_codes_04_2025 %>% save(GNV_mom_icd_codes_04_2025, file=data_export_path)
 ```
 
 `
