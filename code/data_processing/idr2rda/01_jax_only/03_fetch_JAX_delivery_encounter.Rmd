@@ -1,7 +1,7 @@
 ---
-title: "fetch_data: delivery encounter data (June 2025; Gainesville)"
+title: "fetch_data: delivery encounter data (June 2025; Jacksonville)"
 author: "Dominick Lemas"
-date: "06/26/25"
+date: "06/27/25"
 output: html_document
 ---
 
@@ -11,8 +11,8 @@ output: html_document
 # ***************                Project Overview             
 # **************************************************************************** #
 # Author:            Dominick Lemas 
-# Start Date:        Nov 04, 2024
-# Last Modified:     June 26, 2025 
+# Start Date:        June 27, 2025
+# Last Modified:      
 # IRB:               IRB protocol IRB201601899  
 #
 # Software Versions:
@@ -55,7 +55,7 @@ source(paste0(working_dir,"/code/functions/all_functions.R"))
 ```{r, include=FALSE, message=FALSE, warning=FALSE}
 
 # **************************************************************************** #
-#    GAINESVILLE:         baby_mom_at_birth_with_payer.csv                         
+#    JACKSONVILLE:         baby_mom_at_birth_Jax.csv                         
 # **************************************************************************** #
 
 # Task:
@@ -79,53 +79,48 @@ source(paste0(working_dir,"/code/functions/all_functions.R"))
 # column-types
 #-------------
 col_types <- readr::cols(
-      deidentified_mom_id  = readr::col_factor(),
+      Deidentified_baby_ID  = readr::col_factor(),
       race_infant = col_factor(),
-      ethnicity_infant = col_factor(),
+      ethnicity = col_factor(),
       date_of_delivery = col_factor(),
       birth_weight = col_double(),
       pediatric_delivery_type = col_factor(),
       admit_source = col_character(),
       pediatric_gestational_age = col_character(),
       sex = col_factor(),
-      deidentified_mom_id = col_factor(),
+      Deidentified_mom_ID = col_factor(),
+      race=col_factor(),
       race_mom = col_factor(),
       ethnicity_mom = col_factor(),
       age_at_encounter_mom = col_double(),
       payer_mom = col_factor(),
       admit_date_mom = col_character(),
-      admit_height_inches = col_double(),
+      admit_height_in = col_double(),
       admit_weight_lbs = col_double(),
       admit_weight_kg = col_double(),
       admit_height_cm = col_double(),
       admit_bmi = col_double()
      )
 
-# # Define gestational age parsing function (e.g., "37w5d")
-# parse_gestational_age <- function(ga_string) {
-#   matches <- str_match(ga_string, "(\\d+)w(\\d+)d")
-#   weeks <- as.numeric(matches[, 2])
-#   days <- as.numeric(matches[, 3])
-#   list(weeks = weeks, days = days)
-# }
-
 # data-directory
 #-----------------
-data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/")
-data_file_name="baby_mom_at_birth_with_payer.csv"
+data_dir="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/"
+data_file_name="baby_mom_at_birth_Jax.csv"
 # data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/")
 data_import_path=paste0(data_dir,data_file_name)
 
 # read data
 delivery_encounter_tmp=read_csv(data_import_path, col_types = col_types) %>%
-  rename(part_id_mom_tmp=deidentified_mom_id,
-         part_id_infant_tmp=deidentified_baby_id,
+  rename(part_id_mom_tmp=Deidentified_mom_ID,
+         part_id_infant_tmp=Deidentified_baby_ID,
          sex_infant=sex,
          birth_weight_infant=birth_weight,
          delivery_type=pediatric_delivery_type,
          gestational_age_infant=pediatric_gestational_age,
-         admit_height_inches_mom=admit_height_inches,
+         admit_height_inches_mom=admit_height_in,
          age_at_delivery_mom=age_at_encounter_mom,
+         race_infant=race,
+         ethnicity_infant=ethnicity,
          admit_weight_lbs_mom=admit_weight_lbs,
          admit_weight_kg_mom=admit_weight_kg,
          admit_height_cm_mom=admit_height_cm,
@@ -192,8 +187,8 @@ delivery_encounter_tmp=read_csv(data_import_path, col_types = col_types) %>%
     size_for_age_aga = if_else(size_for_ga_cat == "AGA", 1, 0),
     size_for_age_lga = if_else(size_for_ga_cat == "LGA", 1, 0)
   ) %>%
-  mutate(part_id_mom=paste0("GNV-",part_id_mom),
-         part_id_infant=paste0("GNV-",part_id_infant))
+  mutate(part_id_mom=paste0("JAX-",part_id_mom),
+         part_id_infant=paste0("JAX-",part_id_infant))
   
 # END LOOP
 
@@ -220,7 +215,7 @@ delivery_encounter_tmp2 =full_join(delivery_encounter_tmp, mom_baby_link_tmp, by
          everything())
 
 # rename
-GNV_delivery_encounter_06_2025=delivery_encounter_tmp2
+JAX_delivery_encounter_06_2025=delivery_encounter_tmp2
 ```
 
 ```{r, message=FALSE}
@@ -229,11 +224,11 @@ GNV_delivery_encounter_06_2025=delivery_encounter_tmp2
 # ----------------------------------------------------------------------- #
 
 ## EXPORT 
-file_name="GNV_delivery_encounter"
+file_name="JAX_delivery_encounter"
 timestamp <- format(Sys.time(), "_%Y%m%d")
 file_name_path=paste0(file_name,timestamp,".rda")
-data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
+data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/JAX/")
 data_export_path=paste0(data_export_directory,file_name_path)
-GNV_delivery_encounter_06_2025 %>% save(GNV_delivery_encounter_06_2025, file=data_export_path)
+JAX_delivery_encounter_06_2025 %>% save(JAX_delivery_encounter_06_2025, file=data_export_path)
 ```
 
