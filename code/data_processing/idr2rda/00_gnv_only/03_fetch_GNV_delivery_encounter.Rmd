@@ -69,7 +69,7 @@ source(paste0(working_dir,"/code/functions/all_functions.R"))
 
 # Dataset Summary:
 # - Rows:            28,530
-# - Columns:         3
+# - Columns:         20
 # - Unique Mom IDs:  22,075
 # - Unique Infant IDs: 28,530
 # - Repeats:         1
@@ -212,7 +212,7 @@ mom_baby_link_tmp=mom_baby_link_ALL %>%
 # ----------------------------------------------------------------------- #
 # Step 3: merge data with mom-baby link and compute derived variables
 # ----------------------------------------------------------------------- #
-delivery_encounter_tmp2 =full_join(delivery_encounter_tmp, mom_baby_link_tmp, by = "part_id_infant") %>%
+delivery_encounter_tmp2 =left_join(delivery_encounter_tmp, mom_baby_link_tmp, by = "part_id_infant") %>%
   select(part_id_infant,part_id_mom,delivery_id,everything()) %>%
   mutate(# Compute days-to-event relative to date-of-birth
            admit2delivery_days = as.numeric(delivery_admit_date - ymd(part_dob_infant))) %>%
