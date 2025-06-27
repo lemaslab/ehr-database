@@ -50,7 +50,6 @@ library(dplyr)
 library(gigs)        # Growth chart analysis
 source(paste0(working_dir,"/code/functions/all_functions.R"))
 
-
 ```
 
 ```{r, include=FALSE, message=FALSE, warning=FALSE}
@@ -102,13 +101,13 @@ col_types <- readr::cols(
       admit_bmi = col_double()
      )
 
-# Define gestational age parsing function (e.g., "37w5d")
-parse_gestational_age <- function(ga_string) {
-  matches <- str_match(ga_string, "(\\d+)w(\\d+)d")
-  weeks <- as.numeric(matches[, 2])
-  days <- as.numeric(matches[, 3])
-  list(weeks = weeks, days = days)
-}
+# # Define gestational age parsing function (e.g., "37w5d")
+# parse_gestational_age <- function(ga_string) {
+#   matches <- str_match(ga_string, "(\\d+)w(\\d+)d")
+#   weeks <- as.numeric(matches[, 2])
+#   days <- as.numeric(matches[, 3])
+#   list(weeks = weeks, days = days)
+# }
 
 # data-directory
 #-----------------
@@ -214,20 +213,15 @@ mom_baby_link_tmp=mom_baby_link_ALL %>%
 # Step 3: merge data with mom-baby link and compute derived variables
 # ----------------------------------------------------------------------- #
 delivery_encounter_tmp2 =full_join(delivery_encounter_tmp, mom_baby_link_tmp, by = "part_id_infant") %>%
-  select(part_id_infant,part_id_mom,delivery_id,everything())
+  select(part_id_infant,part_id_mom,delivery_id,everything()) %>%
+  mutate(# Compute days-to-event relative to date-of-birth
+           admit2delivery_days = as.numeric(delivery_admit_date - ymd(part_dob_infant))) %>%
+  select(part_id_infant, part_id_mom, delivery_id, part_dob_infant, delivery_admit_date,admit2delivery_days,
+         everything())
 
 # rename
-GNV_delivery_encounter_02_2025=delivery_encounter_tmp2
+GNV_delivery_encounter_06_2025=delivery_encounter_tmp2
 ```
-
-mom_all_icd_codes_tmp2 =full_join(GNV_mom_all_icd_codes_04_2025, mom_baby_link_ALL, by = "part_id_mom") %>%
-  mutate(
-          # Compute days-to-diagnosis relative to date-of-birth
-        dx2delivery_days = as.numeric(dx_date - ymd(part_dob_infant))) 
-
-# rename
-GNV_mom_icd_codes_04_2025=mom_all_icd_codes_tmp2
-
 
 ```{r, message=FALSE}
 # ----------------------------------------------------------------------- #
@@ -235,9 +229,11 @@ GNV_mom_icd_codes_04_2025=mom_all_icd_codes_tmp2
 # ----------------------------------------------------------------------- #
 
 ## EXPORT 
-file_name="delivery_encounter_02_2025.rda"
-data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/") 
-data_export_path=paste0(data_export_directory,file_name)
-delivery_encounter_02_2025 %>% save(delivery_encounter_02_2025, file=data_export_path)
+file_name="GNV_delivery_encounter"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
+data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
+data_export_path=paste0(data_export_directory,file_name_path)
+GNV_delivery_encounter_06_2025 %>% save(GNV_delivery_encounter_06_2025, file=data_export_path)
 ```
 
