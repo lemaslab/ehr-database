@@ -1,20 +1,20 @@
 ---
-title: "fetch_data: medication-ip (February 2025)"
+title: "fetch_data: medication-ip (June 2025; Gainesville)"
 author: "Dominick Lemas"
-date: "11/06/2024"
+date: "06/27/2025"
 output: html_document
 ---
 
 ```{r, include=FALSE}
 ##-------------- 
 # **************************************************************************** #
-# ***************                Project Overview              *************** #
+# ***************                Project Overview           
 # **************************************************************************** #
 
 # Author:            Dominick Lemas
 # Start Date:        November 06, 2024 
-# Last Modified:     February 18, 2025 
-# IRB:               IRB protocol IRB201601899 
+# Last Modified:     June 27, 2025 
+# IRB:               IRB201601899 
 #
 # Software Versions:
 # - R version:       4.0.3 (2020-10-10)
@@ -23,12 +23,16 @@ output: html_document
 # **************************************************************************** #
 # ***************                Description                   
 # **************************************************************************** #
-# PLAN: Access flat files on sharedrive, pull/format/clean data for downstream.
-# NOTE: vpn must be active
-# OBJECTIVE: Export medication-ip as rda file.
-```
 
-```{r, include=FALSE, echo=FALSE}
+# PLAN:
+# - Access flat files on the shared drive
+# - Pull, format, and clean data for downstream analyses
+
+# NOTE:
+# - Ensure VPN is active to access the shared drive
+
+# OBJECTIVE:
+# - Export medications-IP an RDA file
 
 # **************************************************************************** #
 # ***************                Libraries                     *************** #
@@ -41,6 +45,10 @@ library(lubridate)
 
 
 ```{r, include=FALSE, message=FALSE, warning=FALSE}
+
+# **************************************************************************** #
+#    GAINESVILLE:         mom_IP.csv files                         
+# **************************************************************************** #
 
 # ----------------------------------------------------------------------- #
 # Step 1: Pull Data
@@ -70,7 +78,8 @@ medication_ip_mom_tmp=read_csv(data_import_path, col_types = cols()) %>%
          med_ip_rxnorm_code = `Rxnorm Code`) %>%
   mutate(part_id_mom=paste0("mom-",part_id_mom_tmp)) %>%
   select(-part_id_mom_tmp) %>% 
-  select(part_id_mom, everything())
+  select(part_id_mom, everything()) %>%
+  mutate(part_id_mom=paste0("GNV-",part_id_mom))
 
 ```
 
@@ -79,18 +88,21 @@ medication_ip_mom_tmp=read_csv(data_import_path, col_types = cols()) %>%
 # ----------------------------------------------------------------------- #
 # Step 2: load mom-baby link data
 # ----------------------------------------------------------------------- #
-load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_02_2025.rda") 
+load("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/mom_baby_link_ALL_20250418.rda")
+
+mom_baby_link_tmp=mom_baby_link_ALL %>%
+  select(part_id_mom,part_id_infant, delivery_id, part_dob_infant)
 
 # ----------------------------------------------------------------------- #
 # Step 3: merge data with mom-baby link and compute derived variables
 # ----------------------------------------------------------------------- #
-medication_ip_mom_tmp2 <- full_join(medication_ip_mom_tmp, mom_baby_link_02_2025, by = "part_id_mom") %>%
+medication_ip_mom_tmp2 <- left_join(medication_ip_mom_tmp, mom_baby_link_tmp, by = "part_id_mom") %>%
   mutate(
     med_ip_date = as_date(med_ip_date),  # Convert to Date (removes time component)
     part_dob_infant = as_date(part_dob_infant),  # Ensure proper Date format
 
-    # Compute days-to-diagnosis relative to date-of-birth
-    dx2delivery_days = if_else(
+    # Compute days-to-event relative to date-of-birth
+    rx2delivery_days = if_else(
       complete.cases(med_ip_date, part_dob_infant), 
       as.numeric(difftime(med_ip_date, part_dob_infant, units = "days")), 
       NA_real_  # Preserve NA values
@@ -99,7 +111,7 @@ medication_ip_mom_tmp2 <- full_join(medication_ip_mom_tmp, mom_baby_link_02_2025
   select(part_id_mom,part_id_infant,delivery_id, everything())
 
 # rename
-medication_ip_mom_02_2025=medication_ip_mom_tmp2
+GNV_medication_ip_mom_06_2025=medication_ip_mom_tmp2
 
 ```
 
@@ -111,8 +123,15 @@ medication_ip_mom_02_2025=medication_ip_mom_tmp2
 # ----------------------------------------------------------------------- #
 
 ## EXPORT to Sharedrive
-file_name="medication_ip_mom_02_2025.rda"
-data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/") 
-data_export_path=paste0(data_export_directory,file_name)
-medication_ip_mom_02_2025 %>% save(medication_ip_mom_02_2025, file=data_export_path)
+file_name="GNV_medication_ip_mom"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
+data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
+export_path=paste0(data_export_directory,file_name_path)
+GNV_medication_ip_mom_06_2025 %>% save(GNV_medication_ip_mom_06_2025, file=export_path)
+
 ```
+
+V:\FACULTY\DJLEMAS\EHR_Data\processed\READ_ONLY_DATASETS\10year_data\GNV
+
+
