@@ -1,7 +1,7 @@
 ---
-title: "fetch_data: infant icd codes (February 2025)"
+title: "fetch_data: infant icd codes (June 2025; Gainesville)"
 author: "Dominick Lemas"
-date: "11/06/2024"
+date: "06/27/2025"
 output: html_document
 
 ---
@@ -14,8 +14,8 @@ output: html_document
 
 # Author:           Dominick Lemas
 # Start Date:       Nov 06, 2024 
-# Last Modified:    February 18, 2025  
-# IRB:         IRB protocol IRB201601899 
+# Last Modified:    June 27, 2025  
+# IRB:              IRB201601899 
 #
 # Software Versions:
 # - R version:       4.0.3 (2020-10-10)
@@ -24,13 +24,16 @@ output: html_document
 # **************************************************************************** #
 # ***************                Description                  
 # **************************************************************************** #
-# PLAN: Access flat files on sharedrive, pull/format/clean data for downstream.
-# NOTE: vpn must be active
-# OBJECTIVE: Export all ICD9/10 codes as rda file. 
-```
 
+# PLAN:
+# - Access flat files on the shared drive
+# - Pull, format, and clean data for downstream analyses
 
-```{r, message=FALSE}
+# NOTE:
+# - Ensure VPN is active to access the shared drive
+
+# OBJECTIVE:
+# - Export ICD9/10 codes an RDA file
 
 # **************************************************************************** #
 # ***************                Library                       
@@ -41,6 +44,10 @@ library(tidyverse)
 ```
 
 ```{r, message=FALSE}
+
+# **************************************************************************** #
+#    GAINESVILLE:         multiple.csv files                         
+# **************************************************************************** #
 
 # ----------------------------------------------------------------------- #
 # Step 1: Pull Data
@@ -149,7 +156,8 @@ wellbaby_icd_codes_infant_tmp=rbind(baby_asthma,baby_ear_infection,baby_eczema,b
            dx_type="Diagnosis Type") %>%
   mutate(part_id_infant=paste0("infant-",part_id_infant_tmp)) %>%
   select(-part_id_infant_tmp) %>% 
-  select(part_id_infant,dx_category,everything())
+  select(part_id_infant,dx_category,everything()) %>%
+  mutate(part_id_infant=paste0("GNV-",part_id_infant))
 
 ```
 
@@ -158,21 +166,23 @@ wellbaby_icd_codes_infant_tmp=rbind(baby_asthma,baby_ear_infection,baby_eczema,b
 # ----------------------------------------------------------------------- #
 # Step 2: load mom-baby link data
 # ----------------------------------------------------------------------- #
-load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_02_2025.rda") 
+load("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/mom_baby_link_ALL_20250418.rda")
+
+mom_baby_link_tmp=mom_baby_link_ALL %>%
+  select(part_id_infant, delivery_id, part_dob_infant)
 
 # ----------------------------------------------------------------------- #
 # Step 3: merge data with mom-baby link and compute derived variables
 # ----------------------------------------------------------------------- #
-wellbaby_icd_codes_infant_tmp2 =full_join(wellbaby_icd_codes_infant_tmp, mom_baby_link_02_2025 , by = "part_id_infant") %>%
+wellbaby_icd_codes_infant_tmp2 =left_join(wellbaby_icd_codes_infant_tmp, mom_baby_link_tmp , by = "part_id_infant") %>%
   mutate(
           # Compute days-to-diagnosis relative to date-of-birth
         dx2delivery_days = as.numeric(ymd(dx_date) - ymd(part_dob_infant))) 
 
 # rename
-wellbaby_icd_codes_infant_02_2025=wellbaby_icd_codes_infant_tmp2
+GNV_infant_icd_codes_06_2025=wellbaby_icd_codes_infant_tmp2
 
 ```
-
 
 ```{r, message=FALSE}
 # ----------------------------------------------------------------------- #
@@ -180,8 +190,11 @@ wellbaby_icd_codes_infant_02_2025=wellbaby_icd_codes_infant_tmp2
 # ----------------------------------------------------------------------- #
 
 ## EXPORT 
-file_name="wellbaby_icd_codes_infant_02_2025.Rda"
-data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/") 
-export_path=paste0(data_export_directory,file_name)
-wellbaby_icd_codes_infant_02_2025 %>% save(wellbaby_icd_codes_infant_02_2025, file=export_path)
+file_name="GNV_infant_icd_codes"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
+data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
+export_path=paste0(data_export_directory,file_name_path)
+GNV_infant_icd_codes_06_2025 %>% save(GNV_infant_icd_codes_06_2025, file=export_path)
+
 ```
