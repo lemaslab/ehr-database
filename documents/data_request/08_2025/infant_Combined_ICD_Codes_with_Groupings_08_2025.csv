@@ -1,0 +1,33 @@
+ICD-10 Code,In_Spreadsheet,In_WordDoc,IDR request 08-2025,In_Either,ICD-9 Code,Category_Grouping
+G40,FALSE,FALSE,TRUE,FALSE,345.x,Neurologic and Developmental Disorders
+G80,FALSE,FALSE,TRUE,FALSE,343.x,Neurologic and Developmental Disorders
+G71,FALSE,FALSE,TRUE,FALSE,359.1,Neurologic and Developmental Disorders
+F84,FALSE,FALSE,TRUE,FALSE,299.x,Neurologic and Developmental Disorders
+F70,FALSE,FALSE,TRUE,FALSE,317,Neurologic and Developmental Disorders
+C91,FALSE,FALSE,TRUE,FALSE,204.x,Pediatric Cancers
+C92,FALSE,FALSE,TRUE,FALSE,205.x,Pediatric Cancers
+C93,FALSE,FALSE,TRUE,FALSE,206.x,Pediatric Cancers
+C94,FALSE,FALSE,TRUE,FALSE,207.x,Pediatric Cancers
+C95,FALSE,FALSE,TRUE,FALSE,208.x,Pediatric Cancers
+C70,FALSE,FALSE,TRUE,FALSE,192,Pediatric Cancers
+C71,FALSE,FALSE,TRUE,FALSE,191.x,Pediatric Cancers
+C72,FALSE,FALSE,TRUE,FALSE,192.1-192.2,Pediatric Cancers
+Q90,FALSE,FALSE,TRUE,FALSE,758,Congenital Anomalies & Chromosomal Disorders
+Q91,FALSE,FALSE,TRUE,FALSE,758.1,Congenital Anomalies & Chromosomal Disorders
+Q92,FALSE,FALSE,TRUE,FALSE,758.2,Congenital Anomalies & Chromosomal Disorders
+Q93,FALSE,FALSE,TRUE,FALSE,758.3,Congenital Anomalies & Chromosomal Disorders
+Q95,FALSE,FALSE,TRUE,FALSE,758.5,Congenital Anomalies & Chromosomal Disorders
+Q96,FALSE,FALSE,TRUE,FALSE,758.6,Congenital Anomalies & Chromosomal Disorders
+Q97,FALSE,FALSE,TRUE,FALSE,758.7,Congenital Anomalies & Chromosomal Disorders
+Q98,FALSE,FALSE,TRUE,FALSE,758.8,Congenital Anomalies & Chromosomal Disorders
+Q99,FALSE,FALSE,TRUE,FALSE,758.9,Congenital Anomalies & Chromosomal Disorders
+H90,FALSE,FALSE,TRUE,FALSE,389.x,Sensory Impairments
+H54,FALSE,FALSE,TRUE,FALSE,369.x,Sensory Impairments
+R65.2,FALSE,FALSE,TRUE,FALSE,995.92,Severe Acute Events
+A41,FALSE,FALSE,TRUE,FALSE,038.x,Severe Acute Events
+S06,FALSE,FALSE,TRUE,FALSE,854.x,Severe Acute Events
+E10,FALSE,FALSE,TRUE,FALSE,250.x1/250.x3,Metabolic and Endocrine Disorders
+E00,FALSE,FALSE,TRUE,FALSE,243,Metabolic and Endocrine Disorders
+E01,FALSE,FALSE,TRUE,FALSE,240.x,Metabolic and Endocrine Disorders
+E02,FALSE,FALSE,TRUE,FALSE,244.8,Metabolic and Endocrine Disorders
+E03,FALSE,FALSE,TRUE,FALSE,244.9,Metabolic and Endocrine Disorders
