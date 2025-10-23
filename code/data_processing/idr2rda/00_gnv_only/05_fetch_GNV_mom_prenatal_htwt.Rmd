@@ -1,7 +1,7 @@
 ---
-title: "fetch_data: all maternal codes (February 2025)"
+title: "fetch_data: all maternal codes (October 2025; Gainesville)"
 author: "Dominick Lemas"
-date: "11/06/2024"
+date: "10/23/2025"
 output: html_document
 ---
 
@@ -13,7 +13,7 @@ output: html_document
 
 # Author:            Dominick Lems
 # Start Date:        November 06, 2024 
-# Last Modified:     February 18, 2025
+# Last Modified:     October 23, 2025
 # IRB:         IRB protocol IRB201601899 
 #
 # Software Versions:
@@ -37,6 +37,9 @@ output: html_document
 
 library(tidyverse)
 library(lubridate)
+
+# directory
+ working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
 
 ```
 
@@ -67,7 +70,8 @@ prenatal_htwt_mom_tmp=read_csv(data_import_path, col_types = cols()) %>%
          prenatal_ht_in_mom = `Height (in)`) %>%
   mutate(part_id_mom=paste0("mom-",part_id_mom_tmp)) %>%
   select(-part_id_mom_tmp) %>% 
-  select(part_id_mom, everything()) 
+  select(part_id_mom, everything()) %>%
+  mutate(part_id_mom=paste0("GNV-",part_id_mom))
 
 ```
 
@@ -77,12 +81,16 @@ prenatal_htwt_mom_tmp=read_csv(data_import_path, col_types = cols()) %>%
 # ----------------------------------------------------------------------- #
 # Step 2: load mom-baby link data
 # ----------------------------------------------------------------------- #
-load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_02_2025.rda") 
+# load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_02_2025.rda") 
+data_file_name <- "mom_baby_link_ALL_20251023.rda"
+data_dir <- paste0(working_dir,"/data/ready/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
 
 # ----------------------------------------------------------------------- #
 # Step 3: merge data with mom-baby link and compute derived variables
 # ----------------------------------------------------------------------- #
-prenatal_htwt_mom_tmp2 <- full_join(prenatal_htwt_mom_tmp, mom_baby_link_02_2025, by = "part_id_mom") %>%
+prenatal_htwt_mom_tmp2 <- full_join(prenatal_htwt_mom_tmp, mom_baby_link_ALL, by = "part_id_mom", relationship = "many-to-many") %>%
   mutate(
     encounter_date = as_date(encounter_date),  # Ensure proper Date format
     part_dob_infant = as_date(part_dob_infant),  # Ensure proper Date format
@@ -96,7 +104,7 @@ prenatal_htwt_mom_tmp2 <- full_join(prenatal_htwt_mom_tmp, mom_baby_link_02_2025
   )
 
 # rename
-prenatal_htwt_mom_02_2025=prenatal_htwt_mom_tmp2
+GNV_mom_prenatal_htwt_10_2025=prenatal_htwt_mom_tmp2
 
 ```
 
@@ -107,9 +115,29 @@ prenatal_htwt_mom_02_2025=prenatal_htwt_mom_tmp2
 # Step 4: export to sharedrive
 # ----------------------------------------------------------------------- #
 
-## EXPORT to Sharedrive
-file_name="prenatal_htwt_mom_02_2025.rda"
-data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/") 
-data_export_path=paste0(data_export_directory,file_name)
-prenatal_htwt_mom_02_2025 %>% save(prenatal_htwt_mom_02_2025, file=data_export_path)
+## EXPORT 
+file_name="GNV_mom_prenatal_htwt"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
+
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/"
+local_dir  <- file.path(working_dir, "data", "ready")
+
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(GNV_mom_prenatal_htwt_10_2025, file = shared_path)
+
+# Save locally
+save(GNV_mom_prenatal_htwt_10_2025, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
 ```
