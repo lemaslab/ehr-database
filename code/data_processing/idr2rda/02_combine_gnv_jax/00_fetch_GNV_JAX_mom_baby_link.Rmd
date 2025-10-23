@@ -1,7 +1,7 @@
 ---
-title: "fetch_data: mom-baby link (April 2025; Gainesville & Jacksonville)"
+title: "fetch_data: mom-baby link (October 2025; Gainesville & Jacksonville)"
 author: "Dominick Lemas"
-date: "04/18/2025"
+date: "10/23/2025"
 output:
   html_document:
     toc: true
@@ -16,7 +16,7 @@ output:
 
 # Author:            Dominick Lemas
 # Start Date:        April 18, 2025
-# Last Modified:     
+# Last Modified:     October 23, 2025
 # IRB:               UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899)
 
 # Software Versions:
@@ -42,8 +42,8 @@ output:
 # ****************************************************************************** #
 
 # directory
-working_dir="C:/Users/djlemas/OneDrive/Documents/ehr-database"
-#working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
+# working_dir="C:/Users/djlemas/OneDrive/Documents/ehr-database"
+working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
 
 # Load required packages
 library(tidyverse)   # Comprehensive R package for data science
@@ -59,19 +59,24 @@ library(lubridate)   # Simplifies date and time manipulation
 # **************************************************************************** #
 
 # GAINESVILLE Data Directory:
-data_file_name <- "GNV_mom_baby_link_20250417.rda"
-data_dir <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
+data_file_name <- "GNV_mom_baby_link_20251023.rda"
+data_dir <- paste0(working_dir,"/data/ready/")
 data_import_path <- paste0(data_dir, data_file_name)
 load(data_import_path)
 
 # JACKSONVILLE Data Directory:
-data_file_name <- "JAX_mom_baby_link_20250418.rda"
-data_dir <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/JAX/")
+data_file_name <- "JAX_mom_baby_link_20251023.rda"
+data_dir <- paste0(working_dir,"/data/ready/")
 data_import_path <- paste0(data_dir, data_file_name)
 load(data_import_path)
 
 # merge data
-mom_baby_link_ALL=rbind(GNV_mom_baby_link_04_2025, JAX_mom_baby_link_04_2025)
+mom_baby_link_ALL=rbind(GNV_mom_baby_link_10_2025, JAX_mom_baby_link_10_2025) %>%
+  mutate(
+    location = ifelse(grepl("GNV", part_id_mom, ignore.case = TRUE), "GNV",
+               ifelse(grepl("JAX", part_id_mom, ignore.case = TRUE), "JAX", NA))
+  ) %>%
+  select(part_id_mom,part_id_infant,delivery_id,location,everything())
 
 ```
 
@@ -88,11 +93,26 @@ mom_baby_link_ALL=rbind(GNV_mom_baby_link_04_2025, JAX_mom_baby_link_04_2025)
 file_name <- "mom_baby_link_ALL"
 timestamp <- format(Sys.time(), "_%Y%m%d")
 file_name_path=paste0(file_name,timestamp,".rda")
-data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/")
-data_export_path <- paste0(data_export_directory, file_name_path)
 
-# Export the data:
-mom_baby_link_ALL %>%
-  save(mom_baby_link_ALL, file = data_export_path)
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/"
+local_dir  <- file.path(working_dir, "data", "ready")
+
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(mom_baby_link_ALL, file = shared_path)
+
+# Save locally
+save(mom_baby_link_ALL, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
 
 ```
