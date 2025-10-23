@@ -161,7 +161,11 @@ delivery_encounter <- read_csv(data_import_path, col_types = cols()) %>%
 # - Generate unique delivery IDs based on 3-day windows.
 
 # Merge DOB into the mom-baby link:
-mom_baby_link <- left_join(mom_baby_link_tmp, delivery_encounter) %>%
+mom_baby_link <- left_join(
+  mom_baby_link_tmp,
+  delivery_encounter,
+  by = c("part_id_mom", "part_id_infant")
+) %>%
   
   # Arrange by mother's ID and infant's DOB for sequential processing
   arrange(part_id_mom, part_dob_infant) %>%
@@ -180,7 +184,7 @@ mom_baby_link <- left_join(mom_baby_link_tmp, delivery_encounter) %>%
   select(part_id_mom, part_id_infant, delivery_id, everything())
 
 # rename
-GNV_mom_baby_link_04_2025=mom_baby_link %>%
+GNV_mom_baby_link_10_2025=mom_baby_link %>%
   mutate(part_id_mom=paste0("GNV-",part_id_mom),
          part_id_infant=paste0("GNV-",part_id_infant),
          delivery_id=paste0("GNV-",delivery_id))
@@ -196,15 +200,47 @@ GNV_mom_baby_link_04_2025=mom_baby_link %>%
 # - Export the processed mom_baby_link data as an RDA file.
 # - Save the file to the shared drive for further analysis.
 
-# File Name and Export Path:
+# Define base file name and timestamp
+file_name <- "GNV_mom_baby_link"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path <- paste0(file_name, timestamp, ".rda")
+
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/"
+local_dir  <- file.path(working_dir, "data", "ready")
+
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(GNV_mom_baby_link_10_2025, file = shared_path)
+
+# Save locally
+save(GNV_mom_baby_link_10_2025, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
+
+# File Name and Export Path (Sharedrive):
 file_name <- "GNV_mom_baby_link"
 timestamp <- format(Sys.time(), "_%Y%m%d")
 file_name_path=paste0(file_name,timestamp,".rda")
 data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
 data_export_path <- paste0(data_export_directory, file_name_path)
-
 # Export the data:
-GNV_mom_baby_link_04_2025 %>%
-  save(GNV_mom_baby_link_04_2025, file = data_export_path)
+GNV_mom_baby_link_10_2025 %>%
+  save(GNV_mom_baby_link_10_2025, file = data_export_path)
+
+# File Name and Export Path (local):
+local_data_export_directory <- paste0(working_dir,"/data/ready/")
+local_data_export_path <- paste0(local_data_export_directory, file_name_path)
+# Export the data:
+GNV_mom_baby_link_10_2025 %>%
+  save(GNV_mom_baby_link_10_2025, file = local_data_export_path)
 
 ```
