@@ -1,7 +1,7 @@
 ---
-title: "fetch_data: mom-baby link (April 2025; Jacksonville)"
+title: "fetch_data: mom-baby link (October 2025; Jacksonville)"
 author: "Dominick Lemas"
-date: "04/17/2025"
+date: "10/23/2025"
 output:
   html_document:
     toc: true
@@ -16,7 +16,7 @@ output:
 
 # Author:            Dominick Lemas
 # Start Date:        April 17, 2025
-# Last Modified:     
+# Last Modified:     October 23, 2025
 # IRB:               UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899)
 
 # Software Versions:
@@ -35,15 +35,16 @@ output:
 # - Ensure VPN is active to access the shared drive
 
 # OBJECTIVE:
-# - Export mom-baby link as an RDA file
+# - Export mom-baby link as an RDA file.
+# - Checked to ensure multiples are linked correctly.
 
 # ****************************************************************************** #
 #                                  Libraries                                      
 # ****************************************************************************** #
 
 # directory
-working_dir="C:/Users/djlemas/OneDrive/Documents/ehr-database"
-#working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
+# working_dir="C:/Users/djlemas/OneDrive/Documents/ehr-database"
+working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
 
 # Load required packages
 library(tidyverse)   # Comprehensive R package for data science
@@ -56,7 +57,7 @@ source(paste0(working_dir,"/code/functions/all_functions.R"))
 ```{r, include=FALSE, message=FALSE, warning=FALSE}
 
 # **************************************************************************** #
-#    GAINESVILLE:                baby_mom_link Data Import                           
+#    JACKSONVILLE:              baby_mom_link Data Import                           
 # **************************************************************************** #
 
 # Task:
@@ -65,12 +66,10 @@ source(paste0(working_dir,"/code/functions/all_functions.R"))
 # - Prepare data for downstream analysis.
 
 # Dataset Summary:
-# - Rows:            
-# - Columns:         
-# - Unique Mom IDs:  
-# - Unique Infant IDs: 
-# - Repeats:         
-# - ICD9/10:         
+# - Rows: 29,944            
+# - Columns: 2        
+# - Unique Mom IDs: 22,889  
+# - Unique Infant IDs: 29,944
 
 # Data Directory:
 data_file_name <- "baby_mom_link_Jax.csv"
@@ -93,7 +92,6 @@ mom_baby_link_tmp <- read_csv(data_import_path, col_types = cols()) %>%
   select(-part_id_mom_tmp, -part_id_infant_tmp) %>%
   select(part_id_mom, everything())
 
-
 ```
 
 ```{r, include=FALSE, message=FALSE, warning=FALSE}
@@ -104,14 +102,13 @@ mom_baby_link_tmp <- read_csv(data_import_path, col_types = cols()) %>%
 # Task:
 # - Import and process baby-delivery data.
 # - Standardize identifiers and clean gestational age information.
-# - Prepare data for analysis.
+# - Prepare data for merging into mom-baby linkage to compute delivery-id.
 
 # Dataset Summary:
-# - Rows:            
-# - Columns:         
-# - Unique Baby IDs: 
-# - Repeats:         
-# - ICD9/10:         
+# - Rows: 29,944            
+# - Columns: 6         
+# - Unique Baby IDs: 29,944
+# - Unique Mom IDs: 22,889
 
 # Data Directory:
 data_dir <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/")
@@ -161,7 +158,11 @@ delivery_encounter <- read_csv(data_import_path, col_types = cols()) %>%
 # - Generate unique delivery IDs based on 3-day windows.
 
 # Merge DOB into the mom-baby link:
-mom_baby_link <- left_join(mom_baby_link_tmp, delivery_encounter) %>%
+mom_baby_link <- left_join(
+  mom_baby_link_tmp,
+  delivery_encounter,
+  by = c("part_id_mom", "part_id_infant")
+) %>%
   
   # Arrange by mother's ID and infant's DOB for sequential processing
   arrange(part_id_mom, part_dob_infant) %>%
@@ -180,7 +181,7 @@ mom_baby_link <- left_join(mom_baby_link_tmp, delivery_encounter) %>%
   select(part_id_mom, part_id_infant, delivery_id, everything())
 
 # rename
-JAX_mom_baby_link_04_2025=mom_baby_link %>%
+JAX_mom_baby_link_10_2025=mom_baby_link %>%
   mutate(part_id_mom=paste0("JAX-",part_id_mom),
          part_id_infant=paste0("JAX-",part_id_infant),
          delivery_id=paste0("JAX-",delivery_id))
@@ -196,15 +197,30 @@ JAX_mom_baby_link_04_2025=mom_baby_link %>%
 # - Export the processed mom_baby_link data as an RDA file.
 # - Save the file to the shared drive for further analysis.
 
-# File Name and Export Path:
+# Define base file name and timestamp
 file_name <- "JAX_mom_baby_link"
 timestamp <- format(Sys.time(), "_%Y%m%d")
-file_name_path=paste0(file_name,timestamp,".rda")
-data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/JAX/")
-data_export_path <- paste0(data_export_directory, file_name_path)
+file_name_path <- paste0(file_name, timestamp, ".rda")
 
-# Export the data:
-JAX_mom_baby_link_04_2025 %>%
-  save(JAX_mom_baby_link_04_2025, file = data_export_path)
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/JAX/"
+local_dir  <- file.path(working_dir, "data", "ready")
+
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(JAX_mom_baby_link_10_2025, file = shared_path)
+
+# Save locally
+save(JAX_mom_baby_link_10_2025, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
 
 ```
