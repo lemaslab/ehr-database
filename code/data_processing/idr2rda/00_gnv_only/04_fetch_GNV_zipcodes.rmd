@@ -133,7 +133,7 @@ delivery_zipcodes_tmp =full_join(delivery_zipcodes_merge, mom_baby_link_tmp , by
   select(part_id_infant,delivery_id,everything())
 
 # rename
-delivery_zipcodes_10_2025=delivery_zipcodes_tmp
+GNV_delivery_zipcodes_10_2025=delivery_zipcodes_tmp
 
 ```
 
@@ -143,7 +143,7 @@ delivery_zipcodes_10_2025=delivery_zipcodes_tmp
 # ----------------------------------------------------------------------- #
 
 ## EXPORT 
-file_name="delivery_zipcodes"
+file_name="GNV_delivery_zipcodes"
 timestamp <- format(Sys.time(), "_%Y%m%d")
 file_name_path=paste0(file_name,timestamp,".rda")
 
@@ -159,10 +159,10 @@ shared_path <- file.path(shared_dir, file_name_path)
 local_path  <- file.path(local_dir, file_name_path)
 
 # Save to shared drive
-save(delivery_zipcodes_10_2025, file = shared_path)
+save(GNV_delivery_zipcodes_10_2025, file = shared_path)
 
 # Save locally
-save(delivery_zipcodes_10_2025, file = local_path)
+save(GNV_delivery_zipcodes_10_2025, file = local_path)
 
 message("Data successfully exported to:")
 message(" - Shared drive: ", shared_path)
