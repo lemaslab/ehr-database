@@ -1,7 +1,7 @@
 ---
-title: "fetch_data: mom-baby link (April 2025; Gainesville)"
+title: "fetch_data: mom-baby link (October 2025; Gainesville)"
 author: "Dominick Lemas"
-date: "04/17/2025"
+date: "10/23/2025"
 output:
   html_document:
     toc: true
@@ -16,7 +16,7 @@ output:
 
 # Author:            Dominick Lemas
 # Start Date:        November 09, 2024
-# Last Modified:     April 17, 2025
+# Last Modified:     October 23, 2025
 # IRB:               UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899)
 
 # Software Versions:
@@ -35,7 +35,8 @@ output:
 # - Ensure VPN is active to access the shared drive
 
 # OBJECTIVE:
-# - Export mom-baby link as an RDA file
+# - Export mom-baby link as an RDA file. 
+# - Checked to ensure multiples are linked correctly.
 
 # ****************************************************************************** #
 #                                  Libraries                                      
@@ -104,7 +105,7 @@ mom_baby_link_tmp <- read_csv(data_import_path, col_types = cols()) %>%
 # Task:
 # - Import and process baby-delivery data.
 # - Standardize identifiers and clean gestational age information.
-# - Prepare data for analysis.
+# - Prepare data for merging into mom-baby linkage to compute delivery-id.
 
 # Dataset Summary:
 # - Rows:            28,530
@@ -225,22 +226,5 @@ save(GNV_mom_baby_link_10_2025, file = local_path)
 message("Data successfully exported to:")
 message(" - Shared drive: ", shared_path)
 message(" - Local folder: ", local_path)
-
-# File Name and Export Path (Sharedrive):
-file_name <- "GNV_mom_baby_link"
-timestamp <- format(Sys.time(), "_%Y%m%d")
-file_name_path=paste0(file_name,timestamp,".rda")
-data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
-data_export_path <- paste0(data_export_directory, file_name_path)
-# Export the data:
-GNV_mom_baby_link_10_2025 %>%
-  save(GNV_mom_baby_link_10_2025, file = data_export_path)
-
-# File Name and Export Path (local):
-local_data_export_directory <- paste0(working_dir,"/data/ready/")
-local_data_export_path <- paste0(local_data_export_directory, file_name_path)
-# Export the data:
-GNV_mom_baby_link_10_2025 %>%
-  save(GNV_mom_baby_link_10_2025, file = local_data_export_path)
 
 ```
