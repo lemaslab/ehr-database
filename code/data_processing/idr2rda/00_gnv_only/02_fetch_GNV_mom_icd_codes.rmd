@@ -38,6 +38,9 @@ output: html_document
 library(tidyverse)
 library(lubridate)
 
+# directory
+working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
+
 ```
 
 ```{r, message=FALSE}
@@ -204,7 +207,7 @@ mom_all_icd_codes=rbind(mom_diagnosis_ICD9,mom_diagnosis_ICD10,
                      cancer_icd_codes_mom)
 
 # rename
-GNV_mom_all_icd_codes_04_2025=mom_all_icd_codes %>%
+GNV_mom_all_icd_codes_10_2025=mom_all_icd_codes %>%
   mutate(part_id_mom=paste0("GNV-",part_id_mom))
 
 ```
@@ -214,18 +217,23 @@ GNV_mom_all_icd_codes_04_2025=mom_all_icd_codes %>%
 # ----------------------------------------------------------------------- #
 # Step 2: load mom-baby link data
 # ----------------------------------------------------------------------- #
-load("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/mom_baby_link_ALL_20250418.rda")
+# load("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/mom_baby_link_ALL_20250418.rda")
+data_file_name <- "mom_baby_link_ALL_20251023.rda"
+data_dir <- paste0(working_dir,"/data/ready/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
 
 # ----------------------------------------------------------------------- #
 # Step 3: merge cancer data with mom-baby link and compute derived variables
 # ----------------------------------------------------------------------- #
-mom_all_icd_codes_tmp2 =full_join(GNV_mom_all_icd_codes_04_2025, mom_baby_link_ALL, by = "part_id_mom") %>%
+mom_all_icd_codes_tmp2 =full_join(mom_baby_link_ALL, GNV_mom_all_icd_codes_10_2025, by = "part_id_mom", relationship = "many-to-many") %>%
   mutate(
           # Compute days-to-diagnosis relative to date-of-birth
         dx2delivery_days = as.numeric(dx_date - ymd(part_dob_infant))) 
 
 # rename
-GNV_mom_icd_codes_04_2025=mom_all_icd_codes_tmp2
+GNV_mom_icd_codes_10_2025=mom_all_icd_codes_tmp2
+
 ```
 
 ```{r, message=FALSE}
@@ -238,9 +246,28 @@ GNV_mom_icd_codes_04_2025=mom_all_icd_codes_tmp2
 file_name="GNV_mom_icd_codes"
 timestamp <- format(Sys.time(), "_%Y%m%d")
 file_name_path=paste0(file_name,timestamp,".rda")
-data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
-data_export_path=paste0(data_export_directory,file_name_path)
-GNV_mom_icd_codes_04_2025 %>% save(GNV_mom_icd_codes_04_2025, file=data_export_path)
+
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/"
+local_dir  <- file.path(working_dir, "data", "ready")
+
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(GNV_mom_icd_codes_10_2025, file = shared_path)
+
+# Save locally
+save(GNV_mom_icd_codes_10_2025, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
+
 ```
 
 `
