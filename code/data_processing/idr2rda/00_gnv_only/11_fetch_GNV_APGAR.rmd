@@ -1,7 +1,7 @@
 ---
-title: "fetch_data: APGAR (February 2025)"
+title: "fetch_data: APGAR (October 2025; Gainesville)"
 author: "Dominick Lemas"
-date: "11/14/2024"
+date: "10/24/2025"
 output: html_document
 ---
 
@@ -12,7 +12,7 @@ output: html_document
 
 # Author:        Dominick Lemas
 # Date:          November 14, 2024
-# Last Modified: February 18, 2025
+# Last Modified: October 24, 2025
 # IRB Protocol:  UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899)
 
 # R Version:     4.3.1 (2023-06-16, ucrt) -- "Beagle Scouts"
@@ -40,6 +40,9 @@ output: html_document
 # Load necessary libraries
 library(tidyverse)  # For data wrangling and visualization
 library(lubridate)  # For handling dates and times
+
+# directory
+ working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
 
 # **************************************************************************** #
 
@@ -83,7 +86,9 @@ apgar_infant_tmp <- read_csv(data_path) %>%
     -part_id_infant_tmp, 
     part_id_infant, everything()
   ) %>%
-  mutate(apgar5min_score_low = if_else(apgar_total_5min <= 6, 1, 0)) 
+  mutate(apgar5min_score_low = if_else(apgar_total_5min <= 6, 1, 0)) %>%
+  mutate(part_id_infant=paste0("GNV-",part_id_infant)) %>%
+  select(part_id_infant, everything())
 
 # **************************************************************************** #
 
@@ -94,19 +99,23 @@ apgar_infant_tmp <- read_csv(data_path) %>%
 # ----------------------------------------------------------------------- #
 # Step 3: load mom-baby link data
 # ----------------------------------------------------------------------- #
-load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_02_2025.rda") 
+# load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_ALL_20251023.rda") 
+data_file_name <- "mom_baby_link_ALL_20251023.rda"
+data_dir <- paste0(working_dir,"/data/ready/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
 
-mom_baby_link_02_2025_tmp=mom_baby_link_02_2025 %>%
+mom_baby_link_tmp=mom_baby_link_ALL %>%
   select(part_id_infant, delivery_id)
 
 # ----------------------------------------------------------------------- #
 # Step 4: merge data with mom-baby link and compute derived variables
 # ----------------------------------------------------------------------- #
-apgar_infant_tmp2 =full_join(apgar_infant_tmp, mom_baby_link_02_2025_tmp , by = "part_id_infant") %>%
+apgar_infant_tmp2 =full_join(apgar_infant_tmp, mom_baby_link_tmp , by = "part_id_infant") %>%
   select(part_id_infant,delivery_id,everything())
 
 # rename
-apgar_infant_02_2025=apgar_infant_tmp2
+GNV_apgar_infant_10_2025=apgar_infant_tmp2
 
 ```
 
@@ -117,14 +126,29 @@ apgar_infant_02_2025=apgar_infant_tmp2
 # ----------------------------------------------------------------------- #
 
 # Define export file name and directory
-file_name <- "apgar_infant_02_2025.rda"
-data_export_directory <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/"
-data_export_path <- paste0(data_export_directory, file_name)
+file_name <- "GNV_apgar_infant"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
 
-# Save the processed apgar dataset
-save(apgar_infant_02_2025, file = data_export_path)
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/"
+local_dir  <- file.path(working_dir, "data", "ready")
 
-# Confirmation message
-message("File successfully saved to: ", data_export_path)
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(GNV_apgar_infant_10_2025, file = shared_path)
+
+# Save locally
+save(GNV_apgar_infant_10_2025, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
 
 ```
