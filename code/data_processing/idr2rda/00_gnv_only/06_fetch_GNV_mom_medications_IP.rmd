@@ -1,7 +1,7 @@
 ---
-title: "fetch_data: medication-ip (June 2025; Gainesville)"
+title: "fetch_data: medication-ip (October 2025; Gainesville)"
 author: "Dominick Lemas"
-date: "06/27/2025"
+date: "10/24/2025"
 output: html_document
 ---
 
@@ -13,7 +13,7 @@ output: html_document
 
 # Author:            Dominick Lemas
 # Start Date:        November 06, 2024 
-# Last Modified:     June 27, 2025 
+# Last Modified:     October 24, 2025 
 # IRB:               IRB201601899 
 #
 # Software Versions:
@@ -40,6 +40,10 @@ output: html_document
 
 library(tidyverse)
 library(lubridate)
+
+# directory
+ working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
+
 
 ```
 
@@ -88,7 +92,11 @@ medication_ip_mom_tmp=read_csv(data_import_path, col_types = cols()) %>%
 # ----------------------------------------------------------------------- #
 # Step 2: load mom-baby link data
 # ----------------------------------------------------------------------- #
-load("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/mom_baby_link_ALL_20250418.rda")
+# load("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/mom_baby_link_ALL_20251023.rda")
+data_file_name <- "mom_baby_link_ALL_20251023.rda"
+data_dir <- paste0(working_dir,"/data/ready/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
 
 mom_baby_link_tmp=mom_baby_link_ALL %>%
   select(part_id_mom,part_id_infant, delivery_id, part_dob_infant)
@@ -111,7 +119,7 @@ medication_ip_mom_tmp2 <- left_join(medication_ip_mom_tmp, mom_baby_link_tmp, by
   select(part_id_mom,part_id_infant,delivery_id, everything())
 
 # rename
-GNV_medication_ip_mom_06_2025=medication_ip_mom_tmp2
+GNV_medication_ip_mom_10_2025=medication_ip_mom_tmp2
 
 ```
 
@@ -126,12 +134,26 @@ GNV_medication_ip_mom_06_2025=medication_ip_mom_tmp2
 file_name="GNV_medication_ip_mom"
 timestamp <- format(Sys.time(), "_%Y%m%d")
 file_name_path=paste0(file_name,timestamp,".rda")
-data_export_directory <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/")
-export_path=paste0(data_export_directory,file_name_path)
-GNV_medication_ip_mom_06_2025 %>% save(GNV_medication_ip_mom_06_2025, file=export_path)
+
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/"
+local_dir  <- file.path(working_dir, "data", "ready")
+
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(GNV_medication_ip_mom_10_2025, file = shared_path)
+
+# Save locally
+save(GNV_medication_ip_mom_10_2025, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
 
 ```
-
-V:\FACULTY\DJLEMAS\EHR_Data\processed\READ_ONLY_DATASETS\10year_data\GNV
-
-
