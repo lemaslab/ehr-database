@@ -1,0 +1,195 @@
+---
+title: "fetch_data: cancer-codes (February 2025)"
+author: "Dominick Lemas & Manoj Kambara"
+date: "11/03/24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview             
+# **************************************************************************** #
+# Author:            Dominick Lemas & Manoj Kambara
+# Start Date:        Nov 03, 2024
+# Last Modified:     February 18, 2025
+# IRB:               IRB protocol IRB201601899  
+#
+# Software Versions:
+# - R version:       4.0.3 (2020-10-10)
+# - RStudio version: 1.3.1073
+
+# **************************************************************************** #
+# ***************                Description                  
+# **************************************************************************** #
+# PLAN: Access flat files on sharedrive, pull/format/clean data for downstream.
+# NOTE: vpn must be active
+
+# OBJECTIVE: Export all cancer ICD9/10 codes as rda file.  
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                      
+# **************************************************************************** #
+library(tidyverse)
+library(dplyr)
+
+```
+
+
+```{r, message=FALSE}
+# ----------------------------------------------------------------------- #
+# Step 1: Pull Data
+# ----------------------------------------------------------------------- #
+
+# column-types
+#-------------
+col_types <- readr::cols(
+      Deidentified_mom_ID  = readr::col_factor(),
+      `Diagnosis Type` = readr::col_factor(),
+      `Diagnosis Code`	 = readr::col_factor(),
+      `Diagnosis Description`  = readr::col_character(),
+      `Diagnosis Start Date` = readr::col_date(format = "%m/%d/%Y")
+     )
+
+# data-directory
+#-----------------
+data_directory="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2023/dataset_03_2023/"
+file_name="mom_cancer_release.csv"
+data_path=paste0(data_directory,file_name)
+# import-data
+#------------
+cancer_icd_codes_mom=read_csv(data_path, col_types=col_types) %>%
+  rename(part_id_mom_tmp=Deidentified_mom_ID,
+         dx_type=`Diagnosis Type`,
+         dx_code=`Diagnosis Code`,
+         dx_descrip=`Diagnosis Description`,
+         dx_date=`Diagnosis Start Date`) %>%
+  mutate(part_id_mom=paste0("mom-",part_id_mom_tmp),
+         dx_category="cancer") %>%
+  select(-part_id_mom_tmp) %>% 
+  select(part_id_mom, dx_category,everything())
+  
+```
+
+```{r}
+
+# ----------------------------------------------------------------------- #
+# Step 2: clean and classify cancer data
+# ----------------------------------------------------------------------- #
+cancer_icd_codes_tmp <- cancer_icd_codes_mom %>%
+mutate(
+# Assign shortened cancer type based on keywords in the description
+cancer_type_shortened = case_when(
+str_detect(dx_descrip, regex("melanoma", ignore_case = TRUE)) ~ "Melanoma",
+str_detect(dx_descrip, regex("breast", ignore_case = TRUE)) ~ "Breast",
+str_detect(dx_descrip, regex("thyroid gland", ignore_case = TRUE)) ~ "Thyroid Gland",
+str_detect(dx_descrip, regex("lymphoma", ignore_case = TRUE)) ~ "Lymphoma",
+str_detect(dx_descrip, regex("leukemia", ignore_case = TRUE)) ~ "Leukemia",
+str_detect(dx_descrip, regex("brain", ignore_case = TRUE)) ~ "Brain",
+str_detect(dx_descrip, regex("lung", ignore_case = TRUE)) ~ "Lung",
+str_detect(dx_descrip, regex("colon", ignore_case = TRUE)) ~ "Colon",
+str_detect(dx_descrip, regex("rectum", ignore_case = TRUE)) ~ "Rectum",
+str_detect(dx_descrip, regex("skin", ignore_case = TRUE)) ~ "Skin",
+str_detect(dx_descrip, regex("ovary", ignore_case = TRUE)) ~ "Ovary",
+str_detect(dx_descrip, regex("pancreas", ignore_case = TRUE)) ~ "Pancreas",
+str_detect(dx_descrip, regex("cervix uteri", ignore_case = TRUE)) ~ "Cervix Uteri",
+TRUE ~ "Other"
+),
+
+# Assign general cancer classification based on keywords
+cancer_classification = case_when(
+str_detect(dx_descrip, regex("melanoma|breast|thyroid gland|lung|colon|rectum|skin|ovary|pancreas|cervix uteri", ignore_case = TRUE)) ~ "Carcinoma",
+str_detect(dx_descrip, regex("lymphoma", ignore_case = TRUE)) ~ "Lymphoma",
+str_detect(dx_descrip, regex("leukemia", ignore_case = TRUE)) ~ "Leukemia",
+str_detect(dx_descrip, regex("brain", ignore_case = TRUE)) ~ "Sarcoma",
+TRUE ~ "Unspecified"
+)
+)
+
+```
+
+```{r}
+
+# ----------------------------------------------------------------------- #
+# Step 3: load mom-baby link data
+# ----------------------------------------------------------------------- #
+load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_02_2025.rda")
+
+# ----------------------------------------------------------------------- #
+# Step 4: merge cancer data with mom-baby link and compute derived variables
+# ----------------------------------------------------------------------- #
+cancer_icd_codes_tmp2 =full_join(cancer_icd_codes_tmp, mom_baby_link_02_2025, by = "part_id_mom") %>%
+mutate(
+# Compute days-to-diagnosis relative to date-of-birth
+dx2delivery_days = as.numeric(dx_date - ymd(part_dob_infant)),
+
+# Classify diagnosis status relative to gestation and postpartum
+pac_dx_status = case_when(
+dx2delivery_days > -280 & dx2delivery_days <= 0 ~ "PAC-Gestation",  # Between -280 and 0 days
+dx2delivery_days > 0 & dx2delivery_days <= 360 ~ "PAC-Postnatal",   # Between 0 and 360 days
+dx2delivery_days > 360 ~ "COP-Postnatal",                           # Greater than 360 days
+dx2delivery_days <= -280 ~ "COP-Prenatal"                          # Less than or equal to -280 days
+),
+
+# Classify diagnosis timing by gestational trimester
+pac_dx_trimester = case_when(
+  dx2delivery_days < 0 & dx2delivery_days >= -gestational_age_days_total & dx2delivery_days < -gestational_age_days_total + 91 ~ "Trimester 1",
+  dx2delivery_days < 0 & dx2delivery_days >= -gestational_age_days_total + 91 & dx2delivery_days < -gestational_age_days_total + 182 ~ "Trimester 2",
+  dx2delivery_days < 0 & dx2delivery_days >= -gestational_age_days_total + 182 ~ "Trimester 3",
+  TRUE ~ NA_character_)
+) # %>%
+#drop_na()  # Remove rows with missing values
+
+# End of script
+# ######################################################################
+```
+
+```{r}
+
+# ----------------------------------------------------------------------- #
+# Step 4: create pregnancy-associated cancer (PAC) and cancer outside pregnancy (COP) indicators
+# ----------------------------------------------------------------------- #
+
+cancer_icd_codes_clean <- cancer_icd_codes_tmp2 %>%
+  mutate(
+    pac_24mo = if_else(between(dx2delivery_days, -730, 0), 1, 0),
+    pac_12mo = if_else(between(dx2delivery_days, -365, 0), 1, 0),
+    cop_12mo_prenatal = if_else(dx2delivery_days < -365, 1, 0),
+    cop_24mo_prenatal = if_else(dx2delivery_days < -730, 1, 0),
+    cop_6mo_postnatal = if_else(dx2delivery_days >= 180, 1, 0),
+    cop_12mo_postnatal = if_else(dx2delivery_days >= 365, 1, 0),
+    cop_24mo_postnatal = if_else(dx2delivery_days >= 730, 1, 0),
+    cop_6yr_postnatal = if_else(dx2delivery_days >= 2190, 1, 0),
+    cancer_any = if_else(!is.na(dx2delivery_days), 1, 0)
+  ) %>%
+  arrange(delivery_id, cancer_any, dx_date) %>%  # Ensure the earliest dx_date appears first
+  group_by(delivery_id, cancer_any) %>%
+  filter(dx_date == first(dx_date)) %>%  # Select the earliest dx_date within each group
+  ungroup()
+
+# rename
+cancer_icd_codes_mom_02_2025=cancer_icd_codes_clean
+
+```
+
+
+```{r, message=FALSE}
+
+# ----------------------------------------------------------------------- #
+# Step 5: export to sharedrive
+# ----------------------------------------------------------------------- #
+
+## EXPORT to Sharedrive
+file_name="cancer_icd_codes_mom_02_2025.rda"
+data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/") 
+data_export_path=paste0(data_export_directory,file_name)
+cancer_icd_codes_mom_02_2025 %>% save(cancer_icd_codes_mom_02_2025, file=data_export_path)
+```
+

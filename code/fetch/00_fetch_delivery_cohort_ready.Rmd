@@ -1,0 +1,158 @@
+---
+title: "fetch: Analysis Ready Delivery Cohort (October 2025, Gainesville)"
+author: "Dominick Lemas"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r}
+
+# *************************************************************************** #
+# Load Required Libraries and Custom Functions                                #
+# *************************************************************************** #
+
+library(dplyr)       # Data manipulation
+library(tidyverse)   # Data wrangling and visualization
+
+# Directories
+working_dir <- "C:/Users/djlemas/Documents/GitHub/"
+# working_dir= "C:/Users/djlemas/OneDrive/Documents/"
+
+```
+
+```{r}
+
+# Goal: This script will pull files from the ehr-database repo to create an
+#       analysis-ready delivery cohort. 
+
+# *************************************************************************** #
+# Step 1. Load Delivery Encounter Data                                     
+# *************************************************************************** #
+
+# Load delivery encounter dataset
+data_file_name <- "GNV_delivery_encounter_20251023.rda"
+data_dir <- paste0(working_dir,"ehr-database/data/ready/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
+
+# *************************************************************************** #
+# Step 2. Load ZIP Code Data        
+# *************************************************************************** #
+
+# Load and process delivery ZIP code data
+data_file_name <- "GNV_delivery_zipcodes_20251023.rda"
+data_dir <- paste0(working_dir,"ehr-database/data/ready/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
+
+
+# *************************************************************************** #
+# Step 3. Merge Delivery and ZIP Code Data        
+# *************************************************************************** #
+
+# Merge ZIP code rurality with delivery data
+delivery_zipcodes_merge <- left_join(
+  GNV_delivery_encounter_10_2025,
+  GNV_delivery_zipcodes_10_2025,
+  by = c("part_id_infant", "delivery_id"))
+
+# *************************************************************************** #
+# Step 4. Load NICU Data                               
+# *************************************************************************** #
+
+# load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/nicu_los_days_02_2025.rda")
+data_file_name <- "GNV_nicu_los_days_20251024.rda"
+data_dir <- paste0(working_dir,"ehr-database/data/ready/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
+
+# format data
+nicu_los_total <- GNV_nicu_los_days_10_2025 %>%
+  mutate(
+    nicu_date_enter = as_date(nicu_date_enter),   # Convert entry date to Date format
+    nicu_date_exit = as_date(nicu_date_exit)      # Convert exit date to Date format
+  ) %>%
+  group_by(part_id_infant) %>%                     # Group by patient ID
+  summarize(
+    nicu_los_days_total = sum(nicu_los_days, na.rm = TRUE) # Sum NICU days, handle missing values
+  ) %>%
+  ungroup()
+
+# *************************************************************************** #
+# Step 5. Merge NICU Data with Delivery Zipcodes                               
+# *************************************************************************** #
+
+delivery_zipcodes_nicu_merge <- left_join(
+  delivery_zipcodes_merge, 
+  nicu_los_total, 
+  by = c("part_id_infant")
+)
+
+# *************************************************************************** #
+# Step 6: Load APGAR Data                             
+# *************************************************************************** #
+# load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/apgar_infant_02_2025.rda")
+data_file_name <- "GNV_apgar_infant_20251024.rda"
+data_dir <- paste0(working_dir,"ehr-database/data/ready/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
+
+# *************************************************************************** #
+# Step 7: Merge Zipcodes with NICU and APGAR Data                          
+# *************************************************************************** #
+
+delivery_zipcodes_nicu_apgar_merge <- left_join(
+  delivery_zipcodes_nicu_merge, 
+  GNV_apgar_infant_10_2025, 
+  by = c("part_id_infant", "delivery_id")
+) %>%
+  select(-apgar_skin_1min, -apgar_skin_5min, -apgar_hrt_1min, -apgar_hrt_5min, -apgar_grimace_1min,
+         -apgar_grimace_5min, -apgar_tone_1min, -apgar_tone_5min, -apgar_breathing_1min, -apgar_breathing_5min)
+
+# *************************************************************************** #
+# Step 8: Export delivery_cohort_ready                          
+# *************************************************************************** #
+
+# rename
+GNV_delivery_cohort_ready=delivery_zipcodes_nicu_apgar_merge
+
+```
+
+```{r}
+
+# Export filtered data to Shared Drive
+file_name <- "GNV_delivery_cohort_ready"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
+
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/"
+local_dir  <- file.path(working_dir, "ehr-database/data","processed")
+
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(GNV_delivery_cohort_ready, file = shared_path)
+
+# Save locally
+save(GNV_delivery_cohort_ready, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
+
+# *************************************************************************** #
+# Notes:
+# - Ensure that both directories are accessible and have write permissions.
+# - The RDA format is for quick loading in R.
+# *************************************************************************** #
+```
