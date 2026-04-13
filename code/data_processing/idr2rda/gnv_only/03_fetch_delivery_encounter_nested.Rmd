@@ -1,0 +1,39 @@
+---
+title: "fetch_data: delivery_encounter (NESTED)"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+
+working_dir <- find_repo_root()
+source(file.path(working_dir, "code/functions/all_functions.R"))
+source(file.path(working_dir, "code/functions/nested_ingestion.R"))
+
+registry <- load_registry()
+site <- "GNV"
+
+raw <- read_standardized_dataset("delivery_encounter", "raw", site, registry)
+
+df <- raw$data %>%
+  mutate(
+    part_id_mom = paste0("mom-", part_id_mom_tmp),
+    part_id_infant = paste0("infant-", part_id_infant_tmp),
+    part_dob_infant = parse_flexible_date(date_of_delivery),
+    delivery_admit_date = parse_flexible_date(delivery_admit_date)
+  ) %>%
+  select(-part_id_mom_tmp, -part_id_infant_tmp)
+
+# derive gestational age
+parsed <- map(df$gestational_age_infant, parse_gestational_age)
+df$gestational_age_weeks_total <- map_dbl(parsed, "weeks") + map_dbl(parsed, "days")/7
+
+df$preterm_gestational_age <- if_else(df$gestational_age_weeks_total <= 37, 1, 0)
+df$birth_wt_lbw <- if_else(df$birth_weight_infant < 2500, 1, 0)
+
+df$site <- site
+
+out_dir <- get_processed_dir(site)
+save(df, file = file.path(out_dir, "delivery_encounter_nested.rda"))
+```
