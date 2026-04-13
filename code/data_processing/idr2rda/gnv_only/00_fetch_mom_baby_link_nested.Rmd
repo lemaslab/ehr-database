@@ -1,0 +1,52 @@
+---
+title: "fetch_data: mom-baby-link (NESTED)"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+
+working_dir <- find_repo_root()
+source(file.path(working_dir, "code/functions/all_functions.R"))
+source(file.path(working_dir, "code/functions/nested_ingestion.R"))
+
+registry <- load_registry()
+site <- "GNV"
+
+linkage <- read_standardized_dataset("mom_baby_link", "linkage", site, registry)
+birth   <- read_standardized_dataset("mom_baby_link", "birth", site, registry)
+
+mom_baby_link_tmp <- linkage$data %>%
+  mutate(
+    part_id_mom = paste0("mom-", part_id_mom_tmp),
+    part_id_infant = paste0("infant-", part_id_infant_tmp)
+  ) %>%
+  select(-part_id_mom_tmp, -part_id_infant_tmp)
+
+birth_df <- birth$data %>%
+  mutate(
+    part_id_infant = paste0("infant-", part_id_infant_tmp),
+    part_dob_infant = parse_flexible_datetime(part_dob_infant_raw)
+  ) %>%
+  select(part_id_infant, part_dob_infant)
+
+mom_baby_link <- mom_baby_link_tmp %>%
+  left_join(birth_df, by = "part_id_infant")
+
+# delivery_id construction (same logic as original)
+mom_baby_link <- mom_baby_link %>%
+  arrange(part_id_mom, part_dob_infant) %>%
+  group_by(part_id_mom) %>%
+  mutate(new_delivery = if_else(is.na(lag(part_dob_infant)) |
+                                 as.numeric(part_dob_infant - lag(part_dob_infant)) > 3,
+                               1, 0),
+         delivery_id = cumsum(new_delivery)) %>%
+  ungroup() %>%
+  mutate(delivery_id = paste0("delivery-", delivery_id)) %>%
+  select(part_id_mom, part_id_infant, delivery_id, part_dob_infant)
+
+# export locally (no raw modification)
+out_dir <- get_processed_dir(site)
+save(mom_baby_link, file = file.path(out_dir, "mom_baby_link_nested.rda"))
+```
