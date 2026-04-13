@@ -1,0 +1,55 @@
+---
+title: "Run Infant Data Pipeline (Nested Ingestion)"
+output: html_document
+---
+
+```{r}
+working_dir <- getwd()
+
+source(file.path(working_dir, "code/functions/process_mom_baby_link.R"))
+source(file.path(working_dir, "code/functions/process_delivery_encounter.R"))
+source(file.path(working_dir, "code/functions/process_infant_icd.R"))
+source(file.path(working_dir, "code/functions/process_apgar.R"))
+
+source(file.path(working_dir, "code/functions/nested_ingestion_mom_ehr.R"))
+
+registry <- load_dataset_registry()
+
+sites <- c("GNV", "JAX")
+
+message("=== STEP 1: MOM BABY LINK ===")
+mom_baby_link_list <- lapply(sites, function(site) {
+  message("Running mom_baby_link for ", site)
+  process_mom_baby_link(site, working_dir, registry)
+})
+names(mom_baby_link_list) <- sites
+
+message("=== STEP 2: DELIVERY ENCOUNTER ===")
+delivery_list <- lapply(sites, function(site) {
+  process_delivery_encounter(site, working_dir, registry, mom_baby_link_list[[site]])
+})
+
+message("=== STEP 3: INFANT ICD ===")
+icd_list <- lapply(sites, function(site) {
+  process_infant_icd(site, working_dir, registry, mom_baby_link_list[[site]])
+})
+
+message("=== STEP 4: APGAR ===")
+apgar_list <- lapply(sites, function(site) {
+  process_apgar(site, working_dir, registry, mom_baby_link_list[[site]])
+})
+
+message("=== STEP 5: COMBINE ===")
+mom_baby_link_all <- dplyr::bind_rows(mom_baby_link_list)
+delivery_all <- dplyr::bind_rows(delivery_list)
+icd_all <- dplyr::bind_rows(icd_list)
+apgar_all <- dplyr::bind_rows(apgar_list)
+
+message("=== STEP 6: EXPORT ===")
+export_processed_dataset(mom_baby_link_all, "mom_baby_link_all_sites", working_dir = working_dir)
+export_processed_dataset(delivery_all, "delivery_encounter_all_sites", working_dir = working_dir)
+export_processed_dataset(icd_all, "infant_icd_all_sites", working_dir = working_dir)
+export_processed_dataset(apgar_all, "apgar_all_sites", working_dir = working_dir)
+
+message("Pipeline complete.")
+```
