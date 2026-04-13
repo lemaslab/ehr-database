@@ -1,5 +1,5 @@
 legacy_raw:
-  base_dir: "V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data"
+  base_dir: "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data"
 
 output:
   base_dir: "data/processed"
@@ -23,19 +23,18 @@ datasets:
     components:
       linkage:
         GNV:
-          preferred:
-            year: "2021"
-            dataset_version: "dataset_09_2021"
-            folder: ""
-          filename_patterns:
-            - "^baby_mom_link\\.csv$"
+    preferred:
+      year: "2021"
+      dataset_version: "dataset_09_2021"
+    filename_patterns:
+      - "^baby_mom_link\\.csv$"
+
         JAX:
-          preferred:
-            year: "2021"
-            dataset_version: "dataset_09_2021"
-            folder: ""
-          filename_patterns:
-            - "^baby_mom_link_jax\\.csv$"
+    preferred:
+      year: "2025"
+      dataset_version: "dataset_04_2025"
+    filename_patterns:
+      - "^baby_mom_link_[Jj]ax\\.csv$"
         schema_map:
           part_id_mom_tmp:
             - "Deidentified_mom_ID"
@@ -45,19 +44,17 @@ datasets:
             - "deidentified_baby_id"
       birth:
         GNV:
-          preferred:
-            year: "2021"
-            dataset_version: "dataset_09_2021"
-            folder: ""
-          filename_patterns:
-            - "^baby_mom_at_birth_with_payer\\.csv$"
+    preferred:
+      year: "2021"
+      dataset_version: "dataset_09_2021"
+    filename_patterns:
+      - "^baby_mom_at_birth_with_payer\\.csv$"
         JAX:
-          preferred:
-            year: "2021"
-            dataset_version: "dataset_09_2021"
-            folder: ""
-          filename_patterns:
-            - "^baby_mom_at_birth_with_payer_jax\\.csv$"
+    preferred:
+      year: "2025"
+      dataset_version: "dataset_04_2025"
+    filename_patterns:
+      - "^baby_mom_at_birth_with_payer_[Jj]ax\\.csv$"
         schema_map:
           part_id_infant_tmp:
             - "Deidentified_baby_ID"
