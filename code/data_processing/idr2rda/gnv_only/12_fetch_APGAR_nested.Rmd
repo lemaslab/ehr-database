@@ -1,0 +1,23 @@
+---
+title: "fetch_data: APGAR (NESTED)"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+
+working_dir <- find_repo_root()
+source(file.path(working_dir, "code/functions/nested_ingestion.R"))
+
+registry <- load_registry()
+site <- "GNV"
+
+raw <- read_standardized_dataset("apgar", "raw", site, registry)
+
+df <- raw$data %>%
+  mutate(part_id_infant = paste0("infant-", part_id_infant_tmp),
+         apgar5min_score_low = if_else(apgar_total_5min <= 3, 1, 0))
+
+out_dir <- get_processed_dir(site)
+save(df, file = file.path(out_dir, "apgar_nested.rda"))
+```
