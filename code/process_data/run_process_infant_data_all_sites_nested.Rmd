@@ -4,14 +4,13 @@ output: html_document
 ---
 
 ```{r}
-working_dir <- getwd()
+working_dir <- normalizePath("../..", winslash = "/")
 
-source(file.path(working_dir, "code/functions/process_mom_baby_link.R"))
-source(file.path(working_dir, "code/functions/process_delivery_encounter.R"))
-source(file.path(working_dir, "code/functions/process_infant_icd.R"))
-source(file.path(working_dir, "code/functions/process_apgar.R"))
-
-source(file.path(working_dir, "code/functions/nested_ingestion_mom_ehr.R"))
+source(file.path(working_dir, "code", "functions", "process_mom_baby_link.R"))
+source(file.path(working_dir, "code", "functions", "process_delivery_encounter.R"))
+source(file.path(working_dir, "code", "functions", "process_infant_icd.R"))
+source(file.path(working_dir, "code", "functions", "process_apgar.R"))
+source(file.path(working_dir, "code", "functions", "nested_ingestion_mom_ehr.R"))
 
 registry <- load_dataset_registry()
 
