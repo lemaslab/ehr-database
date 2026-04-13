@@ -1,0 +1,30 @@
+---
+title: "fetch_data: infant_icd (NESTED)"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+
+working_dir <- find_repo_root()
+source(file.path(working_dir, "code/functions/all_functions.R"))
+source(file.path(working_dir, "code/functions/nested_ingestion.R"))
+
+registry <- load_registry()
+site <- "GNV"
+
+components <- names(registry$datasets$infant_icd$components)
+components <- setdiff(components, "schema_map")
+
+all_dx <- map_df(components, function(comp) {
+  raw <- read_standardized_dataset("infant_icd", comp, site, registry)
+  raw$data %>%
+    mutate(dx_category = comp,
+           part_id_infant = paste0("infant-", part_id_infant_tmp)) %>%
+    select(part_id_infant, dx_category, dx_date, dx_code, dx_descrip, dx_type)
+})
+
+out_dir <- get_processed_dir(site)
+save(all_dx, file = file.path(out_dir, "infant_icd_nested.rda"))
+```
