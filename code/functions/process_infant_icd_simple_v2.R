@@ -1,6 +1,7 @@
 process_infant_icd_simple_v2 <- function(site,
                                          working_dir = getwd(),
                                          mom_baby_link_df = NULL) {
+  
   suppressPackageStartupMessages({
     library(dplyr)
     library(readr)
@@ -18,68 +19,93 @@ process_infant_icd_simple_v2 <- function(site,
   site_id_prefix <- site_map[[site]]
   
   # ===============================
-  # FILE PATHS
+  # LOAD ICD FILES (SITE-SPECIFIC)
   # ===============================
+  
   if (site == "GNV") {
-    base_icd <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/baby_data"
-    neonatal_file <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_07_2022/neonatal_defects_release.csv"
+    
+    data_directory <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/baby_data"
+    
+    file_map <- list(
+      baby_asthma = "asthma",
+      baby_ear_infection = "ear_infection",
+      baby_eczema = "eczema",
+      baby_food_allergy = "food_allergy",
+      baby_hemangonia = "hemangonia",
+      baby_nevus = "nevus",
+      baby_obesity = "obesity",
+      baby_sebor = "sebor",
+      baby_toxicum = "toxicum"
+    )
+    
+    icd_list <- lapply(names(file_map), function(fname) {
+      
+      fpath <- file.path(data_directory, paste0(fname, ".csv"))
+      
+      if (!file.exists(fpath)) {
+        warning("[GNV] missing file: ", fpath)
+        return(NULL)
+      }
+      
+      message("[GNV] reading: ", fname)
+      
+      read_csv(fpath, show_col_types = FALSE) %>%
+        mutate(dx_category = file_map[[fname]]) %>%
+        rename(
+          part_id_infant_tmp = Deidentified_baby_ID,
+          dx_date_raw = `Diagnosis Start Date`,
+          dx_code = `Diagnosis Code`,
+          dx_descrip = `Diagnosis Description`,
+          dx_type = `Diagnosis Type`
+        )
+    })
+    
+    icd_list <- icd_list[!sapply(icd_list, is.null)]
+    
+    # Neonatal defects (separate dataset)
+    neonatal_path <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_07_2022/neonatal_defects_release.csv"
+    
+    if (file.exists(neonatal_path)) {
+      message("[GNV] reading neonatal_defects")
+      
+      neonatal_df <- read_csv(neonatal_path, show_col_types = FALSE) %>%
+        mutate(dx_category = "neonatal_defects") %>%
+        rename(
+          part_id_infant_tmp = Deidentified_baby_ID,
+          dx_date_raw = `Diagnosis Start Date`,
+          dx_code = `Diagnosis Code`,
+          dx_descrip = `Diagnosis Description`,
+          dx_type = `Diagnosis Type`
+        )
+      
+      icd_list <- c(icd_list, list(neonatal_df))
+    }
     
   } else if (site == "JAX") {
-    base_icd <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/baby_data"
-    neonatal_file <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/neonatal_defects_release_Jax.csv"
-  }
-  
-  # ===============================
-  # LOAD ICD FILES
-  # ===============================
-  icd_files <- list.files(base_icd, full.names = TRUE)
-  
-  if (length(icd_files) == 0) {
-    stop("[", site, "] No ICD files found in: ", base_icd)
-  }
-  
-  message("[", site, "] ICD files found: ", length(icd_files))
-  
-  icd_list <- lapply(icd_files, function(f) {
-    message("[", site, "] reading: ", basename(f))
     
-    read_csv(f, show_col_types = FALSE) %>%
-      rename(
-        part_id_infant_tmp = dplyr::any_of(c("Deidentified_baby_ID", "deidentified_baby_id")),
-        dx_code = dplyr::any_of(c("Diagnosis Code", "diagnosis_code")),
-        dx_date_raw = dplyr::any_of(c("Diagnosis Start Date", "diagnosis_start_date")),
-        dx_type = dplyr::any_of(c("Diagnosis Type", "diagnosis_type"))
-      ) %>%
-      mutate(source = "baby_data")
-  })
-  
-  # ===============================
-  # LOAD NEONATAL DEFECTS
-  # ===============================
-  if (file.exists(neonatal_file)) {
+    fpath <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/neonatal_defects_release_Jax.csv"
     
-    message("[", site, "] reading neonatal_defects: ", basename(neonatal_file))
+    if (!file.exists(fpath)) stop("[JAX] file not found: ", fpath)
     
-    neonatal_df <- read_csv(neonatal_file, show_col_types = FALSE) %>%
-      rename(
-        part_id_infant_tmp = dplyr::any_of(c("Deidentified_baby_ID", "deidentified_baby_id")),
-        dx_code = dplyr::any_of(c("Diagnosis Code", "diagnosis_code")),
-        dx_date_raw = dplyr::any_of(c("Diagnosis Start Date", "diagnosis_start_date"))
-      ) %>%
-      mutate(
-        dx_type = "neonatal_defect",
-        source = "neonatal_defects"
-      )
+    message("[JAX] reading ICD file")
     
-    icd_list <- c(icd_list, list(neonatal_df))
-    
-  } else {
-    warning("[", site, "] neonatal_defects file not found: ", neonatal_file)
+    icd_list <- list(
+      read_csv(fpath, show_col_types = FALSE) %>%
+        rename(
+          part_id_infant_tmp = dplyr::any_of(c("Deidentified_baby_ID", "deidentified_baby_id")),
+          dx_code = dplyr::any_of(c("Diagnosis Code", "diagnosis_code")),
+          dx_date_raw = dplyr::any_of(c("Diagnosis Start Date", "diagnosis_start_date")),
+          dx_descrip = dplyr::any_of(c("Diagnosis Description", "diagnosis_description")),
+          dx_type = dplyr::any_of(c("Diagnosis Type", "diagnosis_type"))
+        ) %>%
+        mutate(dx_category = "jax_icd")
+    )
   }
   
   # ===============================
   # COMBINE + STANDARDIZE
   # ===============================
+  
   infant_icd <- bind_rows(icd_list) %>%
     mutate(
       part_id_infant = paste0(site_id_prefix, "-infant-", part_id_infant_tmp),
@@ -89,11 +115,12 @@ process_infant_icd_simple_v2 <- function(site,
       )),
       site = site
     ) %>%
-    select(part_id_infant, dx_code, dx_date, dx_type, site, source)
+    select(part_id_infant, dx_category, dx_code, dx_descrip, dx_date, dx_type, site)
   
   # ===============================
   # JOIN TO MOM-BABY LINK
   # ===============================
+  
   if (!is.null(mom_baby_link_df)) {
     
     message("[", site, "] joining to mom_baby_link")
@@ -111,12 +138,14 @@ process_infant_icd_simple_v2 <- function(site,
       select(
         part_id_infant,
         delivery_id,
+        dx_category,
+        dx_code,
+        dx_descrip,
         dx_date,
         dx2delivery_days,
-        site,
-        everything()
-      ) %>%
-      select(-part_dob_infant)
+        dx_type,
+        site
+      )
     
   } else {
     warning("[", site, "] mom_baby_link_df not provided — skipping linkage")
@@ -125,6 +154,7 @@ process_infant_icd_simple_v2 <- function(site,
   # ===============================
   # OUTPUT
   # ===============================
+  
   date_tag <- format(Sys.Date(), "%Y%m%d")
   
   out_dir <- file.path(working_dir, "data", "processed", site)
