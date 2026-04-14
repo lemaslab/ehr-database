@@ -20,7 +20,7 @@ if (is.null(working_dir)) stop("Could not locate repo root")
 message("Using working_dir: ", working_dir)
 
 # ===============================
-# Setup logging (FIXED)
+# Setup logging
 # ===============================
 date_tag <- format(Sys.Date(), "%Y%m%d")
 
@@ -30,13 +30,12 @@ dir.create(log_dir, recursive = TRUE, showWarnings = FALSE)
 log_file <- file.path(log_dir, paste0("infant_icd_", date_tag, ".log"))
 
 log_con <- file(log_file, open = "wt")
-
 sink(log_con, split = TRUE)
 sink(log_con, type = "message")
 
-run_time <- Sys.time()
+run_time <- as.POSIXct(Sys.time(), tz = "America/New_York")
 cat("==== INFANT ICD RUN ====\n")
-cat("Date:", format(run_time, "%Y-%m-%d %H:%M:%S"), "\n\n")
+cat("Date:", format(run_time, "%Y-%m-%d %H:%M:%S %Z"), "\n\n")
 
 # ===============================
 # Load functions
@@ -48,17 +47,15 @@ library(dplyr)
 library(readr)
 
 # ===============================
-# Step 1: Build mom_baby_link
+# Build mom-baby link
 # ===============================
 message("=== BUILDING MOM-BABY LINK ===")
 
 gnv_mb <- process_mom_baby_link_simple_v5("GNV", working_dir)
 jax_mb <- process_mom_baby_link_simple_v5("JAX", working_dir)
 
-mom_baby_link <- bind_rows(gnv_mb, jax_mb)
-
 # ===============================
-# Step 2: Run ICD with linkage
+# Run ICD
 # ===============================
 message("=== RUNNING INFANT ICD ===")
 
@@ -68,7 +65,7 @@ jax_icd <- process_infant_icd_simple_v2("JAX", working_dir, jax_mb)
 infant_icd <- bind_rows(gnv_icd, jax_icd)
 
 # ===============================
-# Output (combined)
+# Output combined
 # ===============================
 local_dir <- file.path(working_dir, "data", "processed", "COMBINED")
 network_base <- "V:/FACULTY/DJLEMAS/EHR_Data_processed"
@@ -79,11 +76,9 @@ dir.create(network_dir, recursive = TRUE, showWarnings = FALSE)
 
 file_base <- paste0("infant_icd_all_sites_", date_tag)
 
-# Local write
 save(infant_icd, file = file.path(local_dir, paste0(file_base, ".rda")))
 write_csv(infant_icd, file.path(local_dir, paste0(file_base, ".csv")), na = "")
 
-# Network write (safe)
 if (dir.exists(network_base)) {
   save(infant_icd, file = file.path(network_dir, paste0(file_base, ".rda")))
   write_csv(infant_icd, file.path(network_dir, paste0(file_base, ".csv")), na = "")
