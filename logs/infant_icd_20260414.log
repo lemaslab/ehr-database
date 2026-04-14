@@ -36,11 +36,4 @@ Loaded mom_baby_link rows: 58474
 ==== SUMMARY ====
 Total rows: 1945114 
 Missing delivery_id: 0 
-.15GB in  1m, 2.15GB/s                                                                                                            
-==== SUMMARY ====
-Total rows: 1945114 
-Missing delivery_id: 0 
-                    
-==== SUMMARY ====
-Total rows: 1945114 
-Missing delivery_id: 0 
+indexing baby_mom_at_birth_with_payer.csv [=--------------------------------------------------------------] 1.40GB/s, eta:  0sindexing baby_mom_at_birth_with_payer.csv [=================================-----------------------------] 12.67MB/s, eta:  0sindexing baby_mom_at_birth_with_payer.csv [=====================================-------------------------] 13.10MB/s, eta:  0sindexing baby_mom_at_birth_with_payer.csv [==========================================--------------------] 14.21MB/s, eta:  0sindexing baby_mom_at_birth_with_payer.csv [============================================------------------] 14.24MB/s, eta:  0sindexing baby_mom_at_birth_with_payer.csv [=============================================-----------------] 14.00MB/s, eta:  0sindexing baby_mom_at_birth_with_payer.csv [================================================--------------] 14.23MB/s, eta:  0sindexing baby_mom_at_birth_with_payer.csv [===================================================-----------] 14.42MB/s, eta:  0sindexing baby_mom_at_birth_with_payer.csv [===================================================-----------] 13.85MB/s, eta:  0sindexing baby_mom_at_birth_with_payer.csv [======================================================--------] 13.86MB/s, eta:  0sindexing baby_mom_at_birth_with_payer.csv [=============================================================-] 14.89MB/s, eta:  0sindexing baby_mom_at_birth_with_payer.csv [==============================================================] 14.79MB/s, eta:  0s                                                                                                                              ====================================indexing baby_mom_at_birth_with_payer                                                                                                                                                                                                                     
