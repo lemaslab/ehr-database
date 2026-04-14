@@ -1,4 +1,23 @@
-working_dir <- "C:/Users/djlemas/OneDrive/Documents/ehr-database"
+possible_roots <- c(
+  getwd(),
+  "C:/Users/djlemas/Documents/GitHub/ehr-database",
+  "C:/Users/djlemas/OneDrive/Documents/ehr-database"
+)
+
+working_dir <- NULL
+
+for (p in possible_roots) {
+  if (file.exists(file.path(p, "code", "functions"))) {
+    working_dir <- normalizePath(p)
+    break
+  }
+}
+
+if (is.null(working_dir)) {
+  stop("Could not locate repo root")
+}
+
+message("Using working_dir: ", working_dir)
 
 source(file.path(working_dir, "code", "functions", "process_mom_baby_link_simple_v2.R"))
 
