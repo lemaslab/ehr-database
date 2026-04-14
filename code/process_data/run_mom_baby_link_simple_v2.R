@@ -19,14 +19,14 @@ if (is.null(working_dir)) {
 
 message("Using working_dir: ", working_dir)
 
-source(file.path(working_dir, "code", "functions", "process_mom_baby_link_simple_v3.R"))
+source(file.path(working_dir, "code", "functions", "process_mom_baby_link_simple_v4.R"))
 
 library(dplyr)
 
-message("=== RUNNING MOM BABY LINK (SIMPLE V3) ===")
+message("=== RUNNING MOM BABY LINK (SIMPLE V4) ===")
 
-gnv <- process_mom_baby_link_simple_v3("GNV", working_dir)
-jax <- process_mom_baby_link_simple_v3("JAX", working_dir)
+gnv <- process_mom_baby_link_simple_v4("GNV", working_dir)
+jax <- process_mom_baby_link_simple_v4("JAX", working_dir)
 
 combined <- bind_rows(gnv, jax)
 

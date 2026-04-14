@@ -54,7 +54,7 @@ process_mom_baby_link_simple_v4 <- function(site, working_dir = getwd()) {
     ) %>%
     select(part_id_infant, part_dob_infant)
 
-  df <- linkage %>%
+  mom_baby_link <- linkage %>%
     left_join(birth, by = "part_id_infant") %>%
     arrange(part_id_mom, part_dob_infant) %>%
     group_by(part_id_mom) %>%
@@ -78,10 +78,10 @@ process_mom_baby_link_simple_v4 <- function(site, working_dir = getwd()) {
 
   file_base <- paste0("mom_baby_link_", site, "_", date_tag)
 
-  save(df, file = file.path(out_dir, paste0(file_base, ".rda")))
+  save(mom_baby_link, file = file.path(out_dir, paste0(file_base, ".rda")))
   readr::write_csv(df, file.path(out_dir, paste0(file_base, ".csv")), na = "")
 
-  message("[", site, "] rows: ", nrow(df))
-  message("[", site, "] missing DOB: ", sum(is.na(df$part_dob_infant)))
+  message("[", site, "] rows: ", nrow(mom_baby_link))
+  message("[", site, "] missing DOB: ", sum(is.na(mom_baby_link$part_dob_infant)))
   df
 }
