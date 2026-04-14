@@ -1,3 +1,6 @@
+# ===============================
+# Locate repo root
+# ===============================
 possible_roots <- c(
   getwd(),
   "C:/Users/djlemas/Documents/GitHub/ehr-database",
@@ -19,21 +22,41 @@ if (is.null(working_dir)) {
 
 message("Using working_dir: ", working_dir)
 
-source(file.path(working_dir, "code", "functions", "process_mom_baby_link_simple_v4.R"))
+# ===============================
+# Load functions
+# ===============================
+source(file.path(working_dir, "code", "functions", "process_mom_baby_link_simple_v5.R"))
 
 library(dplyr)
+library(readr)
 
-message("=== RUNNING MOM BABY LINK (SIMPLE V4) ===")
+# ===============================
+# Run processing
+# ===============================
+message("=== RUNNING MOM BABY LINK (SIMPLE V5) ===")
 
-gnv <- process_mom_baby_link_simple_v4("GNV", working_dir)
-jax <- process_mom_baby_link_simple_v4("JAX", working_dir)
+gnv <- process_mom_baby_link_simple_v5("GNV", working_dir)
+jax <- process_mom_baby_link_simple_v5("JAX", working_dir)
 
-combined <- bind_rows(gnv, jax)
+# ===============================
+# Combine
+# ===============================
+mom_baby_link <- bind_rows(gnv, jax)
+
+# ===============================
+# Output (standardized)
+# ===============================
+date_tag <- format(Sys.Date(), "%Y%m%d")
 
 out_dir <- file.path(working_dir, "data", "processed", "COMBINED")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-save(combined, file = file.path(out_dir, "mom_baby_link_all_sites.rda"))
-readr::write_csv(combined, file.path(out_dir, "mom_baby_link_all_sites.csv"), na = "")
+file_base <- paste0("mom_baby_link_all_sites_", date_tag)
 
-message("=== COMPLETE V2 ===")
+save(mom_baby_link, file = file.path(out_dir, paste0(file_base, ".rda")))
+write_csv(mom_baby_link, file.path(out_dir, paste0(file_base, ".csv")), na = "")
+
+# ===============================
+# Complete
+# ===============================
+message("=== COMPLETE V5 ===")
