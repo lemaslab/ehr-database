@@ -40,19 +40,22 @@ cat("Date:", format(run_time, "%Y-%m-%d %H:%M:%S %Z"), "\n\n")
 # ===============================
 # Load functions
 # ===============================
-source(file.path(working_dir, "code", "functions", "process_mom_baby_link_simple_v5.R"))
+source(file.path(working_dir, "code", "functions", "utils_load_latest_dataset.R"))
 source(file.path(working_dir, "code", "functions", "process_infant_icd_simple_v2.R"))
 
 library(dplyr)
 library(readr)
 
 # ===============================
-# Build mom-baby link
+# Load mom_baby_link (latest)
 # ===============================
-message("=== BUILDING MOM-BABY LINK ===")
+mom_baby_link <- load_latest_dataset(
+  "mom_baby_link_all_sites",
+  working_dir
+)
 
-gnv_mb <- process_mom_baby_link_simple_v5("GNV", working_dir)
-jax_mb <- process_mom_baby_link_simple_v5("JAX", working_dir)
+gnv_mb <- mom_baby_link %>% filter(site == "GNV")
+jax_mb <- mom_baby_link %>% filter(site == "JAX")
 
 # ===============================
 # Run ICD
@@ -65,7 +68,7 @@ jax_icd <- process_infant_icd_simple_v2("JAX", working_dir, jax_mb)
 infant_icd <- bind_rows(gnv_icd, jax_icd)
 
 # ===============================
-# Output combined
+# Output
 # ===============================
 local_dir <- file.path(working_dir, "data", "processed", "COMBINED")
 network_base <- "V:/FACULTY/DJLEMAS/EHR_Data_processed"
@@ -83,15 +86,7 @@ if (dir.exists(network_base)) {
   save(infant_icd, file = file.path(network_dir, paste0(file_base, ".rda")))
   write_csv(infant_icd, file.path(network_dir, paste0(file_base, ".csv")), na = "")
   message("Network write successful")
-} else {
-  warning("Network path not available — skipped network write")
 }
-
-# ===============================
-# Summary
-# ===============================
-cat("\n==== SUMMARY ====\n")
-cat("Rows:", nrow(infant_icd), "\n")
 
 # ===============================
 # Close log
