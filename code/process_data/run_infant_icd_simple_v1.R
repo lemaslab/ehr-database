@@ -41,24 +41,32 @@ cat("Date:", format(run_time, "%Y-%m-%d %H:%M:%S %Z"), "\n\n")
 # Load functions
 # ===============================
 source(file.path(working_dir, "code", "functions", "utils_load_latest_dataset.R"))
+source(file.path(working_dir, "code", "functions", "utils_write_dataset.R"))
 source(file.path(working_dir, "code", "functions", "process_infant_icd_simple_v2.R"))
 
 library(dplyr)
 library(readr)
 
 # ===============================
-# Load mom_baby_link (latest)
+# Load mom_baby_link (latest combined)
 # ===============================
+message("=== LOADING MOM-BABY LINK (COMBINED) ===")
+
 mom_baby_link <- load_latest_dataset(
-  "mom_baby_link_all_sites",
-  working_dir
+  dataset_name = "mom_baby_link_all_sites",
+  working_dir = working_dir
 )
 
+cat("Loaded mom_baby_link rows:", nrow(mom_baby_link), "\n")
+
+# ===============================
+# Split by site
+# ===============================
 gnv_mb <- mom_baby_link %>% filter(site == "GNV")
 jax_mb <- mom_baby_link %>% filter(site == "JAX")
 
 # ===============================
-# Run ICD
+# Run ICD processing
 # ===============================
 message("=== RUNNING INFANT ICD ===")
 
@@ -68,25 +76,21 @@ jax_icd <- process_infant_icd_simple_v2("JAX", working_dir, jax_mb)
 infant_icd <- bind_rows(gnv_icd, jax_icd)
 
 # ===============================
-# Output
+# Write outputs (standardized)
 # ===============================
-local_dir <- file.path(working_dir, "data", "processed", "COMBINED")
-network_base <- "V:/FACULTY/DJLEMAS/EHR_Data_processed"
-network_dir <- file.path(network_base, "COMBINED")
+write_dataset(
+  df = infant_icd,
+  dataset_name = "infant_icd_all_sites",
+  working_dir = working_dir,
+  subdir = "COMBINED"
+)
 
-dir.create(local_dir, recursive = TRUE, showWarnings = FALSE)
-dir.create(network_dir, recursive = TRUE, showWarnings = FALSE)
-
-file_base <- paste0("infant_icd_all_sites_", date_tag)
-
-save(infant_icd, file = file.path(local_dir, paste0(file_base, ".rda")))
-write_csv(infant_icd, file.path(local_dir, paste0(file_base, ".csv")), na = "")
-
-if (dir.exists(network_base)) {
-  save(infant_icd, file = file.path(network_dir, paste0(file_base, ".rda")))
-  write_csv(infant_icd, file.path(network_dir, paste0(file_base, ".csv")), na = "")
-  message("Network write successful")
-}
+# ===============================
+# Summary
+# ===============================
+cat("\n==== SUMMARY ====\n")
+cat("Total rows:", nrow(infant_icd), "\n")
+cat("Missing delivery_id:", sum(is.na(infant_icd$delivery_id)), "\n")
 
 # ===============================
 # Close log
