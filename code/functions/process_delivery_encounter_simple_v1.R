@@ -23,7 +23,7 @@ process_delivery_encounter_simple_v1 <- function(site,
   if (site == "GNV") {
     
     base_path <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021"
-    fpath <- file.path(base_path, "delivery_encounter.csv")
+    fpath <- file.path(base_path, "baby_mom_at_birth_with_payer.csv")
     
     if (!file.exists(fpath)) {
       stop("[GNV] file not found: ", fpath)
