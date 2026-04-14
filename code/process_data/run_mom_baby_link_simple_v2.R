@@ -23,6 +23,27 @@ if (is.null(working_dir)) {
 message("Using working_dir: ", working_dir)
 
 # ===============================
+# Setup logging (FIXED)
+# ===============================
+date_tag <- format(Sys.Date(), "%Y%m%d")
+
+log_dir <- file.path(working_dir, "logs")
+dir.create(log_dir, recursive = TRUE, showWarnings = FALSE)
+
+log_file <- file.path(log_dir, paste0("mom_baby_link_", date_tag, ".log"))
+
+# open connection
+log_con <- file(log_file, open = "wt")
+
+# redirect output + messages
+sink(log_con, split = TRUE)
+sink(log_con, type = "message")
+
+cat("==== MOM BABY LINK RUN ====\n")
+run_time <- as.POSIXct(Sys.time(), tz = "America/New_York")
+cat("Date:", format(run_time, "%Y-%m-%d %H:%M:%S %Z"), "\n\n")
+
+# ===============================
 # Load functions
 # ===============================
 source(file.path(working_dir, "code", "functions", "process_mom_baby_link_simple_v5.R"))
@@ -44,19 +65,45 @@ jax <- process_mom_baby_link_simple_v5("JAX", working_dir)
 mom_baby_link <- bind_rows(gnv, jax)
 
 # ===============================
-# Output (standardized)
+# Output paths
 # ===============================
-date_tag <- format(Sys.Date(), "%Y%m%d")
+local_out_dir <- file.path(working_dir, "data", "processed", "COMBINED")
+network_base <- "V:/FACULTY/DJLEMAS/EHR_Data_processed"
 
-out_dir <- file.path(working_dir, "data", "processed", "COMBINED")
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+network_out_dir <- file.path(network_base, "COMBINED")
+
+dir.create(local_out_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(network_out_dir, recursive = TRUE, showWarnings = FALSE)
 
 file_base <- paste0("mom_baby_link_all_sites_", date_tag)
 
-save(mom_baby_link, file = file.path(out_dir, paste0(file_base, ".rda")))
-write_csv(mom_baby_link, file.path(out_dir, paste0(file_base, ".csv")), na = "")
+# ===============================
+# Write outputs
+# ===============================
+# Local
+save(mom_baby_link, file = file.path(local_out_dir, paste0(file_base, ".rda")))
+write_csv(mom_baby_link, file.path(local_out_dir, paste0(file_base, ".csv")), na = "")
+
+# Network
+if (dir.exists(network_base)) {
+  save(mom_baby_link, file = file.path(network_out_dir, paste0(file_base, ".rda")))
+  write_csv(mom_baby_link, file.path(network_out_dir, paste0(file_base, ".csv")), na = "")
+  message("Network write successful")
+} else {
+  warning("Network path not available — skipped network write")
+}
 
 # ===============================
-# Complete
+# Summary
 # ===============================
+cat("\n==== SUMMARY ====\n")
+cat("Rows:", nrow(mom_baby_link), "\n")
+cat("Missing DOB:", sum(is.na(mom_baby_link$part_dob_infant)), "\n")
+
+# ===============================
+# Close log
+# ===============================
+sink(type = "message")
+sink()
+
 message("=== COMPLETE V5 ===")
