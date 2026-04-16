@@ -42,9 +42,17 @@ cat("Date:", format(run_time, "%Y-%m-%d %H:%M:%S %Z"), "\n\n")
 # ===============================
 # Load functions
 # ===============================
-source(file.path(working_dir, "code", "functions", "utils_load_latest_dataset.R"))
-source(file.path(working_dir, "code", "functions", "utils_write_dataset.R"))
-source(file.path(working_dir, "code", "functions", "process_maternal_icd_codes_v1.R"))
+message("=== LOADING ALL FUNCTIONS ===")
+
+func_files <- list.files(
+  file.path(working_dir, "code", "functions"),
+  pattern = "\\.R$",
+  full.names = TRUE
+)
+
+lapply(func_files, source)
+
+message("Loaded ", length(func_files), " function files")
 
 library(dplyr)
 library(readr)
