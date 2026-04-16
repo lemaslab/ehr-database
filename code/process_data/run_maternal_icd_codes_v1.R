@@ -95,18 +95,28 @@ jax_icd <- process_maternal_icd_codes_v1(
   mom_baby_link_df = jax_mb
 )
 
-maternal_icd <- bind_rows(gnv_icd, jax_icd) %>%
-  distinct()
-
 # ===============================
-# Write combined dataset
+# ✅ INSERT HERE (SITE-LEVEL WRITES)
 # ===============================
 write_dataset(
-  df = maternal_icd,
-  dataset_name = "maternal_icd_all_sites",
+  df = gnv_icd,
+  dataset_name = "maternal_icd_gnv",
   working_dir = working_dir,
-  subdir = "COMBINED"
+  subdir = "GNV"
 )
+
+write_dataset(
+  df = jax_icd,
+  dataset_name = "maternal_icd_jax",
+  working_dir = working_dir,
+  subdir = "JAX"
+)
+
+# ===============================
+# Combine datasets
+# ===============================
+maternal_icd <- bind_rows(gnv_icd, jax_icd) %>%
+  distinct()
 
 # ===============================
 # Summary
