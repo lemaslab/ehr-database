@@ -61,6 +61,15 @@ process_maternal_icd_codes_v1 <- function(site, working_dir, mom_baby_link_df) {
   icd9 <- standardize_icd_columns(icd9, site)
   icd10 <- standardize_icd_columns(icd10, site)
   
+  # ===============================
+  # FIX TYPE MISMATCH (CRITICAL)
+  # ===============================
+  icd9 <- icd9 %>%
+    mutate(dx_code = as.character(dx_code))
+  
+  icd10 <- icd10 %>%
+    mutate(dx_code = as.character(dx_code))
+  
   message("[", site, "] columns after standardization:")
   print(names(icd9))
   print(names(icd10))
@@ -82,39 +91,47 @@ process_maternal_icd_codes_v1 <- function(site, working_dir, mom_baby_link_df) {
   # Clean ICD data
   # ===============================
   message("=== RUNNING clean_icd() ===")
-  df <- clean_icd(df)
+  
+  df <- clean_icd(
+    df,
+    id_col   = "part_id_mom",
+    type_col = "dx_type",
+    code_col = "dx_code",
+    desc_col = "dx_descrip",
+    date_col = "dx_date"
+  )
   
   message("[", site, "] after clean_icd rows: ", nrow(df))
   
-  # ===============================
-  # Prepare mom_baby_link
-  # ===============================
+  ## -------------------------------------------------------------------------
+  ## 🔧 STANDARDIZE MOM ID + ROBUST MERGE
+  ## -------------------------------------------------------------------------
+  
+  # --- Step 1: Standardize maternal ID ---
+  df <- df %>%
+    mutate(
+      part_id_mom = trimws(as.character(part_id_mom))
+    )
+  
+  # --- Step 2: Prepare mom_baby_link ---
   mom_link_clean <- mom_baby_link_df %>%
     select(part_id_mom, delivery_id) %>%
-    distinct() %>%
-    mutate(part_id_mom = as.character(part_id_mom))
+    mutate(
+      part_id_mom = trimws(as.character(part_id_mom))
+    ) %>%
+    distinct()
   
-  # ===============================
-  # Ensure ID types match
-  # ===============================
-  df <- df %>%
-    mutate(part_id_mom = as.character(part_id_mom))
+  # --- Step 3: Diagnostics ---
+  anti <- df %>%
+    anti_join(mom_link_clean, by = "part_id_mom")
   
-  message("[", site, "] unique moms in mom_baby_link: ",
-          dplyr::n_distinct(mom_link_clean$part_id_mom))
+  message("[", site, "] unmatched moms BEFORE merge: ", nrow(anti))
   
-  message("[", site, "] unique moms in ICD: ",
-          dplyr::n_distinct(df$part_id_mom))
-  
-  # ===============================
-  # Join to mom_baby_link
-  # ===============================
-  message("[", site, "] joining mom_baby_link")
-  
+  # --- Step 4: Merge ---
   df <- df %>%
     inner_join(mom_link_clean, by = "part_id_mom")
   
-  message("[", site, "] after join rows: ", nrow(df))
+  message("[", site, "] rows AFTER merge: ", nrow(df))
   
   # ===============================
   # Add site
