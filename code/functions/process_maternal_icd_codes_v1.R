@@ -65,14 +65,24 @@ process_maternal_icd_codes_v1 <- function(site, working_dir, mom_baby_link_df) {
   # FIX TYPE MISMATCH (CRITICAL)
   # ===============================
   icd9 <- icd9 %>%
-    mutate(dx_code = as.character(dx_code))
+    mutate(
+      dx_code = as.character(dx_code),
+      dx_date = lubridate::parse_date_time(
+        dx_date,
+        orders = c("ymd", "mdy", "dmy", "Ymd"),
+        quiet = TRUE
+      )
+    )
   
   icd10 <- icd10 %>%
-    mutate(dx_code = as.character(dx_code))
-  
-  message("[", site, "] columns after standardization:")
-  print(names(icd9))
-  print(names(icd10))
+    mutate(
+      dx_code = as.character(dx_code),
+      dx_date = lubridate::parse_date_time(
+        dx_date,
+        orders = c("ymd", "mdy", "dmy", "Ymd"),
+        quiet = TRUE
+      )
+    )
   
   # ===============================
   # Combine ICD9 + ICD10
@@ -104,16 +114,49 @@ process_maternal_icd_codes_v1 <- function(site, working_dir, mom_baby_link_df) {
   message("[", site, "] after clean_icd rows: ", nrow(df))
   
   ## -------------------------------------------------------------------------
-  ## 🔧 STANDARDIZE MOM ID + ROBUST MERGE
+  ## 🔧 FIX ID MAPPING USING MATERNAL CROSSWALK (CRITICAL)
   ## -------------------------------------------------------------------------
   
-  # --- Step 1: Standardize maternal ID ---
-  df <- df %>%
+  # --- Step 1: Load maternal crosswalk ---
+  message("[", site, "] loading maternal crosswalk")
+  
+  maternal <- read_csv(files$maternal, show_col_types = FALSE)
+  
+  # ===============================
+  # STANDARDIZE COLUMN NAMES (CRITICAL FIX)
+  # ===============================
+  names(maternal) <- tolower(names(maternal))
+  names(maternal) <- gsub(" ", "_", names(maternal))
+  
+  message("[", site, "] maternal columns:")
+  print(names(maternal))
+  
+  # ===============================
+  # ENSURE REQUIRED ID COLUMN EXISTS
+  # ===============================
+  if (!"deidentified_mom_id" %in% names(maternal)) {
+    stop("[", site, "] maternal file missing deidentified_mom_id after standardization")
+  }
+  
+  # ===============================
+  # FIX ID TYPES
+  # ===============================
+  maternal <- maternal %>%
     mutate(
-      part_id_mom = trimws(as.character(part_id_mom))
+      deidentified_mom_id = as.character(deidentified_mom_id)
     )
   
-  # --- Step 2: Prepare mom_baby_link ---
+  # --- Step 3: Standardize ICD ID ---
+  df <- df %>%
+    mutate(
+      deidentified_mom_id = as.character(part_id_mom)
+    )
+  
+  # --- Step 4: Join ICD → maternal (CRITICAL STEP) ---
+  df <- df %>%
+    inner_join(maternal, by = "deidentified_mom_id")
+  
+  # --- Step 5: Prepare mom_baby_link ---
   mom_link_clean <- mom_baby_link_df %>%
     select(part_id_mom, delivery_id) %>%
     mutate(
@@ -121,15 +164,11 @@ process_maternal_icd_codes_v1 <- function(site, working_dir, mom_baby_link_df) {
     ) %>%
     distinct()
   
-  # --- Step 3: Diagnostics ---
-  anti <- df %>%
-    anti_join(mom_link_clean, by = "part_id_mom")
-  
-  message("[", site, "] unmatched moms BEFORE merge: ", nrow(anti))
-  
-  # --- Step 4: Merge ---
+  # --- Step 6: ALSO FIX df ID TYPE (CRITICAL) ---
   df <- df %>%
-    inner_join(mom_link_clean, by = "part_id_mom")
+    mutate(
+      part_id_mom = trimws(as.character(part_id_mom))
+    )
   
   message("[", site, "] rows AFTER merge: ", nrow(df))
   
