@@ -5,71 +5,32 @@ process_maternal_icd_codes_v1 <- function(site, working_dir, mom_baby_link_df) {
   library(dplyr)
   library(readr)
   library(lubridate)
-  library(rlang)
   
   # ===============================
-  # Helper: rename if column exists
+  # Define file paths by site
   # ===============================
-  rename_if_exists <- function(df, new, old) {
-    if (old %in% names(df)) {
-      df <- df %>% rename(!!new := !!sym(old))
-    }
-    return(df)
-  }
-  
-  # ===============================
-  # Standardize columns
-  # ===============================
-  standardize_icd_columns <- function(df, site) {
-    
-    names(df) <- tolower(names(df))
-    
-    message("[", site, "] standardizing ICD column names")
-    
-    df <- df %>%
-      rename_if_exists("dx_type", "diagnosis_type") %>%
-      rename_if_exists("dx_code", "diagnosis_code") %>%
-      rename_if_exists("dx_descrip", "diagnosis_description") %>%
-      rename_if_exists("dx_date", "diagnosis_start_date")
-    
-    message("[", site, "] columns after standardization:")
-    print(names(df))
-    
-    return(df)
-  }
-  
-  # ===============================
-  # Validate columns
-  # ===============================
-  validate_icd_columns <- function(df, site) {
-    
-    required_cols <- c("dx_type", "dx_code", "dx_descrip", "dx_date")
-    
-    missing_cols <- setdiff(required_cols, names(df))
-    
-    if (length(missing_cols) > 0) {
-      stop("[", site, "] Missing columns AFTER standardization: ",
-           paste(missing_cols, collapse = ", "))
-    }
-  }
-  
-  # ===============================
-  # File paths
-  # ===============================
-  base_path <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/"
+  base_root <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data"
   
   if (site == "GNV") {
     
     files <- list(
-      icd9  = file.path(base_path, "2021/dataset_10_2021/mom_diagnosis_ICD9.csv"),
-      icd10 = file.path(base_path, "2021/dataset_10_2021/mom_diagnosis_ICD10.csv")
+      icd9        = file.path(base_root, "2021/dataset_10_2021/mom_diagnosis_ICD9.csv"),
+      icd10       = file.path(base_root, "2021/dataset_10_2021/mom_diagnosis_ICD10.csv"),
+      comorb_icd9 = file.path(base_root, "2022/dataset_03_2022/mom_comorbidities_list_ICD9_release.csv"),
+      comorb_icd10= file.path(base_root, "2022/dataset_03_2022/mom_comorbidities_list_ICD10_release.csv"),
+      bateman     = file.path(base_root, "2022/dataset_03_2022/mom_comorbidities_list_bateman_ICD9_release.csv"),
+      maternal    = file.path(base_root, "2022/dataset_07_2022/maternal_release.csv")
     )
     
   } else if (site == "JAX") {
     
     files <- list(
-      icd9  = file.path(base_path, "2025/dataset_04_2025/mom_diagnosis_ICD9_Jax.csv"),
-      icd10 = file.path(base_path, "2025/dataset_04_2025/mom_diagnosis_ICD10_Jax.csv")
+      icd9        = file.path(base_root, "2025/dataset_04_2025/mom_diagnosis_ICD9_Jax.csv"),
+      icd10       = file.path(base_root, "2025/dataset_04_2025/mom_diagnosis_ICD10_Jax.csv"),
+      comorb_icd9 = file.path(base_root, "2025/dataset_04_2025/mom_comorbidities_list_ICD9_release_Jax.csv"),
+      comorb_icd10= file.path(base_root, "2025/dataset_04_2025/mom_comorbidities_list_ICD10_release_Jax.csv"),
+      bateman     = file.path(base_root, "2025/dataset_04_2025/mom_comorbidities_list_batman_ICD9_release_Jax.csv"),
+      maternal    = file.path(base_root, "2025/dataset_04_2025/maternal_release_Jax.csv")
     )
     
   } else {
@@ -77,7 +38,16 @@ process_maternal_icd_codes_v1 <- function(site, working_dir, mom_baby_link_df) {
   }
   
   # ===============================
-  # Load data
+  # Check files exist
+  # ===============================
+  message("[", site, "] checking files...")
+  for (nm in names(files)) {
+    exists_flag <- file.exists(files[[nm]])
+    message("[", site, "] ", files[[nm]], " | exists=", exists_flag)
+  }
+  
+  # ===============================
+  # Load primary ICD files
   # ===============================
   message("[", site, "] loading ICD9")
   icd9 <- read_csv(files$icd9, show_col_types = FALSE)
@@ -86,52 +56,60 @@ process_maternal_icd_codes_v1 <- function(site, working_dir, mom_baby_link_df) {
   icd10 <- read_csv(files$icd10, show_col_types = FALSE)
   
   # ===============================
-  # Standardize
+  # Standardize column names
   # ===============================
-  icd9  <- standardize_icd_columns(icd9, site)
+  icd9 <- standardize_icd_columns(icd9, site)
   icd10 <- standardize_icd_columns(icd10, site)
   
-  # 🔥 FIX: force consistent types
-  icd9$dx_code  <- as.character(icd9$dx_code)
-  icd10$dx_code <- as.character(icd10$dx_code)
+  message("[", site, "] columns after standardization:")
+  print(names(icd9))
+  print(names(icd10))
   
   # ===============================
-  # Validate
-  # ===============================
-  validate_icd_columns(icd9, site)
-  validate_icd_columns(icd10, site)
-  
-  # ===============================
-  # Combine
+  # Combine ICD9 + ICD10
   # ===============================
   df <- bind_rows(icd9, icd10)
   
   message("[", site, "] combined rows: ", nrow(df))
   
   # ===============================
-  # Clean ICD
+  # Rename ID column before cleaning
   # ===============================
-  df <- clean_icd(
-    df,
-    id_col   = "deidentified_mom_id",
-    type_col = "dx_type",
-    code_col = "dx_code",
-    desc_col = "dx_descrip",
-    date_col = "dx_date"
-  )
+  df <- df %>%
+    rename(part_id_mom = deidentified_mom_id)
+  
+  # ===============================
+  # Clean ICD data
+  # ===============================
+  message("=== RUNNING clean_icd() ===")
+  df <- clean_icd(df)
   
   message("[", site, "] after clean_icd rows: ", nrow(df))
   
   # ===============================
-  # Join
+  # Prepare mom_baby_link
   # ===============================
   mom_link_clean <- mom_baby_link_df %>%
-    rename(part_id_mom = deidentified_mom_id) %>%
     select(part_id_mom, delivery_id) %>%
-    distinct()
+    distinct() %>%
+    mutate(part_id_mom = as.character(part_id_mom))
   
+  # ===============================
+  # Ensure ID types match
+  # ===============================
   df <- df %>%
-    rename(part_id_mom = deidentified_mom_id)
+    mutate(part_id_mom = as.character(part_id_mom))
+  
+  message("[", site, "] unique moms in mom_baby_link: ",
+          dplyr::n_distinct(mom_link_clean$part_id_mom))
+  
+  message("[", site, "] unique moms in ICD: ",
+          dplyr::n_distinct(df$part_id_mom))
+  
+  # ===============================
+  # Join to mom_baby_link
+  # ===============================
+  message("[", site, "] joining mom_baby_link")
   
   df <- df %>%
     inner_join(mom_link_clean, by = "part_id_mom")
@@ -143,8 +121,6 @@ process_maternal_icd_codes_v1 <- function(site, working_dir, mom_baby_link_df) {
   # ===============================
   df <- df %>%
     mutate(site = site)
-  
-  message("[", site, "] COMPLETE")
   
   return(df)
 }

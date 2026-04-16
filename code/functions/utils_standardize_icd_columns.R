@@ -1,40 +1,39 @@
 standardize_icd_columns <- function(df, site) {
   
+  library(dplyr)
+  library(rlang)
+  
   # ===============================
-  # JAX mapping
+  # Helper: safe rename
   # ===============================
-  if (site == "JAX") {
-    
-    message("[JAX] standardizing ICD column names")
-    
-    df <- df %>%
-      rename(
-        dx_type    = diagnosis_type,
-        dx_code    = diagnosis_code,
-        dx_descrip = diagnosis_description,
-        dx_date    = diagnosis_date
-      )
+  rename_if_exists <- function(df, new, old) {
+    if (old %in% names(df)) {
+      df <- df %>% rename(!!new := !!sym(old))
+    }
+    return(df)
   }
   
   # ===============================
-  # GNV (optional safety check)
+  # Normalize column names
   # ===============================
-  if (site == "GNV") {
-    
-    # only rename if needed (prevents breaking working pipeline)
-    if (!all(c("dx_type","dx_code","dx_descrip","dx_date") %in% names(df))) {
-      
-      message("[GNV] standardizing ICD column names (fallback)")
-      
-      df <- df %>%
-        rename(
-          dx_type    = diagnosis_type,
-          dx_code    = diagnosis_code,
-          dx_descrip = diagnosis_description,
-          dx_date    = diagnosis_date
-        )
-    }
-  }
+  names(df) <- tolower(names(df))
+  
+  message("[", site, "] standardizing ICD column names")
+  
+  # ===============================
+  # Apply unified mapping
+  # ===============================
+  df <- df %>%
+    rename_if_exists("dx_type", "diagnosis_type") %>%
+    rename_if_exists("dx_code", "diagnosis_code") %>%
+    rename_if_exists("dx_descrip", "diagnosis_description") %>%
+    rename_if_exists("dx_date", "diagnosis_start_date")   # ✅ CRITICAL FIX
+  
+  # ===============================
+  # Debug
+  # ===============================
+  message("[", site, "] columns after standardization:")
+  print(names(df))
   
   return(df)
 }
