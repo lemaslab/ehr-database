@@ -156,7 +156,22 @@ process_maternal_icd_codes_v1 <- function(site, working_dir, mom_baby_link_df) {
   df <- df %>%
     inner_join(maternal, by = "deidentified_mom_id")
   
-  # --- Step 5: Prepare mom_baby_link ---
+  # ===============================
+  # 🔧 FIX ID FORMAT (CRITICAL)
+  # ===============================
+  if (site == "GNV") {
+    df <- df %>%
+      mutate(part_id_mom = paste0("AC-mom-", part_id_mom))
+  }
+  
+  if (site == "JAX") {
+    df <- df %>%
+      mutate(part_id_mom = paste0("DC-mom-", part_id_mom))
+  }
+  
+  # ===============================
+  # Prepare mom_baby_link
+  # ===============================
   mom_link_clean <- mom_baby_link_df %>%
     select(part_id_mom, delivery_id) %>%
     mutate(
@@ -164,11 +179,19 @@ process_maternal_icd_codes_v1 <- function(site, working_dir, mom_baby_link_df) {
     ) %>%
     distinct()
   
-  # --- Step 6: ALSO FIX df ID TYPE (CRITICAL) ---
+  # ===============================
+  # Ensure df ID type matches
+  # ===============================
   df <- df %>%
     mutate(
       part_id_mom = trimws(as.character(part_id_mom))
     )
+  
+  # ===============================
+  # Final join
+  # ===============================
+  df <- df %>%
+    inner_join(mom_link_clean, by = "part_id_mom")
   
   message("[", site, "] rows AFTER merge: ", nrow(df))
   
