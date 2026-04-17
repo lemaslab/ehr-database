@@ -83,13 +83,13 @@ cat("JAX rows:", nrow(jax_mb), "\n")
 # ===============================
 message("=== RUNNING MATERNAL ICD ===")
 
-gnv_icd <- process_maternal_icd_codes_v1(
+gnv_icd <- process_maternal_icd_codes_v2(
   site = "GNV",
   working_dir = working_dir,
   mom_baby_link_df = gnv_mb
 )
 
-jax_icd <- process_maternal_icd_codes_v1(
+jax_icd <- process_maternal_icd_codes_v2(
   site = "JAX",
   working_dir = working_dir,
   mom_baby_link_df = jax_mb
@@ -123,7 +123,7 @@ maternal_icd <- bind_rows(gnv_icd, jax_icd) %>%
 # ===============================
 cat("\n==== SUMMARY ====\n")
 cat("Total rows:", nrow(maternal_icd), "\n")
-cat("Unique moms:", dplyr::n_distinct(maternal_icd$part_id_mom), "\n")
+cat("Unique moms:", dplyr::n_distinct(maternal_icd$deidentified_mom_id), "\n")
 
 if ("site" %in% names(maternal_icd)) {
   cat("\nRows by site:\n")
