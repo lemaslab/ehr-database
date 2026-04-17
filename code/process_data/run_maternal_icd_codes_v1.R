@@ -36,7 +36,7 @@ sink(log_con, split = TRUE)
 sink(log_con, type = "message")
 
 run_time <- as.POSIXct(Sys.time(), tz = "America/New_York")
-cat("==== MATERNAL ICD RUN ====\n")
+cat("==== MATERNAL ICD RUN (V2) ====\n")
 cat("Date:", format(run_time, "%Y-%m-%d %H:%M:%S %Z"), "\n\n")
 
 # ===============================
@@ -58,46 +58,25 @@ library(dplyr)
 library(readr)
 
 # ===============================
-# Load mom_baby_link
-# ===============================
-message("=== LOADING MOM-BABY LINK (COMBINED) ===")
-
-mom_baby_link <- load_latest_dataset(
-  dataset_name = "mom_baby_link_all_sites",
-  working_dir = working_dir
-)
-
-cat("Loaded mom_baby_link rows:", nrow(mom_baby_link), "\n")
-
-# ===============================
-# Split by site
-# ===============================
-gnv_mb <- mom_baby_link %>% filter(site == "GNV")
-jax_mb <- mom_baby_link %>% filter(site == "JAX")
-
-cat("GNV rows:", nrow(gnv_mb), "\n")
-cat("JAX rows:", nrow(jax_mb), "\n")
-
-# ===============================
 # Run maternal ICD processing
 # ===============================
-message("=== RUNNING MATERNAL ICD ===")
+message("=== RUNNING MATERNAL ICD V2 ===")
 
 gnv_icd <- process_maternal_icd_codes_v2(
   site = "GNV",
-  working_dir = working_dir,
-  mom_baby_link_df = gnv_mb
+  working_dir = working_dir
 )
 
 jax_icd <- process_maternal_icd_codes_v2(
   site = "JAX",
-  working_dir = working_dir,
-  mom_baby_link_df = jax_mb
+  working_dir = working_dir
 )
 
 # ===============================
-# ✅ INSERT HERE (SITE-LEVEL WRITES)
+# Write site-level datasets
 # ===============================
+message("=== WRITING SITE DATASETS ===")
+
 write_dataset(
   df = gnv_icd,
   dataset_name = "maternal_icd_gnv",
@@ -115,8 +94,23 @@ write_dataset(
 # ===============================
 # Combine datasets
 # ===============================
+message("=== COMBINING DATASETS ===")
+
 maternal_icd <- bind_rows(gnv_icd, jax_icd) %>%
   distinct()
+
+# ===============================
+# Write combined dataset
+# ===============================
+message("=== WRITING COMBINED DATASET ===")
+message("Combined rows: ", nrow(maternal_icd))
+
+write_dataset(
+  df = maternal_icd,
+  dataset_name = "maternal_icd_all_sites",
+  working_dir = working_dir,
+  subdir = "COMBINED"
+)
 
 # ===============================
 # Summary
@@ -142,4 +136,4 @@ sink(type = "message")
 sink()
 close(log_con)
 
-message("=== COMPLETE MATERNAL ICD ===")
+message("=== COMPLETE MATERNAL ICD V2 ===")

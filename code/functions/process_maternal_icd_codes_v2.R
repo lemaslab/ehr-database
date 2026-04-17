@@ -106,12 +106,29 @@ process_maternal_icd_codes_v2 <- function(site, working_dir, mom_baby_link_df = 
   df <- df %>%
     mutate(
       deidentified_mom_id = trimws(as.character(deidentified_mom_id)),
+      
+      # ===============================
+      # ADD STANDARDIZED MOM ID
+      # ===============================
+      part_id_mom = case_when(
+        site == "GNV" ~ paste0("AC-mom-", deidentified_mom_id),
+        site == "JAX" ~ paste0("DC-mom-", deidentified_mom_id),
+        TRUE ~ deidentified_mom_id
+      ),
+      
       dx_code = trimws(as.character(dx_code)),
       dx_descrip = trimws(as.character(dx_descrip)),
       dx_type = trimws(as.character(dx_type)),
       dx_date = as.Date(dx_date),
       site = site
     ) %>%
+    filter(
+      !is.na(deidentified_mom_id),
+      deidentified_mom_id != "",
+      !is.na(dx_code),
+      dx_code != ""
+    ) %>%
+    distinct() %>%
     filter(
       !is.na(deidentified_mom_id),
       deidentified_mom_id != "",
