@@ -108,11 +108,11 @@ process_maternal_icd_codes_v2 <- function(site, working_dir, mom_baby_link_df = 
       deidentified_mom_id = trimws(as.character(deidentified_mom_id)),
       
       # ===============================
-      # ADD STANDARDIZED MOM ID
+      # CREATE STANDARDIZED MOM ID
       # ===============================
       part_id_mom = case_when(
         site == "GNV" ~ paste0("AC-mom-", deidentified_mom_id),
-        site == "JAX" ~ paste0("DC-mom-", deidentified_mom_id),
+        site == "JAX" ~ paste0("JX-mom-", deidentified_mom_id),
         TRUE ~ deidentified_mom_id
       ),
       
@@ -129,13 +129,18 @@ process_maternal_icd_codes_v2 <- function(site, working_dir, mom_baby_link_df = 
       dx_code != ""
     ) %>%
     distinct() %>%
-    filter(
-      !is.na(deidentified_mom_id),
-      deidentified_mom_id != "",
-      !is.na(dx_code),
-      dx_code != ""
-    ) %>%
-    distinct()
+    
+    # ===============================
+  # FINAL COLUMN ORDER + DROP RAW ID
+  # ===============================
+  select(
+    part_id_mom,
+    dx_date,
+    dx_code,
+    site,
+    dx_descrip,
+    dx_type
+  )
   
   message("[", site, "] rows after cleanup: ", nrow(df))
   message("[", site, "] unique moms: ", dplyr::n_distinct(df$deidentified_mom_id))
