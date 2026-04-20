@@ -2,10 +2,12 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
   
   message("=== PROCESSING MOM MEDICATIONS IP V2: ", site, " ===")
   
-  library(dplyr)
-  library(readr)
-  library(lubridate)
-  library(stringr)
+  suppressPackageStartupMessages({
+    library(dplyr)
+    library(readr)
+    library(lubridate)
+    library(stringr)
+  })
   
   # ===============================
   # Define file paths by site
@@ -24,12 +26,10 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
   # Check file exists
   # ===============================
   message("[", site, "] checking file...")
-  exists_flag <- file.exists(file)
-  message("[", site, "] ", file, " | exists=", exists_flag)
-  
-  if (!exists_flag) {
+  if (!file.exists(file)) {
     stop("[", site, "] Missing file: ", file)
   }
+  message("[", site, "] file found")
   
   # ===============================
   # Load data
@@ -47,29 +47,30 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
   names(df) <- tolower(names(df))
   
   # ===============================
+  # Helper: safe column picker
+  # ===============================
+  pick_col <- function(df, candidates) {
+    existing <- intersect(candidates, names(df))
+    if (length(existing) == 0) return(NULL)
+    return(existing[1])
+  }
+  
+  mom_id_col   <- pick_col(df, c("deidentified_mom_id", "mom_id"))
+  med_name_col <- pick_col(df, c("med order display name", "med_order_display_name", "med_name"))
+  med_code_col <- pick_col(df, c("rxnorm code", "rxnorm_code", "med_code"))
+  date_col     <- pick_col(df, c("taken datetime", "taken_datetime", "start_date"))
+  
+  # ===============================
   # Harmonize variables
   # ===============================
   df <- df %>%
     mutate(
-      deidentified_mom_id = as.character(deidentified_mom_id),
-      
-      med_name = coalesce(
-        `med order display name`,
-        med_name
-      ),
-      
-      med_code = coalesce(
-        `rxnorm code`,
-        med_code
-      ),
-      
-      start_date = coalesce(
-        `taken datetime`,
-        start_date
-      ),
-      
-      med_name = as.character(med_name),
-      med_code = as.character(med_code),
+      deidentified_mom_id = if (!is.null(mom_id_col)) as.character(.data[[mom_id_col]]) else NA_character_,
+      med_name            = if (!is.null(med_name_col)) as.character(.data[[med_name_col]]) else NA_character_,
+      med_code            = if (!is.null(med_code_col)) as.character(.data[[med_code_col]]) else NA_character_,
+      start_date          = if (!is.null(date_col)) .data[[date_col]] else NA
+    ) %>%
+    mutate(
       start_date = parse_date_time(
         start_date,
         orders = c("ymd", "mdy", "dmy", "Ymd"),
@@ -83,14 +84,14 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
   df <- df %>%
     mutate(
       deidentified_mom_id = trimws(deidentified_mom_id),
-      med_name = str_to_upper(trimws(med_name)),
-      med_code = trimws(med_code),
-      start_date = as.Date(start_date),
+      med_name            = str_to_upper(trimws(med_name)),
+      med_code            = trimws(med_code),
+      start_date          = as.Date(start_date),
       
-      # KEEP RAW SITE
+      # keep raw site
       site = site,
       
-      # MATCH ICD SCRIPT
+      # match ICD script
       part_id_mom = case_when(
         site == "GNV" ~ paste0("AC-mom-", deidentified_mom_id),
         site == "JAX" ~ paste0("DC-mom-", deidentified_mom_id),
@@ -104,17 +105,13 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
       med_name != ""
     ) %>%
     distinct() %>%
-    
-    # ===============================
-  # FINAL COLUMN STRUCTURE
-  # ===============================
-  select(
-    part_id_mom,
-    start_date,
-    med_name,
-    med_code,
-    site
-  )
+    select(
+      part_id_mom,
+      start_date,
+      med_name,
+      med_code,
+      site
+    )
   
   message("[", site, "] rows after cleanup: ", nrow(df))
   message("[", site, "] unique moms: ", dplyr::n_distinct(df$part_id_mom))
