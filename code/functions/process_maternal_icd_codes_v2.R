@@ -1,150 +1,146 @@
-process_maternal_icd_codes_v2 <- function(site, working_dir, mom_baby_link_df = NULL) {
+process_mom_medications_ip_v2 <- function(site, working_dir) {
   
-  message("=== PROCESSING MATERNAL ICD V2: ", site, " ===")
+  message("=== PROCESSING MOM MEDICATIONS IP V2: ", site, " ===")
   
   library(dplyr)
   library(readr)
   library(lubridate)
+  library(stringr)
   
   # ===============================
-  # Define file paths by site
+  # Site mapping (MATCH ICD)
+  # ===============================
+  map_site_name <- function(site) {
+    if (site == "GNV") return("AC-mom-1")
+    if (site == "JAX") return("DC-mom-1")
+    return(site)
+  }
+  
+  site_std <- map_site_name(site)
+  
+  # ===============================
+  # Define file paths (KEEP YOURS)
   # ===============================
   base_root <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data"
   
   if (site == "GNV") {
-    files <- list(
-      icd9        = file.path(base_root, "2021/dataset_10_2021/mom_diagnosis_ICD9.csv"),
-      icd10       = file.path(base_root, "2021/dataset_10_2021/mom_diagnosis_ICD10.csv"),
-      comorb_icd9 = file.path(base_root, "2022/dataset_03_2022/mom_comorbidities_list_ICD9_release.csv"),
-      comorb_icd10= file.path(base_root, "2022/dataset_03_2022/mom_comorbidities_list_ICD10_release.csv"),
-      bateman     = file.path(base_root, "2022/dataset_03_2022/mom_comorbidities_list_bateman_ICD9_release.csv"),
-      maternal    = file.path(base_root, "2022/dataset_07_2022/maternal_release.csv")
-    )
+    file <- file.path(base_root, "2021/dataset_09_2021/mom_medication/mom_IP.csv")
   } else if (site == "JAX") {
-    files <- list(
-      icd9        = file.path(base_root, "2025/dataset_04_2025/mom_diagnosis_ICD9_Jax.csv"),
-      icd10       = file.path(base_root, "2025/dataset_04_2025/mom_diagnosis_ICD10_Jax.csv"),
-      comorb_icd9 = file.path(base_root, "2025/dataset_04_2025/mom_comorbidities_list_ICD9_release_Jax.csv"),
-      comorb_icd10= file.path(base_root, "2025/dataset_04_2025/mom_comorbidities_list_ICD10_release_Jax.csv"),
-      bateman     = file.path(base_root, "2025/dataset_04_2025/mom_comorbidities_list_batman_ICD9_release_Jax.csv"),
-      maternal    = file.path(base_root, "2025/dataset_04_2025/maternal_release_Jax.csv")
-    )
+    file <- file.path(base_root, "2025/dataset_04_2025/mom_IP_Jax.csv")
   } else {
     stop("Unsupported site: ", site)
   }
   
   # ===============================
-  # Check files exist
+  # Check file exists
   # ===============================
-  message("[", site, "] checking files...")
-  for (nm in names(files)) {
-    exists_flag <- file.exists(files[[nm]])
-    message("[", site, "] ", files[[nm]], " | exists=", exists_flag)
-    if (!exists_flag && nm %in% c("icd9", "icd10")) {
-      stop("[", site, "] Missing required file: ", files[[nm]])
-    }
+  exists_flag <- file.exists(file)
+  message("[", site, "] ", file, " | exists=", exists_flag)
+  
+  if (!exists_flag) {
+    stop("[", site, "] Missing file: ", file)
   }
   
   # ===============================
-  # Load primary ICD files
+  # Load data
   # ===============================
-  message("[", site, "] loading ICD9")
-  icd9 <- read_csv(files$icd9, show_col_types = FALSE)
+  message("[", site, "] loading medication file")
+  df <- read_csv(file, show_col_types = FALSE, progress = FALSE)
   
-  message("[", site, "] loading ICD10")
-  icd10 <- read_csv(files$icd10, show_col_types = FALSE)
+  message("[", site, "] rows: ", nrow(df))
+  message("[", site, "] columns:")
+  print(names(df))
   
   # ===============================
   # Standardize column names
   # ===============================
-  icd9 <- standardize_icd_columns(icd9, site)
-  icd10 <- standardize_icd_columns(icd10, site)
+  names(df) <- tolower(names(df))
   
   # ===============================
-  # Harmonize types before bind_rows
-  # ===============================
-  icd9 <- icd9 %>%
-    mutate(
-      deidentified_mom_id = as.character(deidentified_mom_id),
-      dx_code = as.character(dx_code),
-      dx_descrip = as.character(dx_descrip),
-      dx_type = as.character(dx_type),
-      dx_date = lubridate::parse_date_time(
-        dx_date,
-        orders = c("ymd", "mdy", "dmy", "Ymd"),
-        quiet = TRUE
-      )
-    )
-  
-  icd10 <- icd10 %>%
-    mutate(
-      deidentified_mom_id = as.character(deidentified_mom_id),
-      dx_code = as.character(dx_code),
-      dx_descrip = as.character(dx_descrip),
-      dx_type = as.character(dx_type),
-      dx_date = lubridate::parse_date_time(
-        dx_date,
-        orders = c("ymd", "mdy", "dmy", "Ymd"),
-        quiet = TRUE
-      )
-    )
-  
-  message("[", site, "] columns after standardization:")
-  print(names(icd9))
-  print(names(icd10))
-  
-  # ===============================
-  # Combine ICD9 + ICD10
-  # ===============================
-  df <- bind_rows(icd9, icd10)
-  
-  message("[", site, "] combined rows: ", nrow(df))
-  
-  # ===============================
-  # Basic cleanup only
+  # Harmonize variables (KEEP STRUCTURE)
   # ===============================
   df <- df %>%
     mutate(
-      deidentified_mom_id = trimws(as.character(deidentified_mom_id)),
+      deidentified_mom_id = as.character(deidentified_mom_id),
       
-      # ===============================
-      # CREATE STANDARDIZED MOM ID
-      # ===============================
-      part_id_mom = case_when(
-        site == "GNV" ~ paste0("AC-mom-", deidentified_mom_id),
-        site == "JAX" ~ paste0("JX-mom-", deidentified_mom_id),
-        TRUE ~ deidentified_mom_id
+      med_name = coalesce(
+        `med order display name`,
+        med_name
       ),
       
-      dx_code = trimws(as.character(dx_code)),
-      dx_descrip = trimws(as.character(dx_descrip)),
-      dx_type = trimws(as.character(dx_type)),
-      dx_date = as.Date(dx_date),
-      site = site
+      med_code = coalesce(
+        `rxnorm code`,
+        med_code
+      ),
+      
+      start_date = coalesce(
+        `taken datetime`,
+        start_date
+      ),
+      
+      med_name = as.character(med_name),
+      med_code = as.character(med_code),
+      start_date = parse_date_time(
+        start_date,
+        orders = c("ymd", "mdy", "dmy", "Ymd"),
+        quiet = TRUE
+      )
+    )
+  
+  # ===============================
+  # Cleanup + STANDARDIZED ID (MATCH ICD)
+  # ===============================
+  df <- df %>%
+    mutate(
+      deidentified_mom_id = trimws(deidentified_mom_id),
+      med_name = str_to_upper(trimws(med_name)),
+      med_code = trimws(med_code),
+      start_date = as.Date(start_date),
+      
+      site = site_std,
+      
+      # 🔥 SAME STRUCTURE AS ICD
+      part_id_mom = paste0(site_std, "-", deidentified_mom_id)
     ) %>%
     filter(
       !is.na(deidentified_mom_id),
       deidentified_mom_id != "",
-      !is.na(dx_code),
-      dx_code != ""
+      !is.na(med_name),
+      med_name != ""
     ) %>%
     distinct() %>%
     
     # ===============================
-  # FINAL COLUMN ORDER + DROP RAW ID
+  # FINAL STRUCTURE (ICD-STYLE)
   # ===============================
   select(
     part_id_mom,
-    dx_date,
-    dx_code,
-    site,
-    dx_descrip,
-    dx_type
+    start_date,
+    med_name,
+    med_code,
+    site
   )
   
   message("[", site, "] rows after cleanup: ", nrow(df))
-  message("[", site, "] unique moms: ", dplyr::n_distinct(df$deidentified_mom_id))
-  message("[", site, "] missing dx_date: ", sum(is.na(df$dx_date)))
+  message("[", site, "] unique moms: ", dplyr::n_distinct(df$part_id_mom))
+  message("[", site, "] missing start_date: ", sum(is.na(df$start_date)))
+  
+  # ===============================
+  # EXPORT (SITE-SPECIFIC, MATCH ICD)
+  # ===============================
+  output_dir <- file.path(working_dir, "data", "processed", site)
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  date_tag <- format(Sys.Date(), "%Y%m%d")
+  
+  rds_file <- file.path(output_dir, paste0("mom_medications_ip_", site, "_", date_tag, ".rds"))
+  csv_file <- file.path(output_dir, paste0("mom_medications_ip_", site, "_", date_tag, ".csv"))
+  
+  saveRDS(df, rds_file)
+  write_csv(df, csv_file)
+  
+  message("[", site, "] saved RDS: ", rds_file)
+  message("[", site, "] saved CSV: ", csv_file)
   
   return(df)
 }

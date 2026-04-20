@@ -5,6 +5,7 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(readr)
   library(stringr)
+  library(tibble)
 })
 
 # ===============================
@@ -29,6 +30,15 @@ if (is.null(working_dir)) {
 }
 
 message("Using working_dir: ", working_dir)
+
+# ===============================
+# Map site names
+# ===============================
+map_site_name <- function(site) {
+  if (site == "GNV") return("AC-mom-1")
+  if (site == "JAX") return("DC-mom-1")
+  return(site)
+}
 
 # ===============================
 # Define data paths
@@ -59,7 +69,7 @@ read_mom_ip_data <- function(site) {
   
   message("[", site, "] reading: ", basename(path))
   
-  df <- readr::read_csv(path, show_col_types = FALSE, progress = FALSE)
+  df <- read_csv(path, show_col_types = FALSE, progress = FALSE)
   
   message("[", site, "] rows: ", nrow(df))
   message("[", site, "] columns: ", paste(names(df), collapse = ", "))
@@ -83,26 +93,23 @@ harmonize_mom_ip_medications <- function(df, site) {
   
   names(df) <- tolower(names(df))
   
-  # Identify columns
   mom_id_col <- pick_first_existing(df, c("mom_id", "deidentified_mom_id", "mother_id"))
   encounter_col <- pick_first_existing(df, c("encounter_id", "visit_id"))
-  med_name_col <- pick_first_existing(df, c("med_name", "medication_name", "med_order_display_name", "drug_name"))
-  med_code_col <- pick_first_existing(df, c("med_code", "ndc", "rxnorm_code"))
-  start_col <- pick_first_existing(df, c("start_date", "med_start_date", "order_date", "taken_datetime"))
+  med_name_col <- pick_first_existing(df, c("med_name", "medication_name", "med order display name", "med_order_display_name", "drug_name"))
+  med_code_col <- pick_first_existing(df, c("med_code", "ndc", "rxnorm code", "rxnorm_code"))
+  start_col <- pick_first_existing(df, c("start_date", "med_start_date", "order_date", "taken datetime", "taken_datetime"))
   end_col <- pick_first_existing(df, c("end_date", "med_end_date", "stop_date"))
   
-  # Build standardized dataset
-  df_std <- df %>%
+  df_std <- tibble(
+    mom_id       = if (!is.null(mom_id_col)) df[[mom_id_col]] else NA,
+    encounter_id = if (!is.null(encounter_col)) df[[encounter_col]] else NA,
+    med_name     = if (!is.null(med_name_col)) df[[med_name_col]] else NA,
+    med_code     = if (!is.null(med_code_col)) df[[med_code_col]] else NA,
+    start_date   = if (!is.null(start_col)) df[[start_col]] else NA,
+    end_date     = if (!is.null(end_col)) df[[end_col]] else NA,
+    site         = map_site_name(site)
+  ) %>%
     mutate(
-      mom_id       = if (!is.null(mom_id_col)) .data[[mom_id_col]] else NA,
-      encounter_id = if (!is.null(encounter_col)) .data[[encounter_col]] else NA,
-      med_name     = if (!is.null(med_name_col)) .data[[med_name_col]] else NA,
-      med_code     = if (!is.null(med_code_col)) .data[[med_code_col]] else NA,
-      start_date   = if (!is.null(start_col)) .data[[start_col]] else NA,
-      end_date     = if (!is.null(end_col)) .data[[end_col]] else NA
-    ) %>%
-    mutate(
-      site = site,
       med_name = str_to_upper(as.character(med_name))
     )
   

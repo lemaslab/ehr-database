@@ -26,14 +26,16 @@ message("Total rows: ", nrow(mom_medications_ip_all))
 message("Sites: ", paste(unique(mom_medications_ip_all$site), collapse = ", "))
 
 # ===============================
-# Save output
+# Save output (COMBINED folder)
 # ===============================
-output_dir <- "data/processed"
+output_dir <- "data/processed/COMBINED"
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+date_tag <- format(Sys.Date(), "%Y%m%d")
 
 output_file <- file.path(
   output_dir,
-  paste0("mom_medications_ip_all_", format(Sys.Date(), "%Y%m%d"), ".rds")
+  paste0("mom_medications_ip_all_sites_", date_tag, ".rds")
 )
 
 saveRDS(mom_medications_ip_all, output_file)
