@@ -10,7 +10,7 @@ source("code/functions/process_mom_medications_IP.R")
 sites <- c("GNV", "JAX")
 
 # ===============================
-# Run processing
+# Process each site
 # ===============================
 results <- lapply(sites, process_mom_medications_ip)
 
@@ -31,7 +31,10 @@ message("Sites: ", paste(unique(mom_medications_ip_all$site), collapse = ", "))
 output_dir <- "data/processed"
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
-output_file <- file.path(output_dir, paste0("mom_medications_ip_all_", format(Sys.Date(), "%Y%m%d"), ".rds"))
+output_file <- file.path(
+  output_dir,
+  paste0("mom_medications_ip_all_", format(Sys.Date(), "%Y%m%d"), ".rds")
+)
 
 saveRDS(mom_medications_ip_all, output_file)
 

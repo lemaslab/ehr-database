@@ -59,7 +59,7 @@ read_mom_ip_data <- function(site) {
   
   message("[", site, "] reading: ", basename(path))
   
-  df <- readr::read_csv(path, show_col_types = FALSE)
+  df <- readr::read_csv(path, show_col_types = FALSE, progress = FALSE)
   
   message("[", site, "] rows: ", nrow(df))
   message("[", site, "] columns: ", paste(names(df), collapse = ", "))
@@ -68,41 +68,45 @@ read_mom_ip_data <- function(site) {
 }
 
 # ===============================
-# Harmonize columns across sites
+# Helper: pick first existing column
+# ===============================
+pick_first_existing <- function(df, candidates) {
+  existing <- intersect(candidates, names(df))
+  if (length(existing) == 0) return(NULL)
+  return(existing[1])
+}
+
+# ===============================
+# Harmonize columns
 # ===============================
 harmonize_mom_ip_medications <- function(df, site) {
   
   names(df) <- tolower(names(df))
   
-  df <- df %>%
-    rename(
-      mom_id        = dplyr::coalesce(
-        !!!rlang::syms(intersect(c("mom_id", "deidentified_mom_id", "mother_id"), names(df)))
-      ),
-      encounter_id  = dplyr::coalesce(
-        !!!rlang::syms(intersect(c("encounter_id", "visit_id"), names(df)))
-      ),
-      med_name      = dplyr::coalesce(
-        !!!rlang::syms(intersect(c("med_name", "medication_name", "drug_name"), names(df)))
-      ),
-      med_code      = dplyr::coalesce(
-        !!!rlang::syms(intersect(c("med_code", "ndc", "rxnorm_code"), names(df)))
-      ),
-      start_date    = dplyr::coalesce(
-        !!!rlang::syms(intersect(c("start_date", "med_start_date", "order_date"), names(df)))
-      ),
-      end_date      = dplyr::coalesce(
-        !!!rlang::syms(intersect(c("end_date", "med_end_date", "stop_date"), names(df)))
-      )
-    )
+  # Identify columns
+  mom_id_col <- pick_first_existing(df, c("mom_id", "deidentified_mom_id", "mother_id"))
+  encounter_col <- pick_first_existing(df, c("encounter_id", "visit_id"))
+  med_name_col <- pick_first_existing(df, c("med_name", "medication_name", "med_order_display_name", "drug_name"))
+  med_code_col <- pick_first_existing(df, c("med_code", "ndc", "rxnorm_code"))
+  start_col <- pick_first_existing(df, c("start_date", "med_start_date", "order_date", "taken_datetime"))
+  end_col <- pick_first_existing(df, c("end_date", "med_end_date", "stop_date"))
   
-  df <- df %>%
+  # Build standardized dataset
+  df_std <- df %>%
+    mutate(
+      mom_id       = if (!is.null(mom_id_col)) .data[[mom_id_col]] else NA,
+      encounter_id = if (!is.null(encounter_col)) .data[[encounter_col]] else NA,
+      med_name     = if (!is.null(med_name_col)) .data[[med_name_col]] else NA,
+      med_code     = if (!is.null(med_code_col)) .data[[med_code_col]] else NA,
+      start_date   = if (!is.null(start_col)) .data[[start_col]] else NA,
+      end_date     = if (!is.null(end_col)) .data[[end_col]] else NA
+    ) %>%
     mutate(
       site = site,
-      med_name = str_to_upper(med_name)
+      med_name = str_to_upper(as.character(med_name))
     )
   
-  return(df)
+  return(df_std)
 }
 
 # ===============================
@@ -118,7 +122,7 @@ process_mom_medications_ip <- function(site) {
   
   df <- harmonize_mom_ip_medications(df, site)
   
-  message("[", site, "] after harmonization rows: ", nrow(df))
+  message("[", site, "] standardized rows: ", nrow(df))
   
   return(df)
 }
