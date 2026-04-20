@@ -1,135 +1,141 @@
-# ===============================
-# Load libraries
-# ===============================
-suppressPackageStartupMessages({
+process_mom_medications_ip_v2 <- function(site, working_dir) {
+  
+  message("=== PROCESSING MOM MEDICATIONS IP V2: ", site, " ===")
+  
   library(dplyr)
   library(readr)
+  library(lubridate)
   library(stringr)
-  library(tibble)
-})
-
-# ===============================
-# Locate repo root
-# ===============================
-possible_roots <- c(
-  getwd(),
-  "C:/Users/djlemas/Documents/GitHub/ehr-database",
-  "C:/Users/djlemas/OneDrive/Documents/ehr-database"
-)
-
-working_dir <- NULL
-for (p in possible_roots) {
-  if (file.exists(file.path(p, "code", "functions"))) {
-    working_dir <- normalizePath(p)
-    break
-  }
-}
-
-if (is.null(working_dir)) {
-  stop("Could not locate repo root")
-}
-
-message("Using working_dir: ", working_dir)
-
-# ===============================
-# Map site names
-# ===============================
-map_site_name <- function(site) {
-  if (site == "GNV") return("AC-mom-1")
-  if (site == "JAX") return("DC-mom-1")
-  return(site)
-}
-
-# ===============================
-# Define data paths
-# ===============================
-get_mom_ip_med_path <- function(site) {
+  
+  # ===============================
+  # Define file paths by site
+  # ===============================
+  base_root <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data"
   
   if (site == "GNV") {
-    return("V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/mom_medication/mom_IP.csv")
+    file <- file.path(base_root, "2021/dataset_09_2021/mom_medication/mom_IP.csv")
+  } else if (site == "JAX") {
+    file <- file.path(base_root, "2025/dataset_04_2025/mom_IP_Jax.csv")
+  } else {
+    stop("Unsupported site: ", site)
   }
   
-  if (site == "JAX") {
-    return("V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_IP_Jax.csv")
+  # ===============================
+  # Check file exists
+  # ===============================
+  message("[", site, "] checking file...")
+  exists_flag <- file.exists(file)
+  message("[", site, "] ", file, " | exists=", exists_flag)
+  
+  if (!exists_flag) {
+    stop("[", site, "] Missing file: ", file)
   }
   
-  stop(paste("Unknown site:", site))
-}
-
-# ===============================
-# Read data
-# ===============================
-read_mom_ip_data <- function(site) {
-  
-  path <- get_mom_ip_med_path(site)
-  
-  if (!file.exists(path)) {
-    stop("File does not exist: ", path)
-  }
-  
-  message("[", site, "] reading: ", basename(path))
-  
-  df <- read_csv(path, show_col_types = FALSE, progress = FALSE)
+  # ===============================
+  # Load data
+  # ===============================
+  message("[", site, "] loading medication file")
+  df <- read_csv(file, show_col_types = FALSE, progress = FALSE)
   
   message("[", site, "] rows: ", nrow(df))
-  message("[", site, "] columns: ", paste(names(df), collapse = ", "))
+  message("[", site, "] columns:")
+  print(names(df))
   
-  return(df)
-}
-
-# ===============================
-# Helper: pick first existing column
-# ===============================
-pick_first_existing <- function(df, candidates) {
-  existing <- intersect(candidates, names(df))
-  if (length(existing) == 0) return(NULL)
-  return(existing[1])
-}
-
-# ===============================
-# Harmonize columns
-# ===============================
-harmonize_mom_ip_medications <- function(df, site) {
-  
+  # ===============================
+  # Standardize column names
+  # ===============================
   names(df) <- tolower(names(df))
   
-  mom_id_col <- pick_first_existing(df, c("mom_id", "deidentified_mom_id", "mother_id"))
-  encounter_col <- pick_first_existing(df, c("encounter_id", "visit_id"))
-  med_name_col <- pick_first_existing(df, c("med_name", "medication_name", "med order display name", "med_order_display_name", "drug_name"))
-  med_code_col <- pick_first_existing(df, c("med_code", "ndc", "rxnorm code", "rxnorm_code"))
-  start_col <- pick_first_existing(df, c("start_date", "med_start_date", "order_date", "taken datetime", "taken_datetime"))
-  end_col <- pick_first_existing(df, c("end_date", "med_end_date", "stop_date"))
-  
-  df_std <- tibble(
-    mom_id       = if (!is.null(mom_id_col)) df[[mom_id_col]] else NA,
-    encounter_id = if (!is.null(encounter_col)) df[[encounter_col]] else NA,
-    med_name     = if (!is.null(med_name_col)) df[[med_name_col]] else NA,
-    med_code     = if (!is.null(med_code_col)) df[[med_code_col]] else NA,
-    start_date   = if (!is.null(start_col)) df[[start_col]] else NA,
-    end_date     = if (!is.null(end_col)) df[[end_col]] else NA,
-    site         = map_site_name(site)
-  ) %>%
+  # ===============================
+  # Harmonize variables
+  # ===============================
+  df <- df %>%
     mutate(
-      med_name = str_to_upper(as.character(med_name))
+      deidentified_mom_id = as.character(deidentified_mom_id),
+      
+      med_name = coalesce(
+        `med order display name`,
+        med_name
+      ),
+      
+      med_code = coalesce(
+        `rxnorm code`,
+        med_code
+      ),
+      
+      start_date = coalesce(
+        `taken datetime`,
+        start_date
+      ),
+      
+      med_name = as.character(med_name),
+      med_code = as.character(med_code),
+      start_date = parse_date_time(
+        start_date,
+        orders = c("ymd", "mdy", "dmy", "Ymd"),
+        quiet = TRUE
+      )
     )
   
-  return(df_std)
-}
-
-# ===============================
-# Main processing function
-# ===============================
-process_mom_medications_ip <- function(site) {
+  # ===============================
+  # Cleanup + STANDARDIZED ID
+  # ===============================
+  df <- df %>%
+    mutate(
+      deidentified_mom_id = trimws(deidentified_mom_id),
+      med_name = str_to_upper(trimws(med_name)),
+      med_code = trimws(med_code),
+      start_date = as.Date(start_date),
+      
+      # KEEP RAW SITE
+      site = site,
+      
+      # MATCH ICD SCRIPT
+      part_id_mom = case_when(
+        site == "GNV" ~ paste0("AC-mom-", deidentified_mom_id),
+        site == "JAX" ~ paste0("DC-mom-", deidentified_mom_id),
+        TRUE ~ deidentified_mom_id
+      )
+    ) %>%
+    filter(
+      !is.na(deidentified_mom_id),
+      deidentified_mom_id != "",
+      !is.na(med_name),
+      med_name != ""
+    ) %>%
+    distinct() %>%
+    
+    # ===============================
+  # FINAL COLUMN STRUCTURE
+  # ===============================
+  select(
+    part_id_mom,
+    start_date,
+    med_name,
+    med_code,
+    site
+  )
   
-  message("====================================")
-  message("PROCESSING MOM MEDICATIONS IP:", site)
-  message("====================================")
+  message("[", site, "] rows after cleanup: ", nrow(df))
+  message("[", site, "] unique moms: ", dplyr::n_distinct(df$part_id_mom))
+  message("[", site, "] missing start_date: ", sum(is.na(df$start_date)))
   
-  df <- read_mom_ip_data(site)
+  # ===============================
+  # EXPORT (SITE-SPECIFIC)
+  # ===============================
+  output_dir <- file.path(working_dir, "data", "processed", site)
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   
-  df <- harmonize_mom_ip_medications(df, site)
+  date_tag <- format(Sys.Date(), "%Y%m%d")
   
-  message("[", site, "] standardized rows: ", nrow(df))
+  rds_file <- file.path(output_dir, paste0("mom_medications_ip_", site, "_", date_tag, ".rds"))
+  csv_file <- file.path(output_dir, paste0("mom_medications_ip_", site, "_", date_tag, ".csv"))
+  
+  saveRDS(df, rds_file)
+  write_csv(df, csv_file)
+  
+  message("[", site, "] saved RDS: ", rds_file)
+  message("[", site, "] saved CSV: ", csv_file)
   
   return(df)
 }
