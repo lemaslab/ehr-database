@@ -1,0 +1,171 @@
+---
+title: "fetch_data: zip codes (October 2025)"
+author: "Dominick Lemas"
+date: "10/23/2025"
+output: html_document
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+
+# Author:            Dominick Lemas
+# Start Date:        November 06, 2024 
+# Last Modified:     October 23, 2025  
+# IRB:               IRB protocol IRB201601899 
+#
+# Software Versions:
+# - R version:       4.0.3 (2020-10-10)
+# - RStudio version: 1.3.1073
+
+# **************************************************************************** #
+# ***************                Description                  
+# **************************************************************************** #
+# PLAN: Access flat files on sharedrive, pull/format/clean data for downstream.
+# NOTE: vpn must be active
+# OBJECTIVE: Export all zip-codes as rda file. 
+```
+
+
+```{r, include=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                Libraries                    
+# **************************************************************************** #
+
+library(tidyverse)
+library(dplyr)
+library(tidycensus)  # Access to Census data
+library(zipcodeR)    # ZIP code utilities
+library(gamlss.dist)
+
+# directory
+ working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
+
+```
+
+
+```{r, warning=FALSE, echo=FALSE}
+
+# ----------------------------------------------------------------------- #
+# Step 1: Pull Data
+# ----------------------------------------------------------------------- #
+
+# rows:            28530
+# cols:            2 
+# unique baby id:  28530
+# repeat:          1
+
+# column-types
+#-------------
+col_types <- readr::cols(
+      Deidentified_baby_ID  = readr::col_factor(),
+      zipcode9 = col_factor())
+
+# data-directory
+#-----------------
+data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_10_2021/")
+data_file_name="baby_zipcode_at_delivery.csv"
+data_import_path=paste0(data_dir,data_file_name)
+
+# read data
+delivery_zipcodes=read_csv(data_import_path, col_types = col_types) %>% 
+  rename(part_id_infant_tmp = `Deidentified_baby_ID`, 
+         delivery_zipcode = zipcode9) %>%
+  mutate(part_id_infant=paste0("infant-",part_id_infant_tmp)) %>%
+  select(-part_id_infant_tmp) %>%
+  select(part_id_infant, everything()) %>%
+  mutate(part_id_infant=paste0("GNV-",part_id_infant))
+
+# ----------------------------------------------------------------------- #
+# Step 2: Process ZIP Code Data and Determine Rurality 
+# ----------------------------------------------------------------------- #
+
+# List of rural counties in Florida
+rural_florida_counties <- c(
+  "Walton", "Holmes", "Washington", "Jackson", "Calhoun", "Gulf", "Liberty",
+  "Franklin", "Gadsden", "Wakulla", "Jefferson", "Taylor", "Madison",
+  "Hamilton", "Suwannee", "Lafayette", "Dixie", "Columbia", "Gilchrist", 
+  "Levy", "Baker", "Union", "Bradford", "Nassau", "Putnam", "Flagler", 
+  "Hardee", "DeSoto", "Highlands", "Glades", "Okeechobee", "Hendry"
+)
+
+# Load ZIP code data and determine rurality
+florida_zip_to_county <- zip_code_db %>%
+  filter(state == "FL") %>%
+  select(zipcode, county) %>%
+  mutate(
+    county = str_remove(county, " County"),
+    rurality = if_else(county %in% rural_florida_counties, "rural", "non-rural")
+  ) %>%
+  rename(delivery_zipcode_5digit = zipcode)
+
+delivery_zipcodes <- delivery_zipcodes %>%
+  mutate(delivery_zipcode_5digit = str_sub(delivery_zipcode, 1, 5))
+
+# Merge ZIP code rurality with delivery data
+delivery_zipcodes_merge <- delivery_zipcodes %>%
+  left_join(florida_zip_to_county, by = "delivery_zipcode_5digit") 
+
+```
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+
+# ----------------------------------------------------------------------- #
+# Step 3: load mom-baby link data
+# ----------------------------------------------------------------------- #
+# load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_ALL_20251023.rda") 
+
+data_file_name <- "mom_baby_link_ALL_20251023.rda"
+data_dir <- paste0(working_dir,"/data/ready/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
+
+mom_baby_link_tmp=mom_baby_link_ALL %>%
+  select(part_id_infant, delivery_id)
+
+# ----------------------------------------------------------------------- #
+# Step 4: merge data with mom-baby link and compute derived variables
+# ----------------------------------------------------------------------- #
+delivery_zipcodes_tmp =full_join(delivery_zipcodes_merge, mom_baby_link_tmp , by = "part_id_infant") %>%
+  select(part_id_infant,delivery_id,everything())
+
+# rename
+GNV_delivery_zipcodes_10_2025=delivery_zipcodes_tmp
+
+```
+
+```{r, message=FALSE}
+# ----------------------------------------------------------------------- #
+# Step 5: export to sharedrive
+# ----------------------------------------------------------------------- #
+
+## EXPORT 
+file_name="GNV_delivery_zipcodes"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
+
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/"
+local_dir  <- file.path(working_dir, "data", "ready")
+
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(GNV_delivery_zipcodes_10_2025, file = shared_path)
+
+# Save locally
+save(GNV_delivery_zipcodes_10_2025, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
+
+```

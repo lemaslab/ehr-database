@@ -1,0 +1,230 @@
+---
+title: "fetch_data: mom-baby link (October 2025; Gainesville)"
+author: "Dominick Lemas"
+date: "10/23/2025"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r, include=FALSE}
+# ****************************************************************************** #
+#                                  Project Overview                               
+# ****************************************************************************** #
+
+# Author:            Dominick Lemas
+# Start Date:        November 09, 2024
+# Last Modified:     October 23, 2025
+# IRB:               UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899)
+
+# Software Versions:
+# - R version:       4.4.1 (2024-06-14)
+# - RStudio version: 1.3.1073
+
+# ****************************************************************************** #
+#                                  Description                                    
+# ****************************************************************************** #
+
+# PLAN:
+# - Access flat files on the shared drive
+# - Pull, format, and clean data for downstream analyses
+
+# NOTE:
+# - Ensure VPN is active to access the shared drive
+
+# OBJECTIVE:
+# - Export mom-baby link as an RDA file. 
+# - Checked to ensure multiples are linked correctly.
+
+# ****************************************************************************** #
+#                                  Libraries                                      
+# ****************************************************************************** #
+
+# directory
+# working_dir="C:/Users/djlemas/OneDrive/Documents/ehr-database"
+working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
+
+# Load required packages
+library(tidyverse)   # Comprehensive R package for data science
+library(lubridate)   # Simplifies date and time manipulation
+source(paste0(working_dir,"/code/functions/all_functions.R"))
+
+```
+
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+
+# **************************************************************************** #
+#    GAINESVILLE:                baby_mom_link Data Import                           
+# **************************************************************************** #
+
+# Task:
+# - Import and process baby-mom link data.
+# - Ensure consistent formatting of identifiers.
+# - Prepare data for downstream analysis.
+
+# Dataset Summary:
+# - Rows:            28,530
+# - Columns:         3
+# - Unique Mom IDs:  22,075
+# - Unique Infant IDs: 28,530
+# - Repeats:         1
+# - ICD9/10:         NA
+
+# Data Directory:
+data_file_name <- "baby_mom_link.csv"
+data_dir <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/")
+data_import_path <- paste0(data_dir, data_file_name)
+
+# Data Import and Transformation:
+mom_baby_link_tmp <- read_csv(data_import_path, col_types = cols()) %>%
+  # Rename columns for consistent identifiers
+  rename(
+    part_id_mom_tmp = `Deidentified_mom_ID`,
+    part_id_infant_tmp = Deidentified_baby_ID
+  ) %>%
+  # Create consistent IDs for moms and infants
+  mutate(
+    part_id_mom = paste0("mom-", part_id_mom_tmp),
+    part_id_infant = paste0("infant-", part_id_infant_tmp)
+  ) %>%
+  # Drop temporary columns and reorder
+  select(-part_id_mom_tmp, -part_id_infant_tmp) %>%
+  select(part_id_mom, everything())
+
+
+```
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+# **************************************************************************** #
+#                            baby-delivery Data Import                          
+# **************************************************************************** #
+
+# Task:
+# - Import and process baby-delivery data.
+# - Standardize identifiers and clean gestational age information.
+# - Prepare data for merging into mom-baby linkage to compute delivery-id.
+
+# Dataset Summary:
+# - Rows:            28,530
+# - Columns:         20
+# - Unique Baby IDs: 28,530
+# - Repeats:         1
+# - ICD9/10:         NA
+
+# Data Directory:
+data_dir <- paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/")
+data_file_name <- "baby_mom_at_birth_with_payer.csv"
+data_import_path <- paste0(data_dir, data_file_name)
+
+# Updated Data Transformation Pipeline
+delivery_encounter <- read_csv(data_import_path, col_types = cols()) %>%
+  rename(
+    part_id_mom_tmp = deidentified_mom_id,
+    part_id_infant_tmp = deidentified_baby_id
+  ) %>%
+  mutate(
+    part_id_mom = paste0("mom-", part_id_mom_tmp),
+    part_id_infant = paste0("infant-", part_id_infant_tmp)
+  ) %>%
+  select(-part_id_mom_tmp, -part_id_infant_tmp) %>%
+  select(part_id_infant, part_id_mom, everything()) %>%
+  mutate(
+    part_dob_infant = mdy_hm(date_of_delivery),
+    delivery_admit_date = mdy(admit_date_mom)
+  ) %>%
+  select(-date_of_delivery, -admit_date_mom) %>%
+  select(part_id_infant, part_id_mom, part_dob_infant, pediatric_gestational_age) %>%
+  rename(gestational_age_infant = pediatric_gestational_age) %>%
+  # Process gestational age
+  mutate(
+    gestational_age_parsed = map(gestational_age_infant, parse_gestational_age),
+    gestational_age_weeks = map_dbl(gestational_age_parsed, "weeks"),
+    gestational_age_days = map_dbl(gestational_age_parsed, "days"),
+    gestational_age_days_total = (gestational_age_weeks * 7) + gestational_age_days,
+    gestational_age_weeks_total = gestational_age_weeks + (gestational_age_days / 7)
+  ) %>%
+  select(-gestational_age_parsed, -gestational_age_days, -gestational_age_weeks)
+
+```
+
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+# **************************************************************************** #
+#                   Merge and Process Mom-Baby Link with Delivery Data         
+# **************************************************************************** #
+
+# Task:
+# - Merge infant DOB from delivery_encounter into mom_baby_link.
+# - Arrange and group data for sequential processing.
+# - Generate unique delivery IDs based on 3-day windows.
+
+# Merge DOB into the mom-baby link:
+mom_baby_link <- left_join(
+  mom_baby_link_tmp,
+  delivery_encounter,
+  by = c("part_id_mom", "part_id_infant")
+) %>%
+  
+  # Arrange by mother's ID and infant's DOB for sequential processing
+  arrange(part_id_mom, part_dob_infant) %>%
+  
+  # Group by mother's ID and create a cumulative temp_id
+  # for infants born within a 3-day window
+  group_by(part_id_mom) %>%
+  mutate(temp_id = cumsum(c(1, diff(part_dob_infant) > 3))) %>%
+  ungroup() %>%
+  
+  # Create a unique delivery_id across the entire dataset
+  mutate(delivery_id = dense_rank(paste(part_id_mom, temp_id, sep = "_"))) %>%
+  
+  # Remove intermediate columns and reorder final output
+  select(-temp_id) %>%
+  select(part_id_mom, part_id_infant, delivery_id, everything())
+
+# rename
+GNV_mom_baby_link_10_2025=mom_baby_link %>%
+  mutate(part_id_mom=paste0("GNV-",part_id_mom),
+         part_id_infant=paste0("GNV-",part_id_infant),
+         delivery_id=paste0("GNV-",delivery_id))
+
+```
+
+```{r, message=FALSE}
+# **************************************************************************** #
+#                      Export Processed Mom-Baby Link Data                     
+# **************************************************************************** #
+
+# Task:
+# - Export the processed mom_baby_link data as an RDA file.
+# - Save the file to the shared drive for further analysis.
+
+# Define base file name and timestamp
+file_name <- "GNV_mom_baby_link"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path <- paste0(file_name, timestamp, ".rda")
+
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/"
+local_dir  <- file.path(working_dir, "data", "ready")
+
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(GNV_mom_baby_link_10_2025, file = shared_path)
+
+# Save locally
+save(GNV_mom_baby_link_10_2025, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
+
+```

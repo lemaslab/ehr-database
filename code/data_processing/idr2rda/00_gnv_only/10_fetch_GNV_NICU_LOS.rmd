@@ -1,0 +1,141 @@
+---
+title: "fetch_data: NICU Length-of-Stay (October 2025; Gainesville)"
+author: "Dominick Lemas"
+date: "10/24/2025"
+output: html_document
+---
+
+```{r, include=FALSE}
+# **************************************************************************** #
+#                             PROJECT OVERVIEW                                 #
+# **************************************************************************** #
+
+# Author:        Dominick Lemas
+# Date:          November 14, 2024
+# Last Modified: October 24, 2025
+# IRB Protocol:  UFHealth Early Life Exposures and Pediatric Outcomes 
+#                (IRB201601899)
+
+# R Version:     4.3.1 (2023-06-16, ucrt) -- "Beagle Scouts"
+# Platform:      x86_64-w64-mingw32/x64 (64-bit)
+# Copyright:     © 2023 The R Foundation for Statistical Computing
+
+# **************************************************************************** #
+#                              DESCRIPTION                                     #
+# **************************************************************************** #
+
+# Project Plan:
+# - Access flat files stored on the shared drive.
+# - Perform data pull, formatting, and cleaning for downstream analyses.
+
+# Notes:
+# - VPN connection must be active to access the shared drive.
+
+# Objective:
+# - Export all NICU Length-of-Stay data as an RDA file.
+
+# **************************************************************************** #
+#                              LIBRARIES                                       #
+# **************************************************************************** #
+
+# Load necessary libraries
+library(tidyverse)  # For data wrangling and visualization
+library(lubridate)  # For handling dates and times
+
+# directory
+ working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
+
+# **************************************************************************** #
+
+```
+
+
+```{r, message=FALSE}
+# ----------------------------------------------------------------------- #
+# Step 1: Pull Data
+# ----------------------------------------------------------------------- #
+
+# Specify the data directory and file name
+data_directory <- "V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/baby_data/"
+file_name <- "NICU.csv"
+data_path <- paste0(data_directory, file_name)
+
+# Import NICU data and process
+nicu_los_tmp <- read_csv(data_path) %>%
+  rename(
+    part_id_infant_tmp = Deidentified_baby_ID,  # Temporary ID for infant
+    nicu_los_days = `NICU LOS (days)`,          # NICU length of stay
+    nicu_date_enter = `Enter DateTime`,         # NICU entry date/time
+    nicu_date_exit = `Exit DateTime`,           # NICU exit date/time
+    nicu_dob = `Date of delivery`              # Date of delivery
+  ) %>%
+  mutate(
+    # Create a standardized participant ID
+    part_id_infant = paste0("infant-", part_id_infant_tmp)
+  ) %>%
+  select(-part_id_infant_tmp) %>%   # Drop temporary ID column
+  select(part_id_infant, everything()) %>%  # Reorder columns
+  mutate(
+    # Convert date columns to datetime format
+    nicu_dob = mdy_hm(nicu_dob),
+    nicu_date_enter = mdy_hm(nicu_date_enter),
+    nicu_date_exit = mdy_hm(nicu_date_exit)
+  ) %>%
+  mutate(part_id_infant=paste0("GNV-",part_id_infant))
+
+# ----------------------------------------------------------------------- #
+# Step 2: load mom-baby link data
+# ----------------------------------------------------------------------- #
+# load("V:/FACULTY/DJLEMAS/EHR_Data/processed/10year_data/mom_baby_link_ALL_20251023.rda")
+data_file_name <- "mom_baby_link_ALL_20251023.rda"
+data_dir <- paste0(working_dir,"/data/ready/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
+
+mom_baby_link_tmp=mom_baby_link_ALL %>%
+  select(part_id_infant, delivery_id)
+
+# ----------------------------------------------------------------------- #
+# Step 3: merge data with mom-baby link and compute derived variables
+# ----------------------------------------------------------------------- #
+nicu_los_tmp2 <- full_join(nicu_los_tmp, mom_baby_link_tmp, by = "part_id_infant") %>%
+  select(part_id_infant, delivery_id, everything())
+
+# rename
+GNV_nicu_los_days_10_2025=nicu_los_tmp2
+
+```
+
+
+```{r, message=FALSE}
+# ----------------------------------------------------------------------- #
+# Step 4: export to sharedrive
+# ----------------------------------------------------------------------- #
+
+# Define export file name and directory
+file_name <- "GNV_nicu_los_days"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
+
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/"
+local_dir  <- file.path(working_dir, "data", "ready")
+
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(GNV_nicu_los_days_10_2025, file = shared_path)
+
+# Save locally
+save(GNV_nicu_los_days_10_2025, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
+
+```

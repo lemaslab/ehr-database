@@ -1,0 +1,274 @@
+---
+title: "fetch_data: all maternal codes (October 2025; Gainesville)"
+author: "Dominick Lemas"
+date: "10/23/2025"
+output: html_document
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              
+# **************************************************************************** #
+
+# Author:            Dominick Lemas
+# Start Date:        Nov 14, 2023 
+# Last Modified:     Oct 23, 2025  
+# IRB:         UFHealth Early Life Exposures and Pediatric Outcomes (IRB201601899) 
+#
+# Software Versions:
+# - R version:       4.0.3 (2020-10-10)
+# - RStudio version: 1.3.1073
+
+# **************************************************************************** #
+# ***************                Description                   
+# **************************************************************************** #
+# PLAN: Access flat files on sharedrive, pull/format/clean data for downstream.
+# NOTE: vpn must be active
+# OBJECTIVE: Export all maternal ICD9/10 codes as rda file.
+```
+
+
+```{r, message=FALSE}
+
+# **************************************************************************** #
+# ***************                Library                       
+# **************************************************************************** #
+
+library(tidyverse)
+library(lubridate)
+
+# directory
+working_dir="C:/Users/djlemas/Documents/GitHub/ehr-database"
+
+```
+
+```{r, message=FALSE}
+
+# ----------------------------------------------------------------------- #
+# Step 1: Pull Data
+# ----------------------------------------------------------------------- #
+
+# data-directory
+#-----------------
+data_directory="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/2023/dataset_03_2023/"
+file_name="mom_cancer_release.csv"
+data_path=paste0(data_directory,file_name)
+# import-data
+#------------
+cancer_icd_codes_mom=read_csv(data_path) %>%
+  rename(part_id_mom_tmp=Deidentified_mom_ID,
+         dx_type=`Diagnosis Type`,
+         dx_code=`Diagnosis Code`,
+         dx_descrip=`Diagnosis Description`,
+         dx_date=`Diagnosis Start Date`) %>%
+  mutate(part_id_mom=paste0("mom-",part_id_mom_tmp),
+         dx_category="cancer") %>%
+  select(-part_id_mom_tmp) %>% 
+  select(part_id_mom, dx_category,everything()) %>%
+    mutate(dx_date=mdy(dx_date)) %>%
+  select(part_id_mom, dx_date, dx_category, dx_code, dx_descrip, dx_type)
+
+# directory
+data_directory="V:/FACULTY/DJLEMAS/EHR_Data/raw/READ_ONLY_DATASETS/10year_data/"
+
+# mom_diagnosis_ICD9
+#----------------
+  file="mom_diagnosis_ICD9"
+  path=paste0(data_directory,"2021/dataset_10_2021/",file,".csv")
+  mom_diagnosis_ICD9=read_csv(file=path) %>%
+  rename(part_id_mom_tmp=deidentified_mom_id,
+         dx_type=diagnosis_type,
+         dx_code=diagnosis_code,
+         dx_descrip=diagnosis_description,
+         dx_date=diagnosis_start_date) %>%
+  mutate(part_id_mom=paste0("mom-",part_id_mom_tmp),
+         dx_category="uncategorized") %>%
+  select(-part_id_mom_tmp) %>% 
+  select(part_id_mom, dx_category,everything()) %>%
+    mutate(dx_date=mdy(dx_date)) %>%
+  select(part_id_mom, dx_date, dx_category, dx_code, dx_descrip, dx_type)
+
+# mom_diagnosis_ICD10
+#----------------
+  file="mom_diagnosis_ICD10"
+  path=paste0(data_directory,"2021/dataset_10_2021/",file,".csv")
+  mom_diagnosis_ICD10=read_csv(file=path) %>%
+  rename(part_id_mom_tmp=deidentified_mom_id,
+         dx_type=diagnosis_type,
+         dx_code=diagnosis_code,
+         dx_descrip=diagnosis_description,
+         dx_date=diagnosis_start_date) %>%
+  mutate(part_id_mom=paste0("mom-",part_id_mom_tmp),
+         dx_category="uncategorized") %>%
+  select(-part_id_mom_tmp) %>% 
+  select(part_id_mom, dx_category,everything()) %>%
+    mutate(dx_date=mdy(dx_date)) %>%
+  select(part_id_mom, dx_date, dx_category, dx_code, dx_descrip, dx_type)
+  
+# 10year_data>2022>dataset_03_2022
+
+# mom_comorbidities_list_bateman_ICD9_release
+#----------------
+  file="mom_comorbidities_list_bateman_ICD9_release"
+  path=paste0(data_directory,"2022/dataset_03_2022/",file,".csv")
+  mom_comorbidities_list_bateman_ICD9_release=read_csv(file=path) %>%
+    rename(part_id_mom_tmp=Deidentified_mom_ID,
+           dx_type="Diagnosis Type",
+           dx_code="Diagnosis Code",
+           dx_descrip="Diagnosis Description",
+           dx_date="Diagnosis Start Date") %>%
+  mutate(part_id_mom=paste0("mom-",part_id_mom_tmp),
+         dx_category="bateman") %>%
+  select(-part_id_mom_tmp) %>% 
+  select(part_id_mom, dx_category,everything()) %>%
+    mutate(dx_date=mdy(dx_date)) %>%
+  select(part_id_mom, dx_date, dx_category, dx_code, dx_descrip, dx_type)
+
+# mom_comorbidities_list_ICD9_release
+#----------------
+  file="mom_comorbidities_list_ICD9_release"
+  path=paste0(data_directory,"2022/dataset_03_2022/",file,".csv")
+  mom_comorbidities_list_ICD9_release=read_csv(file=path) %>%
+    rename(part_id_mom_tmp=Deidentified_mom_ID,
+           dx_type="Diagnosis Type",
+           dx_code="Diagnosis Code",
+           dx_descrip="Diagnosis Description",
+           dx_date="Diagnosis Start Date") %>%
+  mutate(part_id_mom=paste0("mom-",part_id_mom_tmp),
+         dx_category="comorbidities") %>%
+  select(-part_id_mom_tmp) %>% 
+  select(part_id_mom, dx_category,everything()) %>%
+    mutate(dx_date=mdy(dx_date)) %>%
+  select(part_id_mom, dx_date, dx_category, dx_code, dx_descrip, dx_type)
+
+# mom_comorbidities_list_ICD10_release
+#----------------
+  file="mom_comorbidities_list_ICD10_release"
+  path=paste0(data_directory,"2022/dataset_03_2022/",file,".csv")
+  mom_comorbidities_list_ICD10_release=read_csv(file=path) %>%
+    rename(part_id_mom_tmp=Deidentified_mom_ID,
+           dx_type="Diagnosis Type",
+           dx_code="Diagnosis Code",
+           dx_descrip="Diagnosis Description",
+           dx_date="Diagnosis Start Date") %>%
+  mutate(part_id_mom=paste0("mom-",part_id_mom_tmp),
+         dx_category="comorbidities") %>%
+  select(-part_id_mom_tmp) %>% 
+  select(part_id_mom, dx_category,everything()) %>%
+    mutate(dx_date=mdy(dx_date)) %>%
+  select(part_id_mom, dx_date, dx_category, dx_code, dx_descrip, dx_type)
+  
+# 10year_data>2022>dataset_07_2022
+  
+# maternal_release
+#----------------
+  file="maternal_release"
+  path=paste0(data_directory,"2022/dataset_07_2022/",file,".csv")
+  maternal_release=read_csv(file=path) %>%
+    rename(part_id_mom_tmp=Deidentified_mom_ID,
+           dx_type="Diagnosis Type",
+           dx_code="Diagnosis Code",
+           dx_descrip="Diagnosis Description",
+           dx_date="Diagnosis Start Date") %>%
+  mutate(part_id_mom=paste0("mom-",part_id_mom_tmp),
+         dx_category="maternal_release") %>%
+  select(-part_id_mom_tmp) %>% 
+  select(part_id_mom, dx_category,everything()) %>%
+    mutate(dx_date=ymd(dx_date)) %>%
+  select(part_id_mom, dx_date, dx_category, dx_code, dx_descrip, dx_type)
+
+# 10year_data>2022>dataset_10_2022
+  
+# selfharm_release
+#----------------
+  file="selfharm_release"
+  path=paste0(data_directory,"2022/dataset_10_2022/",file,".csv")
+  selfharm_release=read_csv(file=path) %>%
+    rename(part_id_mom_tmp=deidentified_mom_id,
+           dx_type=diagnosis_type,
+           dx_code=diagnosis_code,
+           dx_descrip=diagnosis_description,
+           dx_date=diagnosis_start_date) %>%
+  mutate(part_id_mom=paste0("mom-",part_id_mom_tmp),
+         dx_category="selfharm_release") %>%
+  select(-part_id_mom_tmp) %>% 
+  select(part_id_mom, dx_category,everything()) %>%
+    mutate(dx_date=mdy(dx_date)) %>%
+  select(part_id_mom, dx_date, dx_category, dx_code, dx_descrip, dx_type)
+
+# combine ICD9/10 code
+mom_all_icd_codes=rbind(mom_diagnosis_ICD9,mom_diagnosis_ICD10,
+                     mom_comorbidities_list_bateman_ICD9_release,
+                     mom_comorbidities_list_ICD9_release,
+                     mom_comorbidities_list_ICD10_release,
+                     maternal_release,
+                     selfharm_release,
+                     cancer_icd_codes_mom)
+
+# rename
+GNV_mom_all_icd_codes_10_2025=mom_all_icd_codes %>%
+  mutate(part_id_mom=paste0("GNV-",part_id_mom))
+
+```
+
+```{r}
+
+# ----------------------------------------------------------------------- #
+# Step 2: load mom-baby link data
+# ----------------------------------------------------------------------- #
+# load("V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/mom_baby_link_ALL_20250418.rda")
+data_file_name <- "mom_baby_link_ALL_20251023.rda"
+data_dir <- paste0(working_dir,"/data/ready/")
+data_import_path <- paste0(data_dir, data_file_name)
+load(data_import_path)
+
+# ----------------------------------------------------------------------- #
+# Step 3: merge cancer data with mom-baby link and compute derived variables
+# ----------------------------------------------------------------------- #
+mom_all_icd_codes_tmp2 =full_join(mom_baby_link_ALL, GNV_mom_all_icd_codes_10_2025, by = "part_id_mom", relationship = "many-to-many") %>%
+  mutate(
+          # Compute days-to-diagnosis relative to date-of-birth
+        dx2delivery_days = as.numeric(dx_date - ymd(part_dob_infant))) 
+
+# rename
+GNV_mom_icd_codes_10_2025=mom_all_icd_codes_tmp2
+
+```
+
+```{r, message=FALSE}
+
+# ----------------------------------------------------------------------- #
+# Step 4: export to sharedrive
+# ----------------------------------------------------------------------- #
+
+## EXPORT to Sharedrive
+file_name="GNV_mom_icd_codes"
+timestamp <- format(Sys.time(), "_%Y%m%d")
+file_name_path=paste0(file_name,timestamp,".rda")
+
+# Define export directories
+shared_dir <- "V:/FACULTY/DJLEMAS/EHR_Data/processed/READ_ONLY_DATASETS/10year_data/GNV/"
+local_dir  <- file.path(working_dir, "data", "ready")
+
+# Ensure local directory exists
+if (!dir.exists(local_dir)) dir.create(local_dir, recursive = TRUE)
+
+# Construct full export paths
+shared_path <- file.path(shared_dir, file_name_path)
+local_path  <- file.path(local_dir, file_name_path)
+
+# Save to shared drive
+save(GNV_mom_icd_codes_10_2025, file = shared_path)
+
+# Save locally
+save(GNV_mom_icd_codes_10_2025, file = local_path)
+
+message("Data successfully exported to:")
+message(" - Shared drive: ", shared_path)
+message(" - Local folder: ", local_path)
+
+```
+
+`
+
