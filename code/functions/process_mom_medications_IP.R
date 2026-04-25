@@ -10,6 +10,11 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
   })
   
   # ===============================
+  # Source shared ID standardization utility
+  # ===============================
+  source(file.path(working_dir, "code", "functions", "utils_standardize_ids.R"))
+  
+  # ===============================
   # Define file paths by site
   # ===============================
   base_root <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data"
@@ -79,7 +84,7 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
     )
   
   # ===============================
-  # Cleanup + STANDARDIZED ID
+  # Cleanup
   # ===============================
   df <- df %>%
     mutate(
@@ -87,23 +92,25 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
       med_name            = str_to_upper(trimws(med_name)),
       med_code            = trimws(med_code),
       start_date          = as.Date(start_date),
-      
-      # keep raw site
-      site = site,
-      
-      # match ICD script
-      part_id_mom = case_when(
-        site == "GNV" ~ paste0("AC-mom-", deidentified_mom_id),
-        site == "JAX" ~ paste0("DC-mom-", deidentified_mom_id),
-        TRUE ~ deidentified_mom_id
-      )
+      site                = site
     ) %>%
     filter(
       !is.na(deidentified_mom_id),
       deidentified_mom_id != "",
       !is.na(med_name),
       med_name != ""
-    ) %>%
+    )
+  
+  # ===============================
+  # STANDARDIZED ID
+  # Final output: part_id_mom = AC-mom-* or DC-mom-*
+  # ===============================
+  df <- standardize_participant_ids(
+    df = df,
+    site = site,
+    mom_id_col = "deidentified_mom_id",
+    infant_id_col = NULL
+  ) %>%
     distinct() %>%
     select(
       part_id_mom,
