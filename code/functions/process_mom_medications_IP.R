@@ -49,10 +49,11 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
   
   # ===============================
   # Standardize column names
-  # Raw expected columns:
+  # Expected raw columns:
   # Deidentified_mom_ID, Med Order Display Name,
   # Medication History Category, Med Status Category,
-  # Taken Datetime, Med Therapy Class, Pharmacy Class,
+  # Deid-Taken Datetime or Taken Datetime,
+  # Med Therapy Class, Pharmacy Class,
   # Pharmacy Subclass, Rxnorm Code
   # ===============================
   names(df) <- janitor::make_clean_names(names(df))
@@ -92,73 +93,87 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
     label = "medication name column"
   )
   
-  med_hist_cat_col <- pick_col(
+  med_hx_cat_col <- pick_col(
     df,
-    c("medication_history_category", "med_history_category"),
+    c("medication_history_category", "med_hx_cat", "med_history_category"),
     required = FALSE,
     label = "medication history category column"
   )
   
   med_status_cat_col <- pick_col(
     df,
-    c("med_status_category", "medication_status_category"),
+    c("med_status_category", "med_status_cat", "medication_status_category"),
     required = FALSE,
     label = "medication status category column"
   )
   
-  date_col <- pick_col(
+  date_med_taken_col <- pick_col(
     df,
-    c("taken_datetime", "taken_date", "start_date", "med_start_date"),
+    c("deid_taken_datetime", "taken_datetime", "date_med_taken", "taken_date", "start_date", "med_start_date"),
     required = FALSE,
-    label = "taken datetime column"
+    label = "medication taken datetime column"
   )
   
-  med_therapy_class_col <- pick_col(
+  med_tx_class_col <- pick_col(
     df,
-    c("med_therapy_class", "medication_therapy_class"),
+    c("med_therapy_class", "med_tx_class", "medication_therapy_class"),
     required = FALSE,
     label = "med therapy class column"
   )
   
-  pharmacy_class_col <- pick_col(
+  pharm_class_col <- pick_col(
     df,
     c("pharmacy_class", "pharm_class"),
     required = FALSE,
     label = "pharmacy class column"
   )
   
-  pharmacy_subclass_col <- pick_col(
+  pharm_subclass_col <- pick_col(
     df,
     c("pharmacy_subclass", "pharm_subclass"),
     required = FALSE,
     label = "pharmacy subclass column"
   )
   
-  med_code_col <- pick_col(
+  rxnorm_cd_col <- pick_col(
     df,
-    c("rxnorm_code", "rxnorm", "med_code"),
+    c("rxnorm_code", "rxnorm_cd", "rxnorm", "med_code"),
     required = FALSE,
     label = "rxnorm code column"
   )
   
+  message("[", site, "] selected columns:")
+  message("  mom_id_col: ", mom_id_col)
+  message("  med_name_col: ", med_name_col)
+  message("  med_hx_cat_col: ", ifelse(is.null(med_hx_cat_col), "NULL", med_hx_cat_col))
+  message("  med_status_cat_col: ", ifelse(is.null(med_status_cat_col), "NULL", med_status_cat_col))
+  message("  date_med_taken_col: ", ifelse(is.null(date_med_taken_col), "NULL", date_med_taken_col))
+  message("  med_tx_class_col: ", ifelse(is.null(med_tx_class_col), "NULL", med_tx_class_col))
+  message("  pharm_class_col: ", ifelse(is.null(pharm_class_col), "NULL", pharm_class_col))
+  message("  pharm_subclass_col: ", ifelse(is.null(pharm_subclass_col), "NULL", pharm_subclass_col))
+  message("  rxnorm_cd_col: ", ifelse(is.null(rxnorm_cd_col), "NULL", rxnorm_cd_col))
+  
   # ===============================
   # Harmonize variables
+  # Final output variable names are kept consistent across sites:
+  # med_name, med_hx_cat, med_status_cat, date_med_taken,
+  # med_tx_class, pharm_class, pharm_subclass, rxnorm_cd
   # ===============================
   df <- df %>%
     mutate(
-      deidentified_mom_id          = as.character(.data[[mom_id_col]]),
-      med_name                     = as.character(.data[[med_name_col]]),
-      medication_history_category  = if (!is.null(med_hist_cat_col)) as.character(.data[[med_hist_cat_col]]) else NA_character_,
-      med_status_category          = if (!is.null(med_status_cat_col)) as.character(.data[[med_status_cat_col]]) else NA_character_,
-      taken_datetime_raw           = if (!is.null(date_col)) as.character(.data[[date_col]]) else NA_character_,
-      med_therapy_class            = if (!is.null(med_therapy_class_col)) as.character(.data[[med_therapy_class_col]]) else NA_character_,
-      pharmacy_class               = if (!is.null(pharmacy_class_col)) as.character(.data[[pharmacy_class_col]]) else NA_character_,
-      pharmacy_subclass            = if (!is.null(pharmacy_subclass_col)) as.character(.data[[pharmacy_subclass_col]]) else NA_character_,
-      rxnorm_code                  = if (!is.null(med_code_col)) as.character(.data[[med_code_col]]) else NA_character_
+      deidentified_mom_id = as.character(.data[[mom_id_col]]),
+      med_name            = as.character(.data[[med_name_col]]),
+      med_hx_cat          = if (!is.null(med_hx_cat_col)) as.character(.data[[med_hx_cat_col]]) else NA_character_,
+      med_status_cat      = if (!is.null(med_status_cat_col)) as.character(.data[[med_status_cat_col]]) else NA_character_,
+      date_med_taken_raw  = if (!is.null(date_med_taken_col)) as.character(.data[[date_med_taken_col]]) else NA_character_,
+      med_tx_class        = if (!is.null(med_tx_class_col)) as.character(.data[[med_tx_class_col]]) else NA_character_,
+      pharm_class         = if (!is.null(pharm_class_col)) as.character(.data[[pharm_class_col]]) else NA_character_,
+      pharm_subclass      = if (!is.null(pharm_subclass_col)) as.character(.data[[pharm_subclass_col]]) else NA_character_,
+      rxnorm_cd           = if (!is.null(rxnorm_cd_col)) as.character(.data[[rxnorm_cd_col]]) else NA_character_
     ) %>%
     mutate(
-      taken_datetime = parse_date_time(
-        taken_datetime_raw,
+      date_med_taken = parse_date_time(
+        date_med_taken_raw,
         orders = c(
           "ymd HMS", "ymd HM", "ymd",
           "mdy HMS", "mdy HM", "mdy",
@@ -168,8 +183,7 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
           "m/d/y H:M:S", "m/d/y H:M", "m/d/y"
         ),
         quiet = TRUE
-      ),
-      start_date = as.Date(taken_datetime)
+      )
     )
   
   # ===============================
@@ -177,15 +191,15 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
   # ===============================
   df <- df %>%
     mutate(
-      deidentified_mom_id         = trimws(deidentified_mom_id),
-      med_name                    = str_to_upper(trimws(med_name)),
-      medication_history_category = trimws(medication_history_category),
-      med_status_category         = trimws(med_status_category),
-      med_therapy_class           = trimws(med_therapy_class),
-      pharmacy_class              = trimws(pharmacy_class),
-      pharmacy_subclass           = trimws(pharmacy_subclass),
-      rxnorm_code                 = trimws(rxnorm_code),
-      site                        = site
+      deidentified_mom_id = trimws(deidentified_mom_id),
+      med_name            = str_to_upper(trimws(med_name)),
+      med_hx_cat          = trimws(med_hx_cat),
+      med_status_cat      = trimws(med_status_cat),
+      med_tx_class        = trimws(med_tx_class),
+      pharm_class         = trimws(pharm_class),
+      pharm_subclass      = trimws(pharm_subclass),
+      rxnorm_cd           = trimws(rxnorm_cd),
+      site                = site
     ) %>%
     filter(
       !is.na(deidentified_mom_id),
@@ -207,22 +221,21 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
     distinct() %>%
     select(
       part_id_mom,
-      start_date,
-      taken_datetime,
-      taken_datetime_raw,
       med_name,
-      medication_history_category,
-      med_status_category,
-      med_therapy_class,
-      pharmacy_class,
-      pharmacy_subclass,
-      rxnorm_code,
+      med_hx_cat,
+      med_status_cat,
+      date_med_taken,
+      date_med_taken_raw,
+      med_tx_class,
+      pharm_class,
+      pharm_subclass,
+      rxnorm_cd,
       site
     )
   
   message("[", site, "] rows after cleanup: ", nrow(df))
   message("[", site, "] unique moms: ", dplyr::n_distinct(df$part_id_mom))
-  message("[", site, "] missing start_date: ", sum(is.na(df$start_date)))
+  message("[", site, "] missing date_med_taken: ", sum(is.na(df$date_med_taken)))
   
   # ===============================
   # EXPORT (SITE-SPECIFIC)
