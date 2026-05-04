@@ -155,9 +155,6 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
   
   # ===============================
   # Harmonize variables
-  # Final output variable names are kept consistent across sites:
-  # med_name, med_hx_cat, med_status_cat, date_med_taken,
-  # med_tx_class, pharm_class, pharm_subclass, rxnorm_cd
   # ===============================
   df <- df %>%
     mutate(
@@ -245,13 +242,13 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
   
   date_tag <- format(Sys.Date(), "%Y%m%d")
   
-  rds_file <- file.path(output_dir, paste0("mom_medications_ip_", site, "_", date_tag, ".rds"))
+  rda_file <- file.path(output_dir, paste0("mom_medications_ip_", site, "_", date_tag, ".rda"))
   csv_file <- file.path(output_dir, paste0("mom_medications_ip_", site, "_", date_tag, ".csv"))
   
-  saveRDS(df, rds_file)
+  save(df, file = rda_file)
   write_csv(df, csv_file)
   
-  message("[", site, "] saved RDS: ", rds_file)
+  message("[", site, "] saved RDA: ", rda_file)
   message("[", site, "] saved CSV: ", csv_file)
   
   return(df)
