@@ -30,7 +30,7 @@ message("Using working_dir: ", working_dir)
 # -------------------------------
 # Source processing function
 # -------------------------------
-source("code/functions/process_mom_medications_.R")
+source("code/functions/process_mom_medications_IP.R")
 
 # -------------------------------
 # Define sites
