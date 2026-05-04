@@ -30,7 +30,7 @@ message("Using working_dir: ", working_dir)
 # -------------------------------
 # Source processing function
 # -------------------------------
-source("code/functions/process_mom_medications_.R")
+source("code/functions/process_mom_medications_IP.R")
 
 # -------------------------------
 # Define sites
@@ -63,11 +63,11 @@ dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
 date_tag <- format(Sys.Date(), "%Y%m%d")
 
-rds_file <- file.path(output_dir, paste0("mom_medications_ip_all_sites_", date_tag, ".rds"))
+rda_file <- file.path(output_dir, paste0("mom_medications_ip_all_sites_", date_tag, ".rda"))
 csv_file <- file.path(output_dir, paste0("mom_medications_ip_all_sites_", date_tag, ".csv"))
 
-saveRDS(mom_medications_ip_all, rds_file)
+save(mom_medications_ip_all, file = rda_file)
 readr::write_csv(mom_medications_ip_all, csv_file)
 
-message("Saved COMBINED RDS: ", rds_file)
+message("Saved COMBINED RDA: ", rda_file)
 message("Saved COMBINED CSV: ", csv_file)
