@@ -1,6 +1,6 @@
 process_mom_op <- function(site, working_dir) {
   
-  message("=== PROCESSING MOM MEDICATIONS OP: ", site, " ===")
+  message("=== PROCESSING MOM MEDICATIONS OP V2: ", site, " ===")
   
   suppressPackageStartupMessages({
     library(dplyr)
@@ -23,7 +23,7 @@ process_mom_op <- function(site, working_dir) {
   if (site == "GNV") {
     file <- file.path(base_root, "2021/dataset_09_2021/mom_medication/mom_OP.csv")
   } else if (site == "JAX") {
-    file <- file.path(base_root, "2025/dataset_04_2025/mom_OP_Jax.csv")
+    file <- file.path(base_root, "2025/dataset_04_2025/med_OP_Jax.csv")
   } else {
     stop("Unsupported site: ", site)
   }
@@ -51,8 +51,9 @@ process_mom_op <- function(site, working_dir) {
   # Standardize column names
   # Expected raw columns:
   # Deidentified_mom_ID, Med Order Display Name,
-  # Medication History Category, Deid-Med Order Datetime
-  # or Med Order Datetime, Med Therapy Class, Pharmacy Class,
+  # Medication History Category, Med Order Datetime
+  # or Deid-Med Order Datetime,
+  # Med Therapy Class, Pharmacy Class,
   # Pharmacy Subclass, Rxnorm Code
   # ===============================
   names(df) <- janitor::make_clean_names(names(df))
@@ -157,20 +158,17 @@ process_mom_op <- function(site, working_dir) {
   
   # ===============================
   # Harmonize variables
-  # Final output names are consistent across projects:
-  # part_id_mom, med_name, med_hx_cat, date_med_order,
-  # med_tx_class, pharm_class, pharm_subclass, rxnorm_cd
   # ===============================
   df <- df %>%
     mutate(
-      part_id_mom_raw    = as.character(.data[[mom_id_col]]),
-      med_name           = as.character(.data[[med_name_col]]),
-      med_hx_cat         = if (!is.null(med_hx_cat_col)) as.character(.data[[med_hx_cat_col]]) else NA_character_,
-      date_med_order_raw = if (!is.null(date_med_order_col)) as.character(.data[[date_med_order_col]]) else NA_character_,
-      med_tx_class       = if (!is.null(med_tx_class_col)) as.character(.data[[med_tx_class_col]]) else NA_character_,
-      pharm_class        = if (!is.null(pharm_class_col)) as.character(.data[[pharm_class_col]]) else NA_character_,
-      pharm_subclass     = if (!is.null(pharm_subclass_col)) as.character(.data[[pharm_subclass_col]]) else NA_character_,
-      rxnorm_cd          = if (!is.null(rxnorm_cd_col)) as.character(.data[[rxnorm_cd_col]]) else NA_character_
+      deidentified_mom_id = as.character(.data[[mom_id_col]]),
+      med_name            = as.character(.data[[med_name_col]]),
+      med_hx_cat          = if (!is.null(med_hx_cat_col)) as.character(.data[[med_hx_cat_col]]) else NA_character_,
+      date_med_order_raw  = if (!is.null(date_med_order_col)) as.character(.data[[date_med_order_col]]) else NA_character_,
+      med_tx_class        = if (!is.null(med_tx_class_col)) as.character(.data[[med_tx_class_col]]) else NA_character_,
+      pharm_class         = if (!is.null(pharm_class_col)) as.character(.data[[pharm_class_col]]) else NA_character_,
+      pharm_subclass      = if (!is.null(pharm_subclass_col)) as.character(.data[[pharm_subclass_col]]) else NA_character_,
+      rxnorm_cd           = if (!is.null(rxnorm_cd_col)) as.character(.data[[rxnorm_cd_col]]) else NA_character_
     ) %>%
     mutate(
       date_med_order = parse_date_time(
@@ -192,18 +190,18 @@ process_mom_op <- function(site, working_dir) {
   # ===============================
   df <- df %>%
     mutate(
-      part_id_mom_raw = trimws(part_id_mom_raw),
-      med_name        = str_to_upper(trimws(med_name)),
-      med_hx_cat      = trimws(med_hx_cat),
-      med_tx_class    = trimws(med_tx_class),
-      pharm_class     = trimws(pharm_class),
-      pharm_subclass  = trimws(pharm_subclass),
-      rxnorm_cd       = trimws(rxnorm_cd),
-      site            = site
+      deidentified_mom_id = trimws(deidentified_mom_id),
+      med_name            = str_to_upper(trimws(med_name)),
+      med_hx_cat          = trimws(med_hx_cat),
+      med_tx_class        = trimws(med_tx_class),
+      pharm_class         = trimws(pharm_class),
+      pharm_subclass      = trimws(pharm_subclass),
+      rxnorm_cd           = trimws(rxnorm_cd),
+      site                = site
     ) %>%
     filter(
-      !is.na(part_id_mom_raw),
-      part_id_mom_raw != "",
+      !is.na(deidentified_mom_id),
+      deidentified_mom_id != "",
       !is.na(med_name),
       med_name != ""
     )
@@ -215,7 +213,7 @@ process_mom_op <- function(site, working_dir) {
   df <- standardize_participant_ids(
     df = df,
     site = site,
-    mom_id_col = "part_id_mom_raw",
+    mom_id_col = "deidentified_mom_id",
     infant_id_col = NULL
   ) %>%
     distinct() %>%
@@ -240,5 +238,6 @@ process_mom_op <- function(site, working_dir) {
   # Return processed site-level dataset
   # Export is handled by run_mom_medications_OP.R
   # ===============================
+  
   return(df)
 }
