@@ -52,8 +52,8 @@ mom_ip_all_sites <- dplyr::bind_rows(results)
 message("====================================")
 message("FINAL DATASET SUMMARY")
 message("====================================")
-message("Total rows: ", nrow(mom_medications_ip_all))
-message("Sites: ", paste(unique(mom_medications_ip_all$site), collapse = ", "))
+message("Total rows: ", nrow(mom_ip_all_sites))
+message("Sites: ", paste(unique(mom_ip_all_sites$site), collapse = ", "))
 
 # -------------------------------
 # Save COMBINED dataset
