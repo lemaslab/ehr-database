@@ -58,16 +58,33 @@ message("Sites: ", paste(unique(mom_medications_ip_all$site), collapse = ", "))
 # -------------------------------
 # Save COMBINED dataset
 # -------------------------------
-output_dir <- file.path(working_dir, "data", "processed", "COMBINED")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+# Local repo output
+local_output_dir <- file.path(working_dir, "data", "processed", "COMBINED")
+dir.create(local_output_dir, recursive = TRUE, showWarnings = FALSE)
+
+# Shared drive output
+shared_output_dir <- "V:/FACULTY/DJLEMAS/EHR_Data_processed/COMBINED"
+dir.create(shared_output_dir, recursive = TRUE, showWarnings = FALSE)
 
 date_tag <- format(Sys.Date(), "%Y%m%d")
 
-rda_file <- file.path(output_dir, paste0("mom_ip_all_sites_", date_tag, ".rda"))
-csv_file <- file.path(output_dir, paste0("mom_ip_all_sites_", date_tag, ".csv"))
+# Object/file name convention
+rda_file_local <- file.path(local_output_dir, paste0("mom_ip_all_sites_", date_tag, ".rda"))
+csv_file_local <- file.path(local_output_dir, paste0("mom_ip_all_sites_", date_tag, ".csv"))
 
-save(mom_medications_ip_all, file = rda_file)
-readr::write_csv(mom_medications_ip_all, csv_file)
+rda_file_shared <- file.path(shared_output_dir, paste0("mom_ip_all_sites_", date_tag, ".rda"))
+csv_file_shared <- file.path(shared_output_dir, paste0("mom_ip_all_sites_", date_tag, ".csv"))
 
-message("Saved COMBINED RDA: ", rda_file)
-message("Saved COMBINED CSV: ", csv_file)
+# Save local
+save(mom_ip_all_sites, file = rda_file_local)
+readr::write_csv(mom_ip_all_sites, csv_file_local)
+
+# Save shared drive
+save(mom_ip_all_sites, file = rda_file_shared)
+readr::write_csv(mom_ip_all_sites, csv_file_shared)
+
+message("Saved LOCAL RDA: ", rda_file_local)
+message("Saved LOCAL CSV: ", csv_file_local)
+message("Saved SHARED RDA: ", rda_file_shared)
+message("Saved SHARED CSV: ", csv_file_shared)
