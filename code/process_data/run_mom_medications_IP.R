@@ -47,7 +47,7 @@ results <- lapply(sites, function(s) {
 # -------------------------------
 # Combine datasets
 # -------------------------------
-mom_medications_ip_all <- dplyr::bind_rows(results)
+mom_ip_all_sites <- dplyr::bind_rows(results)
 
 message("====================================")
 message("FINAL DATASET SUMMARY")
@@ -63,8 +63,8 @@ dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
 date_tag <- format(Sys.Date(), "%Y%m%d")
 
-rda_file <- file.path(output_dir, paste0("mom_medications_ip_all_sites_", date_tag, ".rda"))
-csv_file <- file.path(output_dir, paste0("mom_medications_ip_all_sites_", date_tag, ".csv"))
+rda_file <- file.path(output_dir, paste0("mom_ip_all_sites_", date_tag, ".rda"))
+csv_file <- file.path(output_dir, paste0("mom_ip_all_sites_", date_tag, ".csv"))
 
 save(mom_medications_ip_all, file = rda_file)
 readr::write_csv(mom_medications_ip_all, csv_file)
