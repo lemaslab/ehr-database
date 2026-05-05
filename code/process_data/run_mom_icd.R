@@ -67,7 +67,7 @@ gnv_icd <- process_mom_icd(
   working_dir = working_dir
 )
 
-jax_icd <- process_maternal_icd_codes_v2(
+jax_icd <- process_mom_icd(
   site = "JAX",
   working_dir = working_dir
 )
@@ -100,6 +100,31 @@ maternal_icd <- bind_rows(gnv_icd, jax_icd) %>%
   distinct()
 
 # ===============================
+# ID QA
+# ===============================
+message("=== ID QA ===")
+message("Columns in combined ICD dataset:")
+print(names(maternal_icd))
+
+message("First 10 part_id_mom values:")
+print(head(maternal_icd$part_id_mom, 10))
+
+message("Does deidentified_mom_id remain?")
+print("deidentified_mom_id" %in% names(maternal_icd))
+
+if (!"part_id_mom" %in% names(maternal_icd)) {
+  stop("part_id_mom is missing from maternal_icd output")
+}
+
+if (any(is.na(maternal_icd$part_id_mom)) || any(maternal_icd$part_id_mom == "")) {
+  warning("Missing or blank part_id_mom values detected")
+}
+
+if (!all(grepl("^(AC|DC)-mom-", maternal_icd$part_id_mom))) {
+  warning("Some part_id_mom values do not match expected AC/DC-mom-* format")
+}
+
+# ===============================
 # Write combined dataset
 # ===============================
 message("=== WRITING COMBINED DATASET ===")
@@ -117,7 +142,7 @@ write_dataset(
 # ===============================
 cat("\n==== SUMMARY ====\n")
 cat("Total rows:", nrow(maternal_icd), "\n")
-cat("Unique moms:", dplyr::n_distinct(maternal_icd$deidentified_mom_id), "\n")
+cat("Unique moms:", dplyr::n_distinct(maternal_icd$part_id_mom), "\n")
 
 if ("site" %in% names(maternal_icd)) {
   cat("\nRows by site:\n")

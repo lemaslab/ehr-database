@@ -222,6 +222,17 @@ process_mom_icd <- function(site, working_dir) {
       filter(
         !is.na(deidentified_mom_id),
         deidentified_mom_id != ""
+      ) %>%
+      select(
+        deidentified_mom_id,
+        icd_code,
+        icd_desc,
+        icd_version,
+        icd_source,
+        date_dx,
+        date_dx_raw,
+        encounter_id,
+        site
       )
   }
   
