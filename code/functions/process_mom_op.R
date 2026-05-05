@@ -21,10 +21,8 @@ process_mom_op <- function(site, working_dir) {
   base_root <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data"
   
   if (site == "GNV") {
-    # TODO: Confirm exact GNV OP medication file path/name
     file <- file.path(base_root, "2021/dataset_09_2021/mom_medication/mom_OP.csv")
   } else if (site == "JAX") {
-    # TODO: Confirm exact JAX OP medication file path/name
     file <- file.path(base_root, "2025/dataset_04_2025/mom_OP_Jax.csv")
   } else {
     stop("Unsupported site: ", site)
@@ -52,9 +50,8 @@ process_mom_op <- function(site, working_dir) {
   # ===============================
   # Standardize column names
   # Expected raw columns:
-  # Deidentified_mom_ID, Med Order Display Name,
-  # Medication History Category, Med Status Category,
-  # Deid-Taken Datetime or Taken Datetime,
+  # Deidentified_mom_ID, Medication History Category,
+  # Med Order Datetime, Med Order Display Name,
   # Med Therapy Class, Pharmacy Class,
   # Pharmacy Subclass, Rxnorm Code
   # ===============================
@@ -112,15 +109,18 @@ process_mom_op <- function(site, working_dir) {
   date_med_taken_col <- pick_col(
     df,
     c(
-      "deid_taken_datetime",
-      "taken_datetime",
+      "med_order_datetime",
+      "deid_med_order_datetime",
       "date_med_taken",
+      "order_datetime",
+      "taken_datetime",
+      "deid_taken_datetime",
       "taken_date",
       "start_date",
       "med_start_date"
     ),
     required = FALSE,
-    label = "medication taken datetime column"
+    label = "medication order datetime column"
   )
   
   med_tx_class_col <- pick_col(
