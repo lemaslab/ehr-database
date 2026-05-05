@@ -1,0 +1,12 @@
+==== MOM ICD RUN ====
+Date: 2026-05-05 16:35:35 EDT 
+
+=== LOADING ALL FUNCTIONS ===
+Loaded 15 function files
+=== RUNNING MOM ICD ===
+=== PROCESSING MOM ICD: GNV ===
+[GNV] all ICD files found
+[GNV] reading icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_10_2021/mom_diagnosis_ICD9.csv
+[GNV] reading icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_10_2021/mom_diagnosis_ICD10.csv
+[GNV] reading comorb_icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_ICD9_release.csv
+[GNV] reading comorb_icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_ICD10_release.csv

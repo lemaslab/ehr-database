@@ -108,41 +108,65 @@ process_mom_icd <- function(site, working_dir) {
       label = paste0(source_name, " mom ID column")
     )
     
-    icd_code_col <- pick_col(
+    dx_code_col <- pick_col(
       df,
       c(
+        "diagnosis_code",
+        "dx_code",
         "icd_code",
         "icd9_code",
         "icd10_code",
-        "diagnosis_code",
-        "dx_code",
         "code",
         "diagnosis_cd",
         "icd_cd"
       ),
       required = FALSE,
-      label = paste0(source_name, " ICD code column")
+      label = paste0(source_name, " diagnosis code column")
     )
     
-    icd_desc_col <- pick_col(
+    dx_descrip_col <- pick_col(
       df,
       c(
+        "diagnosis_description",
+        "dx_descrip",
+        "dx_description",
         "icd_desc",
         "icd_description",
-        "diagnosis_description",
-        "dx_description",
         "description",
         "diagnosis_name",
         "dx_name"
       ),
       required = FALSE,
-      label = paste0(source_name, " ICD description column")
+      label = paste0(source_name, " diagnosis description column")
     )
     
-    date_dx_col <- pick_col(
+    dx_type_col <- pick_col(
       df,
       c(
-        "date_dx",
+        "diagnosis_type",
+        "dx_type"
+      ),
+      required = FALSE,
+      label = paste0(source_name, " diagnosis type column")
+    )
+    
+    dx_icd_type_col <- pick_col(
+      df,
+      c(
+        "icd_type",
+        "dx_icd_type",
+        "icd_version",
+        "code_type"
+      ),
+      required = FALSE,
+      label = paste0(source_name, " ICD type column")
+    )
+    
+    dx_date_col <- pick_col(
+      df,
+      c(
+        "deid_diagnosis_start_date",
+        "diagnosis_start_date",
         "dx_date",
         "diagnosis_date",
         "diagnosis_datetime",
@@ -155,52 +179,43 @@ process_mom_icd <- function(site, working_dir) {
       label = paste0(source_name, " diagnosis date column")
     )
     
-    encounter_col <- pick_col(
-      df,
-      c(
-        "encounter_id",
-        "encounter",
-        "deidentified_encounter_id",
-        "enc_id",
-        "visit_id"
-      ),
-      required = FALSE,
-      label = paste0(source_name, " encounter ID column")
-    )
-    
     df %>%
       mutate(
         deidentified_mom_id = as.character(.data[[mom_id_col]]),
-        icd_code = if (!is.null(icd_code_col)) {
-          as.character(.data[[icd_code_col]])
+        dx_code = if (!is.null(dx_code_col)) {
+          as.character(.data[[dx_code_col]])
         } else {
           NA_character_
         },
-        icd_desc = if (!is.null(icd_desc_col)) {
-          as.character(.data[[icd_desc_col]])
+        dx_descrip = if (!is.null(dx_descrip_col)) {
+          as.character(.data[[dx_descrip_col]])
         } else {
           NA_character_
         },
-        date_dx_raw = if (!is.null(date_dx_col)) {
-          as.character(.data[[date_dx_col]])
+        dx_type = if (!is.null(dx_type_col)) {
+          as.character(.data[[dx_type_col]])
         } else {
           NA_character_
         },
-        encounter_id = if (!is.null(encounter_col)) {
-          as.character(.data[[encounter_col]])
+        dx_icd_type = if (!is.null(dx_icd_type_col)) {
+          as.character(.data[[dx_icd_type_col]])
+        } else {
+          case_when(
+            str_detect(source_name, "icd9") ~ "ICD9",
+            str_detect(source_name, "icd10") ~ "ICD10",
+            TRUE ~ NA_character_
+          )
+        },
+        dx_date_raw = if (!is.null(dx_date_col)) {
+          as.character(.data[[dx_date_col]])
         } else {
           NA_character_
         },
-        icd_source = source_name,
-        icd_version = case_when(
-          str_detect(source_name, "icd9") ~ "ICD9",
-          str_detect(source_name, "icd10") ~ "ICD10",
-          TRUE ~ NA_character_
-        )
+        icd_source = source_name
       ) %>%
       mutate(
-        date_dx = parse_date_time(
-          date_dx_raw,
+        dx_date = parse_date_time(
+          dx_date_raw,
           orders = c(
             "ymd HMS", "ymd HM", "ymd",
             "mdy HMS", "mdy HM", "mdy",
@@ -214,9 +229,10 @@ process_mom_icd <- function(site, working_dir) {
       ) %>%
       mutate(
         deidentified_mom_id = trimws(deidentified_mom_id),
-        icd_code            = str_to_upper(trimws(icd_code)),
-        icd_desc            = trimws(icd_desc),
-        encounter_id        = trimws(encounter_id),
+        dx_code             = str_to_upper(trimws(dx_code)),
+        dx_descrip          = trimws(dx_descrip),
+        dx_type             = trimws(dx_type),
+        dx_icd_type         = str_to_upper(trimws(dx_icd_type)),
         site                = site
       ) %>%
       filter(
@@ -225,13 +241,12 @@ process_mom_icd <- function(site, working_dir) {
       ) %>%
       select(
         deidentified_mom_id,
-        icd_code,
-        icd_desc,
-        icd_version,
+        dx_date,
+        dx_code,
+        dx_descrip,
+        dx_type,
+        dx_icd_type,
         icd_source,
-        date_dx,
-        date_dx_raw,
-        encounter_id,
         site
       )
   }
@@ -260,20 +275,20 @@ process_mom_icd <- function(site, working_dir) {
     distinct() %>%
     select(
       part_id_mom,
-      icd_code,
-      icd_desc,
-      icd_version,
+      dx_date,
+      dx_date_raw,
+      dx_code,
+      dx_descrip,
+      dx_type,
+      dx_icd_type,
       icd_source,
-      date_dx,
-      date_dx_raw,
-      encounter_id,
       site
     )
   
   message("[", site, "] rows after cleanup: ", nrow(df))
   message("[", site, "] unique moms: ", dplyr::n_distinct(df$part_id_mom))
-  message("[", site, "] missing icd_code: ", sum(is.na(df$icd_code) | df$icd_code == ""))
-  message("[", site, "] missing date_dx: ", sum(is.na(df$date_dx)))
+  message("[", site, "] missing dx_code: ", sum(is.na(df$dx_code) | df$dx_code == ""))
+  message("[", site, "] missing dx_date: ", sum(is.na(df$dx_date)))
   
   # ===============================
   # Return processed site-level dataset

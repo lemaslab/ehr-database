@@ -29,14 +29,14 @@ date_tag <- format(Sys.Date(), "%Y%m%d")
 log_dir <- file.path(working_dir, "logs")
 dir.create(log_dir, recursive = TRUE, showWarnings = FALSE)
 
-log_file <- file.path(log_dir, paste0("maternal_icd_", date_tag, ".log"))
+log_file <- file.path(log_dir, paste0("mom_icd_", date_tag, ".log"))
 
 log_con <- file(log_file, open = "wt")
 sink(log_con, split = TRUE)
 sink(log_con, type = "message")
 
 run_time <- as.POSIXct(Sys.time(), tz = "America/New_York")
-cat("==== MATERNAL ICD RUN (V2) ====\n")
+cat("==== MOM ICD RUN ====\n")
 cat("Date:", format(run_time, "%Y-%m-%d %H:%M:%S %Z"), "\n\n")
 
 # ===============================
@@ -60,7 +60,7 @@ library(readr)
 # ===============================
 # Run maternal ICD processing
 # ===============================
-message("=== RUNNING MATERNAL ICD V2 ===")
+message("=== RUNNING MOM ICD ===")
 
 gnv_icd <- process_mom_icd(
   site = "GNV",
@@ -79,14 +79,14 @@ message("=== WRITING SITE DATASETS ===")
 
 write_dataset(
   df = gnv_icd,
-  dataset_name = "maternal_icd_gnv",
+  dataset_name = "mom_icd_gnv",
   working_dir = working_dir,
   subdir = "GNV"
 )
 
 write_dataset(
   df = jax_icd,
-  dataset_name = "maternal_icd_jax",
+  dataset_name = "mom_icd_jax",
   working_dir = working_dir,
   subdir = "JAX"
 )
@@ -96,7 +96,7 @@ write_dataset(
 # ===============================
 message("=== COMBINING DATASETS ===")
 
-maternal_icd <- bind_rows(gnv_icd, jax_icd) %>%
+mom_icd_all_sites <- bind_rows(gnv_icd, jax_icd) %>%
   distinct()
 
 # ===============================
@@ -104,35 +104,39 @@ maternal_icd <- bind_rows(gnv_icd, jax_icd) %>%
 # ===============================
 message("=== ID QA ===")
 message("Columns in combined ICD dataset:")
-print(names(maternal_icd))
+print(names(mom_icd_all_sites))
 
 message("First 10 part_id_mom values:")
-print(head(maternal_icd$part_id_mom, 10))
+print(head(mom_icd_all_sites$part_id_mom, 10))
 
 message("Does deidentified_mom_id remain?")
-print("deidentified_mom_id" %in% names(maternal_icd))
+print("deidentified_mom_id" %in% names(mom_icd_all_sites))
 
-if (!"part_id_mom" %in% names(maternal_icd)) {
-  stop("part_id_mom is missing from maternal_icd output")
+if (!"part_id_mom" %in% names(mom_icd_all_sites)) {
+  stop("part_id_mom is missing from mom_icd_all_sites output")
 }
 
-if (any(is.na(maternal_icd$part_id_mom)) || any(maternal_icd$part_id_mom == "")) {
+if (any(is.na(mom_icd_all_sites$part_id_mom)) || any(mom_icd_all_sites$part_id_mom == "")) {
   warning("Missing or blank part_id_mom values detected")
 }
 
-if (!all(grepl("^(AC|DC)-mom-", maternal_icd$part_id_mom))) {
+if (!all(grepl("^(AC|DC)-mom-", mom_icd_all_sites$part_id_mom))) {
   warning("Some part_id_mom values do not match expected AC/DC-mom-* format")
+}
+
+if ("deidentified_mom_id" %in% names(mom_icd_all_sites)) {
+  warning("deidentified_mom_id remains in mom_icd_all_sites")
 }
 
 # ===============================
 # Write combined dataset
 # ===============================
 message("=== WRITING COMBINED DATASET ===")
-message("Combined rows: ", nrow(maternal_icd))
+message("Combined rows: ", nrow(mom_icd_all_sites))
 
 write_dataset(
-  df = maternal_icd,
-  dataset_name = "maternal_icd_all_sites",
+  df = mom_icd_all_sites,
+  dataset_name = "mom_icd_all_sites",
   working_dir = working_dir,
   subdir = "COMBINED"
 )
@@ -141,17 +145,22 @@ write_dataset(
 # Summary
 # ===============================
 cat("\n==== SUMMARY ====\n")
-cat("Total rows:", nrow(maternal_icd), "\n")
-cat("Unique moms:", dplyr::n_distinct(maternal_icd$part_id_mom), "\n")
+cat("Total rows:", nrow(mom_icd_all_sites), "\n")
+cat("Unique moms:", dplyr::n_distinct(mom_icd_all_sites$part_id_mom), "\n")
 
-if ("site" %in% names(maternal_icd)) {
+if ("site" %in% names(mom_icd_all_sites)) {
   cat("\nRows by site:\n")
-  print(table(maternal_icd$site))
+  print(table(mom_icd_all_sites$site))
 }
 
-if ("dx_category" %in% names(maternal_icd)) {
-  cat("\nRows by dx_category:\n")
-  print(table(maternal_icd$dx_category, useNA = "ifany"))
+if ("dx_type" %in% names(mom_icd_all_sites)) {
+  cat("\nRows by dx_type:\n")
+  print(table(mom_icd_all_sites$dx_type, useNA = "ifany"))
+}
+
+if ("dx_icd_type" %in% names(mom_icd_all_sites)) {
+  cat("\nRows by dx_icd_type:\n")
+  print(table(mom_icd_all_sites$dx_icd_type, useNA = "ifany"))
 }
 
 # ===============================
@@ -161,4 +170,4 @@ sink(type = "message")
 sink()
 close(log_con)
 
-message("=== COMPLETE MATERNAL ICD V2 ===")
+message("=== COMPLETE MOM ICD ===")

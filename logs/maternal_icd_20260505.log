@@ -1,5 +1,5 @@
 ==== MATERNAL ICD RUN (V2) ====
-Date: 2026-05-05 16:01:51 EDT 
+Date: 2026-05-05 16:11:27 EDT 
 
 === LOADING ALL FUNCTIONS ===
 Loaded 15 function files
@@ -11,11 +11,45 @@ Loaded 15 function files
 [GNV] reading comorb_icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_ICD9_release.csv
 [GNV] reading comorb_icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_ICD10_release.csv
 [GNV] reading bateman: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_bateman_ICD9_release.csv
-[GNV] rows after cleanup: 452156
+[GNV] rows after cleanup: 1685212
 [GNV] unique moms: 22055
-[GNV] missing icd_code: 0
-[GNV] missing date_dx: 452156
+[GNV] missing dx_code: 0
+[GNV] missing dx_date: 0
 === PROCESSING MOM ICD: JAX ===
 [JAX] all ICD files found
 [JAX] reading icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_diagnosis_ICD9_Jax.csv
 [JAX] reading icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_diagnosis_ICD10_Jax.csv
+[JAX] reading comorb_icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_ICD9_release_Jax.csv
+[JAX] reading comorb_icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_ICD10_release_Jax.csv
+[JAX] reading bateman: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_batman_ICD9_release_Jax.csv
+[JAX] rows after cleanup: 2539297
+[JAX] unique moms: 22877
+[JAX] missing dx_code: 0
+[JAX] missing dx_date: 0
+=== WRITING SITE DATASETS ===
+Saved locally: maternal_icd_gnv_20260505.rda
+Saved to network: V:/FACULTY/DJLEMAS/EHR_Data_processed/GNV
+Saved locally: maternal_icd_jax_20260505.rda
+Saved to network: V:/FACULTY/DJLEMAS/EHR_Data_processed/JAX
+=== COMBINING DATASETS ===
+=== ID QA ===
+Columns in combined ICD dataset:
+ [1] "part_id_mom"  "dx_date"      "dx_date_raw"  "dx_code"      "dx_descrip"   "dx_type"      "dx_icd_type"  "icd_source"  
+ [9] "encounter_id" "site"        
+First 10 part_id_mom values:
+ [1] "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1"
+Does deidentified_mom_id remain?
+[1] FALSE
+=== WRITING COMBINED DATASET ===
+Combined rows: 4224509
+Saved locally: maternal_icd_all_sites_20260505.rda
+Saved to network: V:/FACULTY/DJLEMAS/EHR_Data_processed/COMBINED
+
+==== SUMMARY ====
+Total rows: 4224509 
+Unique moms: 44932 
+
+Rows by site:
+
+    GNV     JAX 
+1685212 2539297 
