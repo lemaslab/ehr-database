@@ -62,7 +62,7 @@ library(readr)
 # ===============================
 message("=== RUNNING MATERNAL ICD V2 ===")
 
-gnv_icd <- process_maternal_icd_codes_v2(
+gnv_icd <- process_mom_icd(
   site = "GNV",
   working_dir = working_dir
 )
