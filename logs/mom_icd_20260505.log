@@ -1,5 +1,5 @@
 ==== MOM ICD RUN ====
-Date: 2026-05-05 16:35:35 EDT 
+Date: 2026-05-05 19:30:48 EDT 
 
 === LOADING ALL FUNCTIONS ===
 Loaded 15 function files
@@ -10,3 +10,64 @@ Loaded 15 function files
 [GNV] reading icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_10_2021/mom_diagnosis_ICD10.csv
 [GNV] reading comorb_icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_ICD9_release.csv
 [GNV] reading comorb_icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_ICD10_release.csv
+[GNV] reading bateman: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_bateman_ICD9_release.csv
+[GNV] rows after cleanup: 1685212
+[GNV] unique moms: 22055
+[GNV] missing dx_code: 0
+[GNV] missing dx_date: 0
+=== PROCESSING MOM ICD: JAX ===
+[JAX] all ICD files found
+[JAX] reading icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_diagnosis_ICD9_Jax.csv
+[JAX] reading icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_diagnosis_ICD10_Jax.csv
+[JAX] reading comorb_icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_ICD9_release_Jax.csv
+[JAX] reading comorb_icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_ICD10_release_Jax.csv
+[JAX] reading bateman: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_bateman_ICD9_release_Jax.csv
+[JAX] rows after cleanup: 2539297
+[JAX] unique moms: 22877
+[JAX] missing dx_code: 0
+[JAX] missing dx_date: 0
+=== WRITING SITE DATASETS ===
+Saved locally: mom_icd_gnv_20260505.rda
+Saved to network: V:/FACULTY/DJLEMAS/EHR_Data_processed/GNV
+Saved locally: mom_icd_jax_2026050[1] "part_id_mom" "dx_date"     "dx_code"     "dx_descrip"  "dx_type"    
+[6] "dx_icd_type" "icd_source"  "site"       
+ [1] "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1"
+ [7] "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1"
+[1] FALSE
+
+==== SUMMARY ====
+Total rows: 4224509 
+Unique moms: 44932 
+
+Rows by site:
+
+    GNV     JAX 
+1685212 2539297 
+
+Rows by dx_type:
+
+                   ENCOUNTER       HOSPITAL BILLING CODED 
+                      945108                      1288107 
+                PROBLEM LIST PROFESSSIONAL BILLING CHARGE 
+                       54920                      1936374 
+
+Rows by dx_icd_type:
+
+  ICD10    ICD9    <NA> 
+3349889  854054   20566 
+
+
+    GNV     JAX 
+1685212 2539297 
+
+Rows by dx_type:
+
+                   ENCOUNTER       HOSPITAL BILLING CODED 
+                      945108                      1288107 
+                PROBLEM LIST PROFESSSIONAL BILLING CHARGE 
+                       54920                      1936374 
+
+Rows by dx_icd_type:
+
+  ICD10    ICD9    <NA> 
+3349889  854054   20566 

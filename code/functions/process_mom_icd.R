@@ -12,11 +12,6 @@ process_mom_icd <- function(site, working_dir) {
   })
   
   # ===============================
-  # Source shared ID standardization utility
-  # ===============================
-  source(file.path(working_dir, "code", "functions", "utils_standardize_ids.R"))
-  
-  # ===============================
   # Define file paths by site
   # ===============================
   base_root <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data"
@@ -36,7 +31,7 @@ process_mom_icd <- function(site, working_dir) {
       icd10        = file.path(base_root, "2025/dataset_04_2025/mom_diagnosis_ICD10_Jax.csv"),
       comorb_icd9  = file.path(base_root, "2025/dataset_04_2025/mom_comorbidities_list_ICD9_release_Jax.csv"),
       comorb_icd10 = file.path(base_root, "2025/dataset_04_2025/mom_comorbidities_list_ICD10_release_Jax.csv"),
-      bateman      = file.path(base_root, "2025/dataset_04_2025/mom_comorbidities_list_batman_ICD9_release_Jax.csv"),
+      bateman      = file.path(base_root, "2025/dataset_04_2025/mom_comorbidities_list_bateman_ICD9_release_Jax.csv"),
       maternal     = file.path(base_root, "2025/dataset_04_2025/maternal_release_Jax.csv")
     )
   } else {
@@ -77,6 +72,7 @@ process_mom_icd <- function(site, working_dir) {
   # ===============================
   pick_col <- function(df, candidates, required = FALSE, label = "column") {
     existing <- intersect(candidates, names(df))
+    
     if (length(existing) == 0) {
       if (required) {
         stop(
@@ -87,6 +83,7 @@ process_mom_icd <- function(site, working_dir) {
       }
       return(NULL)
     }
+    
     return(existing[1])
   }
   
@@ -182,21 +179,25 @@ process_mom_icd <- function(site, working_dir) {
     df %>%
       mutate(
         deidentified_mom_id = as.character(.data[[mom_id_col]]),
+        
         dx_code = if (!is.null(dx_code_col)) {
           as.character(.data[[dx_code_col]])
         } else {
           NA_character_
         },
+        
         dx_descrip = if (!is.null(dx_descrip_col)) {
           as.character(.data[[dx_descrip_col]])
         } else {
           NA_character_
         },
+        
         dx_type = if (!is.null(dx_type_col)) {
           as.character(.data[[dx_type_col]])
         } else {
           NA_character_
         },
+        
         dx_icd_type = if (!is.null(dx_icd_type_col)) {
           as.character(.data[[dx_icd_type_col]])
         } else {
@@ -206,11 +207,13 @@ process_mom_icd <- function(site, working_dir) {
             TRUE ~ NA_character_
           )
         },
+        
         dx_date_raw = if (!is.null(dx_date_col)) {
           as.character(.data[[dx_date_col]])
         } else {
           NA_character_
         },
+        
         icd_source = source_name
       ) %>%
       mutate(
@@ -242,6 +245,7 @@ process_mom_icd <- function(site, working_dir) {
       select(
         deidentified_mom_id,
         dx_date,
+        dx_date_raw,
         dx_code,
         dx_descrip,
         dx_type,
@@ -276,7 +280,7 @@ process_mom_icd <- function(site, working_dir) {
     select(
       part_id_mom,
       dx_date,
-      dx_date_raw,
+      # dx_date_raw,
       dx_code,
       dx_descrip,
       dx_type,
