@@ -49,9 +49,9 @@ process_mom_op <- function(site, working_dir) {
   
   # ===============================
   # Standardize column names
-  # Expected raw columns:
-  # Deidentified_mom_ID, Medication History Category,
-  # Med Order Datetime, Med Order Display Name,
+  # Mom-ehr OP expected raw columns:
+  # Deidentified_mom_ID, Med Order Display Name,
+  # Medication History Category, Deid-Med Order Datetime,
   # Med Therapy Class, Pharmacy Class,
   # Pharmacy Subclass, Rxnorm Code
   # ===============================
@@ -80,7 +80,7 @@ process_mom_op <- function(site, working_dir) {
   
   mom_id_col <- pick_col(
     df,
-    c("deidentified_mom_id", "mom_id", "part_id_mom"),
+    c("deidentified_mom_id", "mom_id", "part_id_mom", "part_id_mom_tmp"),
     required = TRUE,
     label = "mom ID column"
   )
@@ -99,20 +99,14 @@ process_mom_op <- function(site, working_dir) {
     label = "medication history category column"
   )
   
-  med_status_cat_col <- pick_col(
-    df,
-    c("med_status_category", "med_status_cat", "medication_status_category"),
-    required = FALSE,
-    label = "medication status category column"
-  )
-  
-  date_med_taken_col <- pick_col(
+  date_med_order_col <- pick_col(
     df,
     c(
-      "med_order_datetime",
       "deid_med_order_datetime",
-      "date_med_taken",
+      "med_order_datetime",
+      "date_med_order",
       "order_datetime",
+      "date_med_taken",
       "taken_datetime",
       "deid_taken_datetime",
       "taken_date",
@@ -155,8 +149,7 @@ process_mom_op <- function(site, working_dir) {
   message("  mom_id_col: ", mom_id_col)
   message("  med_name_col: ", med_name_col)
   message("  med_hx_cat_col: ", ifelse(is.null(med_hx_cat_col), "NULL", med_hx_cat_col))
-  message("  med_status_cat_col: ", ifelse(is.null(med_status_cat_col), "NULL", med_status_cat_col))
-  message("  date_med_taken_col: ", ifelse(is.null(date_med_taken_col), "NULL", date_med_taken_col))
+  message("  date_med_order_col: ", ifelse(is.null(date_med_order_col), "NULL", date_med_order_col))
   message("  med_tx_class_col: ", ifelse(is.null(med_tx_class_col), "NULL", med_tx_class_col))
   message("  pharm_class_col: ", ifelse(is.null(pharm_class_col), "NULL", pharm_class_col))
   message("  pharm_subclass_col: ", ifelse(is.null(pharm_subclass_col), "NULL", pharm_subclass_col))
@@ -164,22 +157,25 @@ process_mom_op <- function(site, working_dir) {
   
   # ===============================
   # Harmonize variables
+  # Mom-ehr OP output names:
+  # part_id_mom_tmp, med_name, med_hx_cat, date_med_order,
+  # med_tx_class, pharm_class, pharm_subclass, rxnorm_cd
+  # Final standardized ID output: part_id_mom
   # ===============================
   df <- df %>%
     mutate(
-      deidentified_mom_id = as.character(.data[[mom_id_col]]),
+      part_id_mom_tmp     = as.character(.data[[mom_id_col]]),
       med_name            = as.character(.data[[med_name_col]]),
       med_hx_cat          = if (!is.null(med_hx_cat_col)) as.character(.data[[med_hx_cat_col]]) else NA_character_,
-      med_status_cat      = if (!is.null(med_status_cat_col)) as.character(.data[[med_status_cat_col]]) else NA_character_,
-      date_med_taken_raw  = if (!is.null(date_med_taken_col)) as.character(.data[[date_med_taken_col]]) else NA_character_,
+      date_med_order_raw  = if (!is.null(date_med_order_col)) as.character(.data[[date_med_order_col]]) else NA_character_,
       med_tx_class        = if (!is.null(med_tx_class_col)) as.character(.data[[med_tx_class_col]]) else NA_character_,
       pharm_class         = if (!is.null(pharm_class_col)) as.character(.data[[pharm_class_col]]) else NA_character_,
       pharm_subclass      = if (!is.null(pharm_subclass_col)) as.character(.data[[pharm_subclass_col]]) else NA_character_,
       rxnorm_cd           = if (!is.null(rxnorm_cd_col)) as.character(.data[[rxnorm_cd_col]]) else NA_character_
     ) %>%
     mutate(
-      date_med_taken = parse_date_time(
-        date_med_taken_raw,
+      date_med_order = parse_date_time(
+        date_med_order_raw,
         orders = c(
           "ymd HMS", "ymd HM", "ymd",
           "mdy HMS", "mdy HM", "mdy",
@@ -197,19 +193,18 @@ process_mom_op <- function(site, working_dir) {
   # ===============================
   df <- df %>%
     mutate(
-      deidentified_mom_id = trimws(deidentified_mom_id),
-      med_name            = str_to_upper(trimws(med_name)),
-      med_hx_cat          = trimws(med_hx_cat),
-      med_status_cat      = trimws(med_status_cat),
-      med_tx_class        = trimws(med_tx_class),
-      pharm_class         = trimws(pharm_class),
-      pharm_subclass      = trimws(pharm_subclass),
-      rxnorm_cd           = trimws(rxnorm_cd),
-      site                = site
+      part_id_mom_tmp    = trimws(part_id_mom_tmp),
+      med_name           = str_to_upper(trimws(med_name)),
+      med_hx_cat         = trimws(med_hx_cat),
+      med_tx_class       = trimws(med_tx_class),
+      pharm_class        = trimws(pharm_class),
+      pharm_subclass     = trimws(pharm_subclass),
+      rxnorm_cd          = trimws(rxnorm_cd),
+      site               = site
     ) %>%
     filter(
-      !is.na(deidentified_mom_id),
-      deidentified_mom_id != "",
+      !is.na(part_id_mom_tmp),
+      part_id_mom_tmp != "",
       !is.na(med_name),
       med_name != ""
     )
@@ -221,7 +216,7 @@ process_mom_op <- function(site, working_dir) {
   df <- standardize_participant_ids(
     df = df,
     site = site,
-    mom_id_col = "deidentified_mom_id",
+    mom_id_col = "part_id_mom_tmp",
     infant_id_col = NULL
   ) %>%
     distinct() %>%
@@ -229,9 +224,8 @@ process_mom_op <- function(site, working_dir) {
       part_id_mom,
       med_name,
       med_hx_cat,
-      med_status_cat,
-      date_med_taken,
-      date_med_taken_raw,
+      date_med_order,
+      date_med_order_raw,
       med_tx_class,
       pharm_class,
       pharm_subclass,
@@ -241,7 +235,7 @@ process_mom_op <- function(site, working_dir) {
   
   message("[", site, "] rows after cleanup: ", nrow(df))
   message("[", site, "] unique moms: ", dplyr::n_distinct(df$part_id_mom))
-  message("[", site, "] missing date_med_taken: ", sum(is.na(df$date_med_taken)))
+  message("[", site, "] missing date_med_order: ", sum(is.na(df$date_med_order)))
   
   # ===============================
   # Return processed site-level dataset
