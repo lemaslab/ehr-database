@@ -41,7 +41,7 @@ sites <- c("GNV", "JAX")
 # Run processing
 # -------------------------------
 results <- lapply(sites, function(s) {
-  process_mom_medications_ip_v2(s, working_dir)
+  process_mom_ip(s, working_dir)
 })
 
 # -------------------------------

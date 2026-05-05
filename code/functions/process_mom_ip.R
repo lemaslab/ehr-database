@@ -1,4 +1,4 @@
-process_mom_medications_ip_v2 <- function(site, working_dir) {
+process_mom_ip <- function(site, working_dir) {
   
   message("=== PROCESSING MOM MEDICATIONS IP V2: ", site, " ===")
   
@@ -235,21 +235,9 @@ process_mom_medications_ip_v2 <- function(site, working_dir) {
   message("[", site, "] missing date_med_taken: ", sum(is.na(df$date_med_taken)))
   
   # ===============================
-  # EXPORT (SITE-SPECIFIC)
+  # Return processed site-level dataset
+  # Export is handled by run_mom_ip.R
   # ===============================
-  output_dir <- file.path(working_dir, "data", "processed", site)
-  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-  
-  date_tag <- format(Sys.Date(), "%Y%m%d")
-  
-  rda_file <- file.path(output_dir, paste0("mom_medications_ip_", site, "_", date_tag, ".rda"))
-  csv_file <- file.path(output_dir, paste0("mom_medications_ip_", site, "_", date_tag, ".csv"))
-  
-  save(df, file = rda_file)
-  write_csv(df, csv_file)
-  
-  message("[", site, "] saved RDA: ", rda_file)
-  message("[", site, "] saved CSV: ", csv_file)
   
   return(df)
 }
