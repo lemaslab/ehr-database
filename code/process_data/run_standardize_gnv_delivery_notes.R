@@ -19,6 +19,7 @@ test_batch_n <- 1
 test_batch_pattern <- NA_character_
 max_notes_to_read <- Inf
 force_reunzip <- TRUE
+copy_zip_local_first <- TRUE
 
 # ============================================================
 # 01. Locate repo root
@@ -56,6 +57,9 @@ dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 extract_dir <- file.path(output_dir, "gnv_delivery_notes_unzipped", run_label)
 dir.create(extract_dir, recursive = TRUE, showWarnings = FALSE)
 
+local_zip_dir <- file.path(output_dir, "gnv_delivery_notes_zip_local", run_label)
+dir.create(local_zip_dir, recursive = TRUE, showWarnings = FALSE)
+
 log_dir <- file.path(working_dir, "logs")
 dir.create(log_dir, recursive = TRUE, showWarnings = FALSE)
 log_file <- file.path(log_dir, paste0("standardize_gnv_delivery_notes_", run_label, "_", date_tag, ".log"))
@@ -72,23 +76,56 @@ message("Selected test batch number: ", test_batch_n)
 message("Selected test batch pattern: ", test_batch_pattern)
 message("Max notes to read: ", max_notes_to_read)
 message("force_reunzip: ", force_reunzip)
+message("copy_zip_local_first: ", copy_zip_local_first)
 message("notes_dir: ", notes_dir)
 message("output_dir: ", output_dir)
 message("extract_dir: ", extract_dir)
+message("local_zip_dir: ", local_zip_dir)
 message("log_file: ", log_file)
 
 # ============================================================
 # 03. Robust unzip helper
 # ============================================================
 
-robust_unzip <- function(zip_file, exdir) {
-  zip_file <- normalizePath(zip_file, winslash = "\\", mustWork = TRUE)
-  exdir <- normalizePath(exdir, winslash = "\\", mustWork = FALSE)
-  dir.create(exdir, recursive = TRUE, showWarnings = FALSE)
+copy_zip_to_local <- function(zip_file, local_zip_dir) {
+  local_zip <- file.path(local_zip_dir, path_file(zip_file))
+  message("Copying zip to local working folder:")
+  message("  from: ", zip_file)
+  message("  to:   ", local_zip)
+  ok <- file.copy(zip_file, local_zip, overwrite = TRUE)
+  if (!ok || !file.exists(local_zip)) {
+    stop("Failed to copy zip locally: ", zip_file)
+  }
+  local_zip
+}
 
-  message("Testing zip listing with utils::unzip(list = TRUE): ", zip_file)
+system_exists <- function(cmd) {
+  nzchar(Sys.which(cmd))
+}
+
+count_extracted_files <- function(exdir) {
+  length(dir(exdir, recursive = TRUE, full.names = TRUE, all.files = FALSE))
+}
+
+robust_unzip <- function(zip_file, exdir, local_zip_dir = NULL, copy_local = TRUE) {
+  original_zip_file <- zip_file
+
+  if (copy_local) {
+    if (is.null(local_zip_dir)) stop("local_zip_dir must be provided when copy_local = TRUE")
+    zip_file <- copy_zip_to_local(zip_file, local_zip_dir)
+  }
+
+  zip_file_norm <- normalizePath(zip_file, winslash = "\\", mustWork = TRUE)
+  exdir_norm <- normalizePath(exdir, winslash = "\\", mustWork = FALSE)
+  dir.create(exdir_norm, recursive = TRUE, showWarnings = FALSE)
+
+  message("Original zip: ", original_zip_file)
+  message("Extraction zip: ", zip_file_norm)
+  message("Extraction dir: ", exdir_norm)
+
+  message("Testing zip listing with utils::unzip(list = TRUE)")
   zip_list <- tryCatch(
-    utils::unzip(zip_file, list = TRUE),
+    utils::unzip(zip_file_norm, list = TRUE),
     error = function(e) {
       warning("utils::unzip(list = TRUE) failed: ", conditionMessage(e))
       NULL
@@ -101,43 +138,54 @@ robust_unzip <- function(zip_file, exdir) {
   }
 
   message("Trying utils::unzip extraction...")
-  unzip_ok <- tryCatch({
-    utils::unzip(zip_file, exdir = exdir)
-    TRUE
-  }, warning = function(w) {
-    warning("utils::unzip warning: ", conditionMessage(w))
-    FALSE
-  }, error = function(e) {
-    warning("utils::unzip error: ", conditionMessage(e))
-    FALSE
-  })
+  tryCatch(
+    utils::unzip(zip_file_norm, exdir = exdir_norm),
+    warning = function(w) warning("utils::unzip warning: ", conditionMessage(w)),
+    error = function(e) warning("utils::unzip error: ", conditionMessage(e))
+  )
 
-  files_after <- dir(exdir, recursive = TRUE, full.names = TRUE, all.files = FALSE)
-  if (unzip_ok && length(files_after) > 0) {
-    message("utils::unzip succeeded. Files extracted: ", length(files_after))
+  if (count_extracted_files(exdir_norm) > 0) {
+    message("utils::unzip extracted files: ", count_extracted_files(exdir_norm))
     return(TRUE)
   }
 
-  message("utils::unzip did not extract files. Trying PowerShell Expand-Archive fallback...")
+  if (system_exists("tar")) {
+    message("utils::unzip did not extract files. Trying Windows tar.exe fallback...")
+    tar_status <- system2("tar", args = c("-xf", zip_file_norm, "-C", exdir_norm))
+    if (tar_status == 0 && count_extracted_files(exdir_norm) > 0) {
+      message("tar.exe extraction succeeded. Files extracted: ", count_extracted_files(exdir_norm))
+      return(TRUE)
+    }
+    warning("tar.exe extraction failed or extracted no files. Status: ", tar_status)
+  }
 
+  seven_zip <- "C:/Program Files/7-Zip/7z.exe"
+  if (file.exists(seven_zip)) {
+    message("Trying 7-Zip fallback...")
+    seven_status <- system2(seven_zip, args = c("x", zip_file_norm, paste0("-o", exdir_norm), "-y"))
+    if (seven_status == 0 && count_extracted_files(exdir_norm) > 0) {
+      message("7-Zip extraction succeeded. Files extracted: ", count_extracted_files(exdir_norm))
+      return(TRUE)
+    }
+    warning("7-Zip extraction failed or extracted no files. Status: ", seven_status)
+  }
+
+  message("Trying PowerShell Expand-Archive fallback...")
   ps_cmd <- paste0(
-    "Expand-Archive -LiteralPath ", shQuote(zip_file, type = "cmd"),
-    " -DestinationPath ", shQuote(exdir, type = "cmd"),
+    "Expand-Archive -LiteralPath ", shQuote(zip_file_norm, type = "cmd"),
+    " -DestinationPath ", shQuote(exdir_norm, type = "cmd"),
     " -Force"
   )
-
   ps_status <- system2("powershell", args = c("-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd))
 
-  files_after_ps <- dir(exdir, recursive = TRUE, full.names = TRUE, all.files = FALSE)
-
-  if (ps_status == 0 && length(files_after_ps) > 0) {
-    message("PowerShell Expand-Archive succeeded. Files extracted: ", length(files_after_ps))
+  if (ps_status == 0 && count_extracted_files(exdir_norm) > 0) {
+    message("PowerShell Expand-Archive succeeded. Files extracted: ", count_extracted_files(exdir_norm))
     return(TRUE)
   }
 
   stop(
-    "Could not unzip file with utils::unzip or PowerShell Expand-Archive: ", zip_file,
-    "\nTry manually extracting this batch to: ", exdir
+    "Could not unzip file using utils::unzip, tar.exe, 7-Zip, or PowerShell: ", zip_file_norm,
+    "\nTry manually extracting this batch to: ", exdir_norm
   )
 }
 
@@ -190,7 +238,12 @@ for (zip_file in zip_files) {
   batch_extract_dir <- file.path(extract_dir, batch_name)
   dir.create(batch_extract_dir, recursive = TRUE, showWarnings = FALSE)
   message("Unzipping: ", path_file(zip_file))
-  robust_unzip(zip_file, batch_extract_dir)
+  robust_unzip(
+    zip_file = zip_file,
+    exdir = batch_extract_dir,
+    local_zip_dir = local_zip_dir,
+    copy_local = copy_zip_local_first
+  )
 }
 
 # ============================================================
@@ -219,11 +272,7 @@ print(note_inventory %>% count(batch_zip, file_ext, name = "n_files"))
 message("First 50 extracted filenames:")
 print(head(note_inventory$note_file, 50))
 
-note_inventory_to_read <- if (is.finite(max_notes_to_read)) {
-  note_inventory %>% slice_head(n = max_notes_to_read)
-} else {
-  note_inventory
-}
+note_inventory_to_read <- if (is.finite(max_notes_to_read)) note_inventory %>% slice_head(n = max_notes_to_read) else note_inventory
 message("Notes selected for text reading: ", nrow(note_inventory_to_read))
 
 # ============================================================
@@ -264,12 +313,7 @@ print(notes_raw %>% select(note_file, note_text_preview) %>% head(5))
 # ============================================================
 
 metadata_path <- NA_character_
-candidate_metadata <- dir_ls(
-  notes_dir,
-  recurse = FALSE,
-  type = "file",
-  regexp = "(?i)(metadata|meta|index|note).*\\.(csv|rds|rda|RData)$"
-)
+candidate_metadata <- dir_ls(notes_dir, recurse = FALSE, type = "file", regexp = "(?i)(metadata|meta|index|note).*\\.(csv|rds|rda|RData)$")
 message("Candidate metadata files found: ", length(candidate_metadata))
 print(candidate_metadata)
 
