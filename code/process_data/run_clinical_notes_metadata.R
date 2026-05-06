@@ -355,15 +355,16 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
     
     # Compact standardized note ID.
     # Example: AC-M-DL-1150, DC-B-PP-1150.
-    note_id = case_when(
+    note_uid = case_when(
       !is.na(note_id_source) & note_id_source != "" ~
         paste(site_prefix, role_code, period_code, note_id_source, sep = "-"),
       TRUE ~ NA_character_
     ),
+    note_id = note_uid,
     
     # Globally unique note key for downstream note-level analysis.
-    # This protects against repeated note_id values across sites/source files.
-    note_uid = paste(site, source_group, source_file, note_id, sep = "::")
+    # This protects against repeated note IDs across source files.
+    note_uid_global = paste(site, source_group, source_file, note_uid, sep = "::")
   ) %>%
   select(
     any_of(c(
@@ -371,6 +372,8 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       "part_id_mom",
       "part_id_infant",
       "note_id",
+      "note_uid",
+      "note_uid_global",
       "note_id_source",
       "note_created_datetime",
       "site",
@@ -380,7 +383,6 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       "source_file",
       "source_path",
       "source_n_rows",
-      "note_uid",
       "note_type"
     )),
     everything()
@@ -488,10 +490,12 @@ clinical_notes_metadata %>%
   summarise(
     n_rows = n(),
     missing_note_id = sum(is.na(note_id) | note_id == ""),
+    missing_note_uid = sum(is.na(note_uid) | note_uid == ""),
+    missing_note_uid_global = sum(is.na(note_uid_global) | note_uid_global == "" | str_detect(note_uid_global, "::NA$")),
     missing_note_id_source = sum(is.na(note_id_source) | note_id_source == ""),
-    missing_note_uid = sum(is.na(note_uid) | note_uid == "" | str_detect(note_uid, "::NA$")),
     duplicated_note_id = sum(duplicated(note_id[!is.na(note_id) & note_id != ""])),
-    duplicated_note_uid = sum(duplicated(note_uid[!is.na(note_uid) & note_uid != "" & !str_detect(note_uid, "::NA$")]))
+    duplicated_note_uid = sum(duplicated(note_uid[!is.na(note_uid) & note_uid != ""])),
+    duplicated_note_uid_global = sum(duplicated(note_uid_global[!is.na(note_uid_global) & note_uid_global != "" & !str_detect(note_uid_global, "::NA$")]))
   ) %>%
   print()
 
@@ -502,8 +506,12 @@ clinical_notes_metadata %>%
   summarise(
     n_rows = n(),
     missing_note_id = sum(is.na(note_id) | note_id == ""),
+    missing_note_uid = sum(is.na(note_uid) | note_uid == ""),
+    missing_note_uid_global = sum(is.na(note_uid_global) | note_uid_global == "" | str_detect(note_uid_global, "::NA$")),
     missing_note_id_source = sum(is.na(note_id_source) | note_id_source == ""),
     duplicated_note_id = sum(duplicated(note_id[!is.na(note_id) & note_id != ""])),
+    duplicated_note_uid = sum(duplicated(note_uid[!is.na(note_uid) & note_uid != ""])),
+    duplicated_note_uid_global = sum(duplicated(note_uid_global[!is.na(note_uid_global) & note_uid_global != "" & !str_detect(note_uid_global, "::NA$")])),
     .groups = "drop"
   ) %>%
   arrange(site, note_period, participant_role, source_group) %>%
@@ -513,72 +521,72 @@ clinical_notes_metadata %>%
 # NOTE ID UNIQUENESS QC
 # ========================================================
 
-cat("\n==== NOTE ID UNIQUENESS QC: WITHIN SOURCE FILE ====\n")
+cat("\n==== NOTE UID UNIQUENESS QC: WITHIN SOURCE FILE ====\n")
 
-note_id_within_file_qc <- clinical_notes_metadata %>%
-  filter(!is.na(note_id), note_id != "") %>%
-  count(site, source_group, source_file, note_id, name = "n_rows_per_note_id") %>%
-  filter(n_rows_per_note_id > 1) %>%
-  arrange(site, source_group, source_file, desc(n_rows_per_note_id))
-
-if (nrow(note_id_within_file_qc) == 0) {
-  cat("No duplicated standardized note_id values within any source file.\n")
-} else {
-  print(note_id_within_file_qc, n = Inf)
-}
-
-cat("\n==== NOTE ID UNIQUENESS QC: ACROSS SOURCE FILES ====\n")
-
-note_id_across_file_qc <- clinical_notes_metadata %>%
-  filter(!is.na(note_id), note_id != "") %>%
-  distinct(site, source_group, source_file, note_id) %>%
-  count(note_id, name = "n_source_files") %>%
-  filter(n_source_files > 1) %>%
-  arrange(desc(n_source_files), note_id)
-
-if (nrow(note_id_across_file_qc) == 0) {
-  cat("No standardized note_id values appear in more than one source file.\n")
-} else {
-  print(note_id_across_file_qc, n = Inf)
-}
-
-cat("\n==== NOTE UID UNIQUENESS QC ====\n")
-
-note_uid_qc <- clinical_notes_metadata %>%
-  filter(!is.na(note_uid), note_uid != "", !str_detect(note_uid, "::NA$")) %>%
-  count(note_uid, name = "n_rows_per_note_uid") %>%
+note_uid_within_file_qc <- clinical_notes_metadata %>%
+  filter(!is.na(note_uid), note_uid != "") %>%
+  count(site, source_group, source_file, note_uid, name = "n_rows_per_note_uid") %>%
   filter(n_rows_per_note_uid > 1) %>%
-  arrange(desc(n_rows_per_note_uid), note_uid)
+  arrange(site, source_group, source_file, desc(n_rows_per_note_uid))
 
-if (nrow(note_uid_qc) == 0) {
-  cat("No duplicated note_uid values in the combined metadata.\n")
+if (nrow(note_uid_within_file_qc) == 0) {
+  cat("No duplicated compact note_uid values within any source file.\n")
 } else {
-  print(note_uid_qc, n = Inf)
+  print(note_uid_within_file_qc, n = Inf)
 }
 
-cat("\n==== NOTE ID SUMMARY BY SOURCE FILE ====\n")
+cat("\n==== NOTE UID UNIQUENESS QC: ACROSS SOURCE FILES ====\n")
+
+note_uid_across_file_qc <- clinical_notes_metadata %>%
+  filter(!is.na(note_uid), note_uid != "") %>%
+  distinct(site, source_group, source_file, note_uid) %>%
+  count(note_uid, name = "n_source_files") %>%
+  filter(n_source_files > 1) %>%
+  arrange(desc(n_source_files), note_uid)
+
+if (nrow(note_uid_across_file_qc) == 0) {
+  cat("No compact note_uid values appear in more than one source file.\n")
+} else {
+  print(note_uid_across_file_qc, n = Inf)
+}
+
+cat("\n==== NOTE UID GLOBAL UNIQUENESS QC ====\n")
+
+note_uid_global_qc <- clinical_notes_metadata %>%
+  filter(!is.na(note_uid_global), note_uid_global != "", !str_detect(note_uid_global, "::NA$")) %>%
+  count(note_uid_global, name = "n_rows_per_note_uid_global") %>%
+  filter(n_rows_per_note_uid_global > 1) %>%
+  arrange(desc(n_rows_per_note_uid_global), note_uid_global)
+
+if (nrow(note_uid_global_qc) == 0) {
+  cat("No duplicated note_uid_global values in the combined metadata.\n")
+} else {
+  print(note_uid_global_qc, n = Inf)
+}
+
+cat("\n==== NOTE UID SUMMARY BY SOURCE FILE ====\n")
 
 clinical_notes_metadata %>%
   group_by(site, note_period, participant_role, source_group, source_file) %>%
   summarise(
     n_rows = n(),
-    n_missing_note_id = sum(is.na(note_id) | note_id == ""),
-    n_unique_note_id = n_distinct(note_id[!is.na(note_id) & note_id != ""]),
-    n_duplicated_note_id_rows = n_rows - n_missing_note_id - n_unique_note_id,
+    n_missing_note_uid = sum(is.na(note_uid) | note_uid == ""),
+    n_unique_note_uid = n_distinct(note_uid[!is.na(note_uid) & note_uid != ""]),
+    n_duplicated_note_uid_rows = n_rows - n_missing_note_uid - n_unique_note_uid,
     .groups = "drop"
   ) %>%
   arrange(site, note_period, participant_role, source_group, source_file) %>%
   print(n = Inf)
 
-cat("\n==== NOTE ID FORMAT QC ====\n")
+cat("\n==== NOTE UID FORMAT QC ====\n")
 
 clinical_notes_metadata %>%
   mutate(
-    note_id_prefix = if_else(!is.na(note_id), str_extract(note_id, "^[^-]+-[^-]+-[^-]+"), NA_character_),
+    note_uid_prefix = if_else(!is.na(note_uid), str_extract(note_uid, "^[^-]+-[^-]+-[^-]+"), NA_character_),
     source_starts_with_note = if_else(!is.na(note_id_source), str_detect(note_id_source, regex("^NOTE_", ignore_case = TRUE)), NA)
   ) %>%
-  count(site, participant_role, note_period, source_group, note_id_prefix, source_starts_with_note, name = "n_rows") %>%
-  arrange(site, participant_role, note_period, source_group, note_id_prefix, source_starts_with_note) %>%
+  count(site, participant_role, note_period, source_group, note_uid_prefix, source_starts_with_note, name = "n_rows") %>%
+  arrange(site, participant_role, note_period, source_group, note_uid_prefix, source_starts_with_note) %>%
   print(n = Inf)
 
 cat("\n==== ID PREFIX QC ====\n")
@@ -612,6 +620,8 @@ if (debug_mode) {
           "part_id_mom",
           "part_id_infant",
           "note_id",
+          "note_uid",
+          "note_uid_global",
           "note_id_source",
           "note_created_datetime",
           "site",
@@ -621,7 +631,6 @@ if (debug_mode) {
           "source_file",
           "source_path",
           "source_n_rows",
-          "note_uid",
           "note_type"
         )),
         everything()
