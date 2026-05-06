@@ -1,0 +1,104 @@
+==== INFANT ICD RUN ====
+Date: 2026-05-05 20:05:59 EDT 
+
+=== LOADING ALL FUNCTIONS ===
+Loaded 15 function files
+=== LOADING MOM-BABY LINK COMBINED ===
+Loading latest mom_baby_link_all_sites: mom_baby_link_all_sites_20260414.rda
+Loaded mom_baby_link rows: 58474 
+GNV mom_baby_link rows: 28530 
+JAX mom_baby_link rows: 29944 
+=== RUNNING INFANT ICD ===
+=== PROCESSING INFANT ICD: GNV ===
+[GNV] reading baby_asthma: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_09_2021/baby_data/baby_asthma.csv
+[GNV] reading baby_ear_infection: V:/FACULTY/DJLEM [1] "part_id_infant"   "delivery_id"      "dx_category"      "dx_code"         
+ [5] "dx_descrip"       "dx_date"          "dx_date_raw"      "dx2delivery_days"
+ [9] "dx_type"          "dx_icd_type"      "icd_source"       "site"            
+ [1] "AC-infant-1703" "AC-infant-1703" "AC-infant-1703" "AC-infant-1703"
+ [5] "AC-infant-1703" "AC-infant-1703" "AC-infant-1703" "AC-infant-1703"
+ [9] "AC-infant-1703" "AC-infant-1703"
+[1] TRUE
+
+==== SUMMARY ====
+Total rows: 1945114 
+Unique infants: 56009 
+Missing delivery_id: 0 
+
+Rows by site:
+
+    GNV     JAX 
+1341362  603752 
+
+Rows by dx_category:
+
+          asthma    ear_infection           eczema     food_allergy       hemangonia 
+           55157            47125            27881             9865             7033 
+neonatal_defects            nevus          obesity            sebor          toxicum 
+         1778425              882            11198             3825             3723 
+
+Rows by dx_type:
+
+                   ENCOUNTER       HOSPITAL BILLING CODED                 PROBLEM LIST 
+                      236956                       255750                       140941 
+PROFESSSIONAL BILLING CHARGE 
+                     1311467 
+aset_07_2022/neonatal_defects_release.csv
+[GNV] joining to mom_baby_link
+[GNV] rows after cleanup: 1341362
+[GNV] unique infants: 27973
+[GNV] missing delivery_id: 0
+[GNV] missing dx_code: 0
+[GNV] missing dx_date: 0
+=== PROCESSING INFANT ICD: JAX ===
+[JAX] reading neonatal_defects_jax: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/neonatal_defects_release_Jax.csv
+[JAX] joining to mom_baby_link
+[JAX] rows after cleanup: 603752
+[JAX] unique infants: 28036
+[JAX] missing delivery_id: 0
+[JAX] missing dx_code: 0
+[JAX] missing dx_date: 0
+=== WRITING SITE DATASETS ===
+Saved locally: infant_icd_gnv_20260505.rda
+Saved to network: V:/FACULTY/DJLEMAS/EHR_Data_processed/GNV
+Saved locally: infant_icd_jax_20260505.rda
+Saved to network: V:/FACULTY/DJLEMAS/EHR_Data_processed/JAX
+=== COMBINING DATASETS ===
+=== ID QA ===
+Columns in combined infant ICD dataset:
+ [1] "part_id_infant"   "delivery_id"      "dx_category"      "dx_code"         
+ [5] "dx_descrip"       "dx_date"          "dx_date_raw"      "dx2delivery_days"
+ [9] "dx_type"          "dx_icd_type"      "icd_source"       "site"            
+First 10 part_id_infant values:
+ [1] "AC-infant-1703" "AC-infant-1703" "AC-infant-1703" "AC-infant-1703"
+ [5] "AC-infant-1703" "AC-infant-1703" "AC-infant-1703" "AC-infant-1703"
+ [9] "AC-infant-1703" "AC-infant-1703"
+Does part_id_infant exist?
+[1] TRUE
+=== WRITING COMBINED DATASET ===
+Combined rows: 1945114
+Saved locally: infant_icd_all_sites_20260505.rda
+Saved to network: V:/FACULTY/DJLEMAS/EHR_Data_processed/COMBINED
+
+==== SUMMARY ====
+Total rows: 1945114 
+Unique infants: 56009 
+Missing delivery_id: 0 
+
+Rows by site:
+
+    GNV     JAX 
+1341362  603752 
+
+Rows by dx_category:
+
+          asthma    ear_infection           eczema     food_allergy       hemangonia 
+           55157            47125            27881             9865             7033 
+neonatal_defects            nevus          obesity            sebor          toxicum 
+         1778425              882            11198             3825             3723 
+
+Rows by dx_type:
+
+                   ENCOUNTER       HOSPITAL BILLING CODED                 PROBLEM LIST 
+                      236956                       255750                       140941 
+PROFESSSIONAL BILLING CHARGE 
+                     1311467 
