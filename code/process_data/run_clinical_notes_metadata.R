@@ -268,7 +268,13 @@ clinical_notes_metadata <- pmap_dfr(
 
 clinical_notes_metadata <- clinical_notes_metadata %>%
   mutate(
-    part_id_mom = coalesce_existing(
+    site_prefix = case_when(
+      site == "GNV" ~ "AC",
+      site == "JAX" ~ "DC",
+      TRUE ~ NA_character_
+    ),
+    
+    part_id_mom_raw = coalesce_existing(
       .,
       c(
         "part_id_mom",
@@ -280,7 +286,8 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
         "maternal_id"
       )
     ),
-    part_id_infant = coalesce_existing(
+    
+    part_id_infant_raw = coalesce_existing(
       .,
       c(
         "part_id_infant",
@@ -292,6 +299,18 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
         "infant_id",
         "child_id"
       )
+    ),
+    
+    part_id_mom = case_when(
+      !is.na(part_id_mom_raw) & part_id_mom_raw != "" ~
+        paste0(site_prefix, "-mom-", part_id_mom_raw),
+      TRUE ~ NA_character_
+    ),
+    
+    part_id_infant = case_when(
+      !is.na(part_id_infant_raw) & part_id_infant_raw != "" ~
+        paste0(site_prefix, "-infant-", part_id_infant_raw),
+      TRUE ~ NA_character_
     )
   ) %>%
   select(
@@ -305,6 +324,26 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
     part_id_mom,
     part_id_infant,
     everything()
+  ) %>%
+  select(
+    -site_prefix,
+    -part_id_mom_raw,
+    -part_id_infant_raw,
+    -any_of(c(
+      "deidentified_mom_id",
+      "deidentified_mother_id",
+      "deid_mom_id",
+      "mom_id",
+      "mother_id",
+      "maternal_id",
+      "deidentified_infant_id",
+      "deidentified_baby_id",
+      "deid_baby_id",
+      "deid_infant_id",
+      "baby_id",
+      "infant_id",
+      "child_id"
+    ))
   )
 
 # ========================================================
@@ -366,6 +405,17 @@ clinical_notes_metadata %>%
     .groups = "drop"
   ) %>%
   arrange(site, note_period, participant_role, source_group) %>%
+  print(n = Inf)
+
+cat("\n==== ID PREFIX QC ====\n")
+
+clinical_notes_metadata %>%
+  mutate(
+    mom_prefix = if_else(!is.na(part_id_mom), str_extract(part_id_mom, "^[^-]+-mom"), NA_character_),
+    infant_prefix = if_else(!is.na(part_id_infant), str_extract(part_id_infant, "^[^-]+-infant"), NA_character_)
+  ) %>%
+  count(site, participant_role, source_group, mom_prefix, infant_prefix, name = "n_rows") %>%
+  arrange(site, participant_role, source_group, mom_prefix, infant_prefix) %>%
   print(n = Inf)
 
 cat("\n==== MASTER VARIABLE NAMES ====\n")
