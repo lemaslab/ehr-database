@@ -1,4 +1,4 @@
-process_delivery_encounter_simple_v1 <- function(site,
+process_delivery_encounter <- function(site,
                                                  working_dir = getwd(),
                                                  mom_baby_link_df = NULL) {
   

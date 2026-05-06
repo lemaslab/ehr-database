@@ -2,7 +2,7 @@
 
 source("code/functions/utils_load_latest_dataset.R")
 source("code/functions/utils_write_dataset.R")
-source("code/functions/process_delivery_encounter_simple_v1.R")
+source("code/functions/process_delivery_encounter.R")
 
 library(dplyr)
 
@@ -15,8 +15,8 @@ gnv_mb <- mom_baby_link %>% filter(site == "GNV")
 jax_mb <- mom_baby_link %>% filter(site == "JAX")
 
 # Run processing
-gnv <- process_delivery_encounter_simple_v1("GNV", working_dir, gnv_mb)
-jax <- process_delivery_encounter_simple_v1("JAX", working_dir, jax_mb)
+gnv <- process_delivery_encounter("GNV", working_dir, gnv_mb)
+jax <- process_delivery_encounter("JAX", working_dir, jax_mb)
 
 delivery_encounter <- bind_rows(gnv, jax)
 
