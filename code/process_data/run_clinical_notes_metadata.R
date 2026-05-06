@@ -325,17 +325,18 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       )
     ),
     
-    note_id_source = clean_source_note_id(
-      coalesce_existing(
-        .,
-        c(
-          "note_id",
-          "deid_note_id",
-          "deidentified_note_key",
-          "deid_linkage_note_id"
-        )
+    # Raw note ID is preserved for linking back to raw note files.
+    # note_id_source is cleaned for compact standardized IDs.
+    note_id_raw = coalesce_existing(
+      .,
+      c(
+        "note_id",
+        "deid_note_id",
+        "deidentified_note_key",
+        "deid_linkage_note_id"
       )
     ),
+    note_id_source = clean_source_note_id(note_id_raw),
     
     part_id_mom = case_when(
       !is.na(part_id_mom_raw) & part_id_mom_raw != "" ~
@@ -374,6 +375,7 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       "note_id",
       "note_uid",
       "note_uid_global",
+      "note_id_raw",
       "note_id_source",
       "note_created_datetime",
       "site",
@@ -492,6 +494,7 @@ clinical_notes_metadata %>%
     missing_note_id = sum(is.na(note_id) | note_id == ""),
     missing_note_uid = sum(is.na(note_uid) | note_uid == ""),
     missing_note_uid_global = sum(is.na(note_uid_global) | note_uid_global == "" | str_detect(note_uid_global, "::NA$")),
+    missing_note_id_raw = sum(is.na(note_id_raw) | note_id_raw == ""),
     missing_note_id_source = sum(is.na(note_id_source) | note_id_source == ""),
     duplicated_note_id = sum(duplicated(note_id[!is.na(note_id) & note_id != ""])),
     duplicated_note_uid = sum(duplicated(note_uid[!is.na(note_uid) & note_uid != ""])),
@@ -508,6 +511,7 @@ clinical_notes_metadata %>%
     missing_note_id = sum(is.na(note_id) | note_id == ""),
     missing_note_uid = sum(is.na(note_uid) | note_uid == ""),
     missing_note_uid_global = sum(is.na(note_uid_global) | note_uid_global == "" | str_detect(note_uid_global, "::NA$")),
+    missing_note_id_raw = sum(is.na(note_id_raw) | note_id_raw == ""),
     missing_note_id_source = sum(is.na(note_id_source) | note_id_source == ""),
     duplicated_note_id = sum(duplicated(note_id[!is.na(note_id) & note_id != ""])),
     duplicated_note_uid = sum(duplicated(note_uid[!is.na(note_uid) & note_uid != ""])),
@@ -583,10 +587,11 @@ cat("\n==== NOTE UID FORMAT QC ====\n")
 clinical_notes_metadata %>%
   mutate(
     note_uid_prefix = if_else(!is.na(note_uid), str_extract(note_uid, "^[^-]+-[^-]+-[^-]+"), NA_character_),
+    raw_starts_with_note = if_else(!is.na(note_id_raw), str_detect(note_id_raw, regex("^NOTE_", ignore_case = TRUE)), NA),
     source_starts_with_note = if_else(!is.na(note_id_source), str_detect(note_id_source, regex("^NOTE_", ignore_case = TRUE)), NA)
   ) %>%
-  count(site, participant_role, note_period, source_group, note_uid_prefix, source_starts_with_note, name = "n_rows") %>%
-  arrange(site, participant_role, note_period, source_group, note_uid_prefix, source_starts_with_note) %>%
+  count(site, participant_role, note_period, source_group, note_uid_prefix, raw_starts_with_note, source_starts_with_note, name = "n_rows") %>%
+  arrange(site, participant_role, note_period, source_group, note_uid_prefix, raw_starts_with_note, source_starts_with_note) %>%
   print(n = Inf)
 
 cat("\n==== ID PREFIX QC ====\n")
@@ -622,6 +627,7 @@ if (debug_mode) {
           "note_id",
           "note_uid",
           "note_uid_global",
+          "note_id_raw",
           "note_id_source",
           "note_created_datetime",
           "site",
