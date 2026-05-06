@@ -74,6 +74,17 @@ coalesce_existing <- function(df, vars) {
 }
 
 # ========================================================
+# Helper: clean source note ID before compact standardization
+# ========================================================
+
+clean_source_note_id <- function(x) {
+  x %>%
+    as.character() %>%
+    str_squish() %>%
+    str_remove(regex("^NOTE_", ignore_case = TRUE))
+}
+
+# ========================================================
 # Define raw metadata files
 # ========================================================
 
@@ -274,6 +285,19 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       TRUE ~ NA_character_
     ),
     
+    role_code = case_when(
+      participant_role == "mom" ~ "M",
+      participant_role %in% c("baby", "infant") ~ "B",
+      TRUE ~ "U"
+    ),
+    
+    period_code = case_when(
+      note_period == "prenatal" ~ "PN",
+      note_period == "delivery" ~ "DL",
+      note_period == "postnatal" ~ "PP",
+      TRUE ~ "UNK"
+    ),
+    
     part_id_mom_raw = coalesce_existing(
       .,
       c(
@@ -301,13 +325,15 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       )
     ),
     
-    note_id_raw = coalesce_existing(
-      .,
-      c(
-        "note_id",
-        "deid_note_id",
-        "deidentified_note_key",
-        "deid_linkage_note_id"
+    note_id_source = clean_source_note_id(
+      coalesce_existing(
+        .,
+        c(
+          "note_id",
+          "deid_note_id",
+          "deidentified_note_key",
+          "deid_linkage_note_id"
+        )
       )
     ),
     
@@ -327,8 +353,13 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
     # part_id is the single note-level participant ID.
     part_id = coalesce(part_id_mom, part_id_infant),
     
-    # Standardized note ID.
-    note_id = note_id_raw,
+    # Compact standardized note ID.
+    # Example: AC-M-DL-1150, DC-B-PP-1150.
+    note_id = case_when(
+      !is.na(note_id_source) & note_id_source != "" ~
+        paste(site_prefix, role_code, period_code, note_id_source, sep = "-"),
+      TRUE ~ NA_character_
+    ),
     
     # Globally unique note key for downstream note-level analysis.
     # This protects against repeated note_id values across sites/source files.
@@ -340,6 +371,7 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       "part_id_mom",
       "part_id_infant",
       "note_id",
+      "note_id_source",
       "note_created_datetime",
       "site",
       "note_period",
@@ -355,9 +387,10 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
   ) %>%
   select(
     -site_prefix,
+    -role_code,
+    -period_code,
     -part_id_mom_raw,
     -part_id_infant_raw,
-    -note_id_raw,
     -any_of(c(
       "deidentified_mom_id",
       "deidentified_mother_id",
@@ -455,6 +488,7 @@ clinical_notes_metadata %>%
   summarise(
     n_rows = n(),
     missing_note_id = sum(is.na(note_id) | note_id == ""),
+    missing_note_id_source = sum(is.na(note_id_source) | note_id_source == ""),
     missing_note_uid = sum(is.na(note_uid) | note_uid == "" | str_detect(note_uid, "::NA$")),
     duplicated_note_id = sum(duplicated(note_id[!is.na(note_id) & note_id != ""])),
     duplicated_note_uid = sum(duplicated(note_uid[!is.na(note_uid) & note_uid != "" & !str_detect(note_uid, "::NA$")]))
@@ -468,6 +502,7 @@ clinical_notes_metadata %>%
   summarise(
     n_rows = n(),
     missing_note_id = sum(is.na(note_id) | note_id == ""),
+    missing_note_id_source = sum(is.na(note_id_source) | note_id_source == ""),
     duplicated_note_id = sum(duplicated(note_id[!is.na(note_id) & note_id != ""])),
     .groups = "drop"
   ) %>%
@@ -487,7 +522,7 @@ note_id_within_file_qc <- clinical_notes_metadata %>%
   arrange(site, source_group, source_file, desc(n_rows_per_note_id))
 
 if (nrow(note_id_within_file_qc) == 0) {
-  cat("No duplicated note_id values within any source file.\n")
+  cat("No duplicated standardized note_id values within any source file.\n")
 } else {
   print(note_id_within_file_qc, n = Inf)
 }
@@ -502,7 +537,7 @@ note_id_across_file_qc <- clinical_notes_metadata %>%
   arrange(desc(n_source_files), note_id)
 
 if (nrow(note_id_across_file_qc) == 0) {
-  cat("No note_id values appear in more than one source file.\n")
+  cat("No standardized note_id values appear in more than one source file.\n")
 } else {
   print(note_id_across_file_qc, n = Inf)
 }
@@ -533,6 +568,17 @@ clinical_notes_metadata %>%
     .groups = "drop"
   ) %>%
   arrange(site, note_period, participant_role, source_group, source_file) %>%
+  print(n = Inf)
+
+cat("\n==== NOTE ID FORMAT QC ====\n")
+
+clinical_notes_metadata %>%
+  mutate(
+    note_id_prefix = if_else(!is.na(note_id), str_extract(note_id, "^[^-]+-[^-]+-[^-]+"), NA_character_),
+    source_starts_with_note = if_else(!is.na(note_id_source), str_detect(note_id_source, regex("^NOTE_", ignore_case = TRUE)), NA)
+  ) %>%
+  count(site, participant_role, note_period, source_group, note_id_prefix, source_starts_with_note, name = "n_rows") %>%
+  arrange(site, participant_role, note_period, source_group, note_id_prefix, source_starts_with_note) %>%
   print(n = Inf)
 
 cat("\n==== ID PREFIX QC ====\n")
@@ -566,6 +612,7 @@ if (debug_mode) {
           "part_id_mom",
           "part_id_infant",
           "note_id",
+          "note_id_source",
           "note_created_datetime",
           "site",
           "note_period",
