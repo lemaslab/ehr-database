@@ -1,0 +1,777 @@
+---
+title: "Clinical Notes Metadata Check"
+author: "Dominick Lemas"
+date: "`r format(Sys.Date(), '%m/%d/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+# **************************************************************************** #
+# ***************          Clinical Notes Metadata Check         
+# **************************************************************************** #
+
+# Author:      Dominick J. Lemas
+# Project:     MOM-BABY EHR
+# Purpose:     Check clinical-notes-metadata file before downstream NLP/data work.
+#
+# Checks:
+#   1. Quantify notes from each site within each time period.
+#   2. Check whether notes merge with mom-baby linkage file.
+#   3. Create basic tables/figures for data review.
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 6
+)
+```
+
+```{r libraries}
+# **************************************************************************** #
+# ***************                  Libraries                    
+# **************************************************************************** #
+
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(glue)
+library(scales)
+library(knitr)
+```
+
+```{r locate-repo-and-load-data}
+# **************************************************************************** #
+# ***************              Locate repo / paths              
+# **************************************************************************** #
+
+possible_roots <- c(
+  getwd(),
+  "C:/Users/djlemas/Documents/GitHub/ehr-database",
+  "C:/Users/djlemas/OneDrive/Documents/ehr-database",
+  "~/ehr-database",
+  "~/GitHub/ehr-database"
+)
+
+working_dir <- NULL
+
+for (p in possible_roots) {
+  if (dir.exists(p)) {
+    p_norm <- normalizePath(p, winslash = "/", mustWork = FALSE)
+
+    if (dir.exists(file.path(p_norm, "code")) || basename(p_norm) == "ehr-database") {
+      working_dir <- p_norm
+      break
+    }
+  }
+}
+
+if (is.null(working_dir)) {
+  stop("Could not locate repo root. Set `working_dir` manually in this chunk.")
+}
+
+message("Using working_dir: ", working_dir)
+
+# **************************************************************************** #
+# ***************                 Input files                   
+# **************************************************************************** #
+
+metadata_rda <- file.path(
+  working_dir,
+  "data", "processed", "COMBINED",
+  "clinical_notes_metadata_all_sites_20260506.rda"
+)
+
+linkage_rda <- file.path(
+  working_dir,
+  "data", "processed", "COMBINED",
+  "mom_baby_link_all_sites_20260505.rda"
+)
+
+if (!file.exists(metadata_rda)) {
+  stop("Metadata RDA does not exist: ", metadata_rda)
+}
+
+if (!file.exists(linkage_rda)) {
+  stop("Linkage RDA does not exist: ", linkage_rda)
+}
+
+# **************************************************************************** #
+# ***************                 Output files                  
+# **************************************************************************** #
+
+output_dir <- file.path(
+  working_dir,
+  "output",
+  "clinical_notes_metadata_check"
+)
+
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+# Options: "year", "quarter", "month"
+time_period_unit <- "year"
+
+# **************************************************************************** #
+# ***************                 Load RDA data                 
+# **************************************************************************** #
+
+metadata_objs <- load(metadata_rda)
+linkage_objs  <- load(linkage_rda)
+
+message("Objects loaded from metadata RDA: ", paste(metadata_objs, collapse = ", "))
+message("Objects loaded from linkage RDA: ", paste(linkage_objs, collapse = ", "))
+
+notes_raw <- get(metadata_objs[[1]]) %>%
+  janitor::clean_names()
+
+link_raw <- get(linkage_objs[[1]]) %>%
+  janitor::clean_names()
+
+message("Metadata rows: ", nrow(notes_raw))
+message("Linkage rows: ", nrow(link_raw))
+
+names(notes_raw)
+names(link_raw)
+```
+
+```{r helper-functions}
+# **************************************************************************** #
+# ***************              Helper functions                 
+# **************************************************************************** #
+
+pick_first_col <- function(df, candidates, required = TRUE, label = "column") {
+  nm <- names(df)
+  hit <- intersect(candidates, nm)
+
+  if (length(hit) > 0) {
+    return(hit[[1]])
+  }
+
+  if (required) {
+    stop(glue(
+      "Could not identify {label}. Tried: {paste(candidates, collapse = ', ')}\n",
+      "Available columns: {paste(nm, collapse = ', ')}"
+    ))
+  }
+
+  NA_character_
+}
+
+standardize_site <- function(x) {
+  x <- str_to_upper(as.character(x))
+
+  case_when(
+    str_detect(x, "GNV|GAINESVILLE") ~ "GNV",
+    str_detect(x, "JAX|JACKSONVILLE") ~ "JAX",
+    str_detect(x, "ORL|ORLANDO") ~ "ORL",
+    str_detect(x, "MIA|MIAMI") ~ "MIA",
+    TRUE ~ x
+  )
+}
+
+make_time_period <- function(date_var, unit = "year") {
+  unit <- match.arg(unit, choices = c("year", "quarter", "month"))
+
+  case_when(
+    unit == "year" ~ as.character(year(date_var)),
+    unit == "quarter" ~ paste0(year(date_var), " Q", quarter(date_var)),
+    unit == "month" ~ format(date_var, "%Y-%m"),
+    TRUE ~ as.character(year(date_var))
+  )
+}
+
+outersect <- function(x, y) {
+  union(setdiff(x, y), setdiff(y, x))
+}
+```
+
+# 1. Standardize key variables
+
+```{r standardize-columns}
+# **************************************************************************** #
+# ***************          Standardize key variables            
+# **************************************************************************** #
+
+notes_site_col <- pick_first_col(
+  notes_raw,
+  c("site", "site_id", "source_site", "data_site", "facility", "location"),
+  required = TRUE,
+  label = "notes site column"
+)
+
+notes_date_col <- pick_first_col(
+  notes_raw,
+  c(
+    "note_date", "service_date", "encounter_date", "contact_date", "date",
+    "delivery_date", "date_of_delivery", "admit_date", "created_date",
+    "note_datetime", "note_dttm", "service_datetime"
+  ),
+  required = TRUE,
+  label = "notes date column"
+)
+
+notes_type_col <- pick_first_col(
+  notes_raw,
+  c(
+    "note_type", "note_set", "note_category", "clinical_note_type",
+    "document_type", "doc_type", "type"
+  ),
+  required = FALSE,
+  label = "notes type column"
+)
+
+notes_mom_id_col <- pick_first_col(
+  notes_raw,
+  c(
+    "mom_part_id", "maternal_part_id", "mom_id", "maternal_id",
+    "deidentified_mom_id", "mother_id", "part_id_mom", "mom_ehr_id"
+  ),
+  required = FALSE,
+  label = "notes maternal ID column"
+)
+
+notes_baby_id_col <- pick_first_col(
+  notes_raw,
+  c(
+    "baby_part_id", "infant_part_id", "baby_id", "infant_id",
+    "deidentified_baby_id", "child_id", "part_id_baby", "baby_ehr_id"
+  ),
+  required = FALSE,
+  label = "notes infant ID column"
+)
+
+notes_part_id_col <- pick_first_col(
+  notes_raw,
+  c("part_id", "participant_id", "patient_id", "person_id", "mrn", "deidentified_id"),
+  required = FALSE,
+  label = "notes participant ID column"
+)
+
+link_site_col <- pick_first_col(
+  link_raw,
+  c("site", "site_id", "source_site", "data_site", "facility", "location"),
+  required = TRUE,
+  label = "linkage site column"
+)
+
+link_mom_id_col <- pick_first_col(
+  link_raw,
+  c(
+    "mom_part_id", "maternal_part_id", "mom_id", "maternal_id",
+    "deidentified_mom_id", "mother_id", "part_id_mom", "mom_ehr_id"
+  ),
+  required = FALSE,
+  label = "linkage maternal ID column"
+)
+
+link_baby_id_col <- pick_first_col(
+  link_raw,
+  c(
+    "baby_part_id", "infant_part_id", "baby_id", "infant_id",
+    "deidentified_baby_id", "child_id", "part_id_baby", "baby_ehr_id"
+  ),
+  required = FALSE,
+  label = "linkage infant ID column"
+)
+
+notes <- notes_raw %>%
+  mutate(
+    site_std = standardize_site(.data[[notes_site_col]]),
+    note_date_std = suppressWarnings(as_date(.data[[notes_date_col]])),
+    time_period = make_time_period(note_date_std, time_period_unit),
+    note_type_std = if (!is.na(notes_type_col)) as.character(.data[[notes_type_col]]) else "Unknown",
+    mom_id_std = if (!is.na(notes_mom_id_col)) as.character(.data[[notes_mom_id_col]]) else NA_character_,
+    baby_id_std = if (!is.na(notes_baby_id_col)) as.character(.data[[notes_baby_id_col]]) else NA_character_,
+    part_id_std = if (!is.na(notes_part_id_col)) as.character(.data[[notes_part_id_col]]) else NA_character_
+  ) %>%
+  mutate(
+    note_type_std = replace_na(note_type_std, "Unknown"),
+    has_mom_id = !is.na(mom_id_std) & mom_id_std != "",
+    has_baby_id = !is.na(baby_id_std) & baby_id_std != "",
+    has_part_id = !is.na(part_id_std) & part_id_std != "",
+    mom_merge_key = if_else(has_mom_id, paste(site_std, mom_id_std, sep = "__"), NA_character_),
+    baby_merge_key = if_else(has_baby_id, paste(site_std, baby_id_std, sep = "__"), NA_character_),
+    part_merge_key = if_else(has_part_id, paste(site_std, part_id_std, sep = "__"), NA_character_)
+  )
+
+linkage <- link_raw %>%
+  mutate(
+    site_std = standardize_site(.data[[link_site_col]]),
+    mom_id_std = if (!is.na(link_mom_id_col)) as.character(.data[[link_mom_id_col]]) else NA_character_,
+    baby_id_std = if (!is.na(link_baby_id_col)) as.character(.data[[link_baby_id_col]]) else NA_character_
+  ) %>%
+  mutate(
+    has_mom_id = !is.na(mom_id_std) & mom_id_std != "",
+    has_baby_id = !is.na(baby_id_std) & baby_id_std != "",
+    mom_merge_key = if_else(has_mom_id, paste(site_std, mom_id_std, sep = "__"), NA_character_),
+    baby_merge_key = if_else(has_baby_id, paste(site_std, baby_id_std, sep = "__"), NA_character_)
+  )
+
+column_map <- tibble(
+  data_source = c("notes metadata", "mom-baby linkage"),
+  site_col = c(notes_site_col, link_site_col),
+  date_col = c(notes_date_col, NA_character_),
+  note_type_col = c(notes_type_col, NA_character_),
+  mom_id_col = c(notes_mom_id_col, link_mom_id_col),
+  baby_id_col = c(notes_baby_id_col, link_baby_id_col),
+  participant_id_col = c(notes_part_id_col, NA_character_)
+)
+
+kable(column_map)
+
+write_csv(column_map, file.path(output_dir, "column_mapping.csv"))
+```
+
+# 2. Metadata overview
+
+```{r metadata-overview}
+# **************************************************************************** #
+# ***************             Metadata overview                 
+# **************************************************************************** #
+
+overview_table <- notes %>%
+  summarise(
+    n_note_rows = n(),
+    n_sites = n_distinct(site_std, na.rm = TRUE),
+    min_note_date = min(note_date_std, na.rm = TRUE),
+    max_note_date = max(note_date_std, na.rm = TRUE),
+    n_note_types = n_distinct(note_type_std, na.rm = TRUE),
+    n_unique_mom_ids = n_distinct(mom_merge_key, na.rm = TRUE),
+    n_unique_baby_ids = n_distinct(baby_merge_key, na.rm = TRUE),
+    n_unique_participant_ids = n_distinct(part_merge_key, na.rm = TRUE),
+    pct_rows_with_mom_id = mean(has_mom_id) * 100,
+    pct_rows_with_baby_id = mean(has_baby_id) * 100,
+    pct_rows_with_participant_id = mean(has_part_id) * 100
+  )
+
+kable(overview_table, digits = 1)
+
+write_csv(overview_table, file.path(output_dir, "clinical_notes_overview.csv"))
+```
+
+# 3. Notes by site and time period
+
+```{r notes-by-site-time}
+# **************************************************************************** #
+# ***************       Notes by site and time period           
+# **************************************************************************** #
+
+notes_by_site_time <- notes %>%
+  filter(!is.na(site_std), !is.na(time_period)) %>%
+  count(site_std, time_period, name = "n_notes") %>%
+  arrange(site_std, time_period)
+
+kable(notes_by_site_time)
+
+write_csv(notes_by_site_time, file.path(output_dir, "notes_by_site_time_period.csv"))
+
+p_notes_site_time <- notes_by_site_time %>%
+  ggplot(aes(x = time_period, y = n_notes, fill = site_std)) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Clinical notes by site and time period",
+    x = str_to_title(time_period_unit),
+    y = "Number of note rows",
+    fill = "Site"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p_notes_site_time
+
+ggsave(
+  filename = file.path(output_dir, "notes_by_site_time_period.png"),
+  plot = p_notes_site_time,
+  width = 10,
+  height = 6,
+  dpi = 300
+)
+```
+
+# 4. Notes by site, time period, and note type
+
+```{r notes-by-type}
+# **************************************************************************** #
+# ***************      Notes by site, period, and type          
+# **************************************************************************** #
+
+notes_by_type <- notes %>%
+  filter(!is.na(site_std), !is.na(time_period)) %>%
+  count(site_std, time_period, note_type_std, name = "n_notes") %>%
+  arrange(site_std, time_period, desc(n_notes))
+
+kable(notes_by_type)
+
+write_csv(notes_by_type, file.path(output_dir, "notes_by_site_time_period_type.csv"))
+
+top_note_types <- notes %>%
+  count(note_type_std, sort = TRUE) %>%
+  slice_head(n = 12) %>%
+  pull(note_type_std)
+
+p_top_note_types <- notes %>%
+  filter(note_type_std %in% top_note_types) %>%
+  count(site_std, note_type_std, name = "n_notes") %>%
+  ggplot(aes(x = reorder(note_type_std, n_notes), y = n_notes, fill = site_std)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Top clinical note types by site",
+    x = "Note type",
+    y = "Number of note rows",
+    fill = "Site"
+  ) +
+  theme_minimal(base_size = 13)
+
+p_top_note_types
+
+ggsave(
+  filename = file.path(output_dir, "top_note_types_by_site.png"),
+  plot = p_top_note_types,
+  width = 10,
+  height = 7,
+  dpi = 300
+)
+```
+
+# 5. Missingness and duplicate checks
+
+```{r missingness-duplicates}
+# **************************************************************************** #
+# ***************         Missingness and duplicate checks       
+# **************************************************************************** #
+
+missingness_table <- notes %>%
+  summarise(
+    n_rows = n(),
+    missing_site = sum(is.na(site_std) | site_std == ""),
+    missing_note_date = sum(is.na(note_date_std)),
+    missing_time_period = sum(is.na(time_period)),
+    missing_note_type = sum(is.na(note_type_std) | note_type_std == "" | note_type_std == "Unknown"),
+    missing_mom_id = sum(!has_mom_id),
+    missing_baby_id = sum(!has_baby_id),
+    missing_participant_id = sum(!has_part_id)
+  ) %>%
+  pivot_longer(-n_rows, names_to = "field", values_to = "n_missing") %>%
+  mutate(pct_missing = 100 * n_missing / n_rows) %>%
+  arrange(desc(pct_missing))
+
+kable(missingness_table, digits = 1)
+
+write_csv(missingness_table, file.path(output_dir, "metadata_missingness.csv"))
+
+note_id_col <- pick_first_col(
+  notes_raw,
+  c("note_id", "document_id", "doc_id", "clinical_note_id", "note_key", "file_name", "filename"),
+  required = FALSE,
+  label = "note ID column"
+)
+
+if (!is.na(note_id_col)) {
+  duplicate_note_ids <- notes_raw %>%
+    clean_names() %>%
+    count(.data[[note_id_col]], name = "n") %>%
+    filter(!is.na(.data[[note_id_col]]), n > 1) %>%
+    arrange(desc(n))
+
+  kable(head(duplicate_note_ids, 50))
+
+  write_csv(duplicate_note_ids, file.path(output_dir, "duplicate_note_ids.csv"))
+} else {
+  message("No note/document/file ID column identified for duplicate note checks.")
+}
+```
+
+# 6. Merge check with mom-baby linkage file
+
+```{r merge-check}
+# **************************************************************************** #
+# ***************     Merge check with mom-baby linkage file     
+# **************************************************************************** #
+
+link_mom_keys <- linkage %>%
+  filter(!is.na(mom_merge_key)) %>%
+  distinct(mom_merge_key) %>%
+  mutate(link_mom_match = TRUE)
+
+link_baby_keys <- linkage %>%
+  filter(!is.na(baby_merge_key)) %>%
+  distinct(baby_merge_key) %>%
+  mutate(link_baby_match = TRUE)
+
+notes_merge_check <- notes %>%
+  left_join(link_mom_keys, by = "mom_merge_key") %>%
+  left_join(link_baby_keys, by = "baby_merge_key") %>%
+  mutate(
+    link_mom_match = replace_na(link_mom_match, FALSE),
+    link_baby_match = replace_na(link_baby_match, FALSE),
+    any_link_match = link_mom_match | link_baby_match,
+    merge_status = case_when(
+      link_mom_match & link_baby_match ~ "Matched by mom and baby ID",
+      link_mom_match ~ "Matched by mom ID only",
+      link_baby_match ~ "Matched by baby ID only",
+      TRUE ~ "No linkage match"
+    )
+  )
+
+merge_summary <- notes_merge_check %>%
+  summarise(
+    n_note_rows = n(),
+    n_rows_any_link_match = sum(any_link_match),
+    pct_rows_any_link_match = 100 * mean(any_link_match),
+    n_rows_mom_link_match = sum(link_mom_match),
+    pct_rows_mom_link_match = 100 * mean(link_mom_match),
+    n_rows_baby_link_match = sum(link_baby_match),
+    pct_rows_baby_link_match = 100 * mean(link_baby_match),
+    n_unique_moms_in_notes = n_distinct(mom_merge_key, na.rm = TRUE),
+    n_unique_moms_matched = n_distinct(mom_merge_key[link_mom_match], na.rm = TRUE),
+    n_unique_babies_in_notes = n_distinct(baby_merge_key, na.rm = TRUE),
+    n_unique_babies_matched = n_distinct(baby_merge_key[link_baby_match], na.rm = TRUE)
+  )
+
+kable(merge_summary, digits = 1)
+
+write_csv(merge_summary, file.path(output_dir, "linkage_merge_summary.csv"))
+
+merge_by_site_time <- notes_merge_check %>%
+  filter(!is.na(site_std), !is.na(time_period)) %>%
+  group_by(site_std, time_period) %>%
+  summarise(
+    n_note_rows = n(),
+    n_rows_any_link_match = sum(any_link_match),
+    pct_rows_any_link_match = 100 * mean(any_link_match),
+    n_rows_no_link_match = sum(!any_link_match),
+    .groups = "drop"
+  ) %>%
+  arrange(site_std, time_period)
+
+kable(merge_by_site_time, digits = 1)
+
+write_csv(merge_by_site_time, file.path(output_dir, "linkage_merge_by_site_time_period.csv"))
+
+p_linkage_status <- notes_merge_check %>%
+  count(site_std, merge_status, name = "n_note_rows") %>%
+  ggplot(aes(x = site_std, y = n_note_rows, fill = merge_status)) +
+  geom_col() +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Clinical note linkage status by site",
+    x = "Site",
+    y = "Number of note rows",
+    fill = "Merge status"
+  ) +
+  theme_minimal(base_size = 13)
+
+p_linkage_status
+
+ggsave(
+  filename = file.path(output_dir, "linkage_status_by_site.png"),
+  plot = p_linkage_status,
+  width = 10,
+  height = 6,
+  dpi = 300
+)
+```
+
+# 7. Participant-level merge summary
+
+```{r participant-level-merge-summary}
+# **************************************************************************** #
+# ***************       Participant-level merge summary         
+# **************************************************************************** #
+
+participant_merge_summary <- notes_merge_check %>%
+  group_by(site_std) %>%
+  summarise(
+    unique_moms = n_distinct(mom_merge_key, na.rm = TRUE),
+    matched_moms = n_distinct(mom_merge_key[link_mom_match], na.rm = TRUE),
+    pct_moms_matched = if_else(unique_moms > 0, 100 * matched_moms / unique_moms, NA_real_),
+    unique_babies = n_distinct(baby_merge_key, na.rm = TRUE),
+    matched_babies = n_distinct(baby_merge_key[link_baby_match], na.rm = TRUE),
+    pct_babies_matched = if_else(unique_babies > 0, 100 * matched_babies / unique_babies, NA_real_),
+    .groups = "drop"
+  ) %>%
+  arrange(site_std)
+
+kable(participant_merge_summary, digits = 1)
+
+write_csv(
+  participant_merge_summary,
+  file.path(output_dir, "participant_level_merge_summary.csv")
+)
+```
+
+# 8. Notes not merging with linkage file
+
+```{r nonmatching-notes}
+# **************************************************************************** #
+# ***************              Non-matching notes               
+# **************************************************************************** #
+
+nonmatching_summary <- notes_merge_check %>%
+  filter(!any_link_match) %>%
+  count(site_std, time_period, note_type_std, name = "n_unmatched_notes") %>%
+  arrange(site_std, time_period, desc(n_unmatched_notes))
+
+kable(nonmatching_summary)
+
+write_csv(nonmatching_summary, file.path(output_dir, "nonmatching_notes_summary.csv"))
+
+nonmatching_notes_export <- notes_merge_check %>%
+  filter(!any_link_match) %>%
+  select(
+    site_std,
+    time_period,
+    note_date_std,
+    note_type_std,
+    mom_id_std,
+    baby_id_std,
+    part_id_std,
+    merge_status,
+    any_of(names(notes_raw))
+  )
+
+write_csv(
+  nonmatching_notes_export,
+  file.path(output_dir, "nonmatching_notes_row_level.csv")
+)
+
+message(
+  "Non-matching row-level file written to: ",
+  file.path(output_dir, "nonmatching_notes_row_level.csv")
+)
+```
+
+# 9. Linkage IDs with no matching notes
+
+```{r linkage-without-notes}
+# **************************************************************************** #
+# ***************         Linkage IDs with no matching notes     
+# **************************************************************************** #
+
+mom_keys_in_notes <- notes %>%
+  filter(!is.na(mom_merge_key)) %>%
+  distinct(mom_merge_key)
+
+baby_keys_in_notes <- notes %>%
+  filter(!is.na(baby_merge_key)) %>%
+  distinct(baby_merge_key)
+
+linkage_without_mom_notes <- linkage %>%
+  filter(!is.na(mom_merge_key)) %>%
+  anti_join(mom_keys_in_notes, by = "mom_merge_key")
+
+linkage_without_baby_notes <- linkage %>%
+  filter(!is.na(baby_merge_key)) %>%
+  anti_join(baby_keys_in_notes, by = "baby_merge_key")
+
+linkage_without_notes_summary <- tibble(
+  check = c("linkage moms without notes", "linkage babies without notes"),
+  n_unique_ids = c(
+    n_distinct(linkage_without_mom_notes$mom_merge_key, na.rm = TRUE),
+    n_distinct(linkage_without_baby_notes$baby_merge_key, na.rm = TRUE)
+  )
+)
+
+kable(linkage_without_notes_summary)
+
+write_csv(
+  linkage_without_notes_summary,
+  file.path(output_dir, "linkage_ids_without_notes_summary.csv")
+)
+
+write_csv(
+  linkage_without_mom_notes,
+  file.path(output_dir, "linkage_moms_without_notes.csv")
+)
+
+write_csv(
+  linkage_without_baby_notes,
+  file.path(output_dir, "linkage_babies_without_notes.csv")
+)
+```
+
+# 10. Notes per participant
+
+```{r notes-per-participant}
+# **************************************************************************** #
+# ***************             Notes per participant             
+# **************************************************************************** #
+
+notes_per_mom <- notes %>%
+  filter(!is.na(mom_merge_key)) %>%
+  count(site_std, mom_merge_key, name = "n_notes") %>%
+  group_by(site_std) %>%
+  summarise(
+    n_moms = n(),
+    median_notes_per_mom = median(n_notes),
+    mean_notes_per_mom = mean(n_notes),
+    p25_notes_per_mom = quantile(n_notes, 0.25),
+    p75_notes_per_mom = quantile(n_notes, 0.75),
+    max_notes_per_mom = max(n_notes),
+    .groups = "drop"
+  )
+
+notes_per_baby <- notes %>%
+  filter(!is.na(baby_merge_key)) %>%
+  count(site_std, baby_merge_key, name = "n_notes") %>%
+  group_by(site_std) %>%
+  summarise(
+    n_babies = n(),
+    median_notes_per_baby = median(n_notes),
+    mean_notes_per_baby = mean(n_notes),
+    p25_notes_per_baby = quantile(n_notes, 0.25),
+    p75_notes_per_baby = quantile(n_notes, 0.75),
+    max_notes_per_baby = max(n_notes),
+    .groups = "drop"
+  )
+
+kable(notes_per_mom, digits = 1)
+kable(notes_per_baby, digits = 1)
+
+write_csv(notes_per_mom, file.path(output_dir, "notes_per_mom_summary.csv"))
+write_csv(notes_per_baby, file.path(output_dir, "notes_per_baby_summary.csv"))
+```
+
+# 11. Final checklist
+
+```{r final-checklist}
+# **************************************************************************** #
+# ***************              Final checklist                  
+# **************************************************************************** #
+
+final_checklist <- tibble(
+  check = c(
+    "Metadata loaded",
+    "Linkage loaded",
+    "Notes have site information",
+    "Notes have date/time-period information",
+    "Notes have at least one ID type for linkage",
+    "At least one note row merges to linkage",
+    "Output directory created"
+  ),
+  status = c(
+    nrow(notes) > 0,
+    nrow(linkage) > 0,
+    any(!is.na(notes$site_std) & notes$site_std != ""),
+    any(!is.na(notes$time_period)),
+    any(notes$has_mom_id | notes$has_baby_id | notes$has_part_id),
+    any(notes_merge_check$any_link_match),
+    dir.exists(output_dir)
+  )
+) %>%
+  mutate(status = if_else(status, "PASS", "CHECK"))
+
+kable(final_checklist)
+
+write_csv(final_checklist, file.path(output_dir, "final_checklist.csv"))
+
+message("All check outputs written to: ", output_dir)
+```
