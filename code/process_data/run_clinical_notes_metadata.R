@@ -28,7 +28,7 @@ working_dir <- getwd()
 # Set debug_mode <- TRUE when troubleshooting computed variables.
 # Set debug_mode <- FALSE and write_outputs <- TRUE for production.
 
-debug_mode <- TRUE
+debug_mode <- FALSE
 
 # Number of rows to read per source file in debug mode.
 debug_n_max <- 1000
@@ -49,10 +49,10 @@ debug_source_groups <- NULL
 # debug_source_groups <- NULL
 
 # Skip slow shared-drive write while debugging.
-write_outputs <- FALSE
+write_outputs <- TRUE
 
 # Optional small local debug file.
-write_debug_local <- TRUE
+write_debug_local <- FALSE
 debug_output_dir <- file.path(working_dir, "data", "debug")
 
 # ========================================================
