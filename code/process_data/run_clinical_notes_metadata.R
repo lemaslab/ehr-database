@@ -355,10 +355,10 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
     part_id = coalesce(part_id_mom, part_id_infant),
     
     # Compact standardized note ID.
-    # Example: AC-M-DL-1150, DC-B-PP-1150.
+    # Example: AC_M_DL_1150, DC_B_PP_1150.
     note_uid = case_when(
       !is.na(note_id_source) & note_id_source != "" ~
-        paste(site_prefix, role_code, period_code, note_id_source, sep = "-"),
+        paste(site_prefix, role_code, period_code, note_id_source, sep = "_"),
       TRUE ~ NA_character_
     ),
     note_id = note_uid,
@@ -586,7 +586,7 @@ cat("\n==== NOTE UID FORMAT QC ====\n")
 
 clinical_notes_metadata %>%
   mutate(
-    note_uid_prefix = if_else(!is.na(note_uid), str_extract(note_uid, "^[^-]+-[^-]+-[^-]+"), NA_character_),
+    note_uid_prefix = if_else(!is.na(note_uid), str_extract(note_uid, "^[^_]+_[^_]+_[^_]+"), NA_character_),
     raw_starts_with_note = if_else(!is.na(note_id_raw), str_detect(note_id_raw, regex("^NOTE_", ignore_case = TRUE)), NA),
     source_starts_with_note = if_else(!is.na(note_id_source), str_detect(note_id_source, regex("^NOTE_", ignore_case = TRUE)), NA)
   ) %>%
