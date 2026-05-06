@@ -340,6 +340,7 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       "part_id_mom",
       "part_id_infant",
       "note_id",
+      "note_created_datetime",
       "site",
       "note_period",
       "participant_role",
@@ -348,7 +349,6 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       "source_path",
       "source_n_rows",
       "note_uid",
-      "note_created_datetime",
       "note_type"
     )),
     everything()
@@ -566,10 +566,10 @@ if (debug_mode) {
           "part_id_mom",
           "part_id_infant",
           "note_id",
+          "note_created_datetime",
           "site",
           "note_period",
           "participant_role",
-          "note_created_datetime",
           "source_group",
           "source_file",
           "source_path",
