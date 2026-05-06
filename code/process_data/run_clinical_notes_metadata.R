@@ -263,7 +263,7 @@ clinical_notes_metadata <- pmap_dfr(
 )
 
 # ========================================================
-# Standardize core participant ID variables
+# Standardize core participant and note ID variables
 # ========================================================
 
 clinical_notes_metadata <- clinical_notes_metadata %>%
@@ -301,6 +301,16 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       )
     ),
     
+    note_id_raw = coalesce_existing(
+      .,
+      c(
+        "note_id",
+        "deid_note_id",
+        "deidentified_note_key",
+        "deid_linkage_note_id"
+      )
+    ),
+    
     part_id_mom = case_when(
       !is.na(part_id_mom_raw) & part_id_mom_raw != "" ~
         paste0(site_prefix, "-mom-", part_id_mom_raw),
@@ -311,24 +321,43 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       !is.na(part_id_infant_raw) & part_id_infant_raw != "" ~
         paste0(site_prefix, "-infant-", part_id_infant_raw),
       TRUE ~ NA_character_
-    )
+    ),
+    
+    # Each note should belong to one participant only.
+    # part_id is the single note-level participant ID.
+    part_id = coalesce(part_id_mom, part_id_infant),
+    
+    # Standardized note ID.
+    note_id = note_id_raw,
+    
+    # Globally unique note key for downstream note-level analysis.
+    # This protects against repeated note_id values across sites/source files.
+    note_uid = paste(site, source_group, source_file, note_id, sep = "::")
   ) %>%
   select(
-    site,
-    note_period,
-    participant_role,
-    source_group,
-    source_file,
-    source_path,
-    source_n_rows,
-    part_id_mom,
-    part_id_infant,
+    any_of(c(
+      "part_id",
+      "part_id_mom",
+      "part_id_infant",
+      "note_id",
+      "site",
+      "note_period",
+      "participant_role",
+      "source_group",
+      "source_file",
+      "source_path",
+      "source_n_rows",
+      "note_uid",
+      "note_created_datetime",
+      "note_type"
+    )),
     everything()
   ) %>%
   select(
     -site_prefix,
     -part_id_mom_raw,
     -part_id_infant_raw,
+    -note_id_raw,
     -any_of(c(
       "deidentified_mom_id",
       "deidentified_mother_id",
@@ -342,7 +371,10 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
       "deid_infant_id",
       "baby_id",
       "infant_id",
-      "child_id"
+      "child_id",
+      "deid_note_id",
+      "deidentified_note_key",
+      "deid_linkage_note_id"
     ))
   )
 
@@ -389,8 +421,13 @@ cat("\n==== ID MISSINGNESS QC ====\n")
 clinical_notes_metadata %>%
   summarise(
     n_rows = n(),
+    missing_part_id = sum(is.na(part_id) | part_id == ""),
     missing_part_id_mom = sum(is.na(part_id_mom) | part_id_mom == ""),
-    missing_part_id_infant = sum(is.na(part_id_infant) | part_id_infant == "")
+    missing_part_id_infant = sum(is.na(part_id_infant) | part_id_infant == ""),
+    both_mom_and_infant_ids = sum(
+      !is.na(part_id_mom) & part_id_mom != "" &
+        !is.na(part_id_infant) & part_id_infant != ""
+    )
   ) %>%
   print()
 
@@ -400,22 +437,114 @@ clinical_notes_metadata %>%
   group_by(site, note_period, participant_role, source_group) %>%
   summarise(
     n_rows = n(),
+    missing_part_id = sum(is.na(part_id) | part_id == ""),
     missing_part_id_mom = sum(is.na(part_id_mom) | part_id_mom == ""),
     missing_part_id_infant = sum(is.na(part_id_infant) | part_id_infant == ""),
+    both_mom_and_infant_ids = sum(
+      !is.na(part_id_mom) & part_id_mom != "" &
+        !is.na(part_id_infant) & part_id_infant != ""
+    ),
     .groups = "drop"
   ) %>%
   arrange(site, note_period, participant_role, source_group) %>%
+  print(n = Inf)
+
+cat("\n==== NOTE ID MISSINGNESS QC ====\n")
+
+clinical_notes_metadata %>%
+  summarise(
+    n_rows = n(),
+    missing_note_id = sum(is.na(note_id) | note_id == ""),
+    missing_note_uid = sum(is.na(note_uid) | note_uid == "" | str_detect(note_uid, "::NA$")),
+    duplicated_note_id = sum(duplicated(note_id[!is.na(note_id) & note_id != ""])),
+    duplicated_note_uid = sum(duplicated(note_uid[!is.na(note_uid) & note_uid != "" & !str_detect(note_uid, "::NA$")]))
+  ) %>%
+  print()
+
+cat("\n==== NOTE ID MISSINGNESS BY GROUP ====\n")
+
+clinical_notes_metadata %>%
+  group_by(site, note_period, participant_role, source_group) %>%
+  summarise(
+    n_rows = n(),
+    missing_note_id = sum(is.na(note_id) | note_id == ""),
+    duplicated_note_id = sum(duplicated(note_id[!is.na(note_id) & note_id != ""])),
+    .groups = "drop"
+  ) %>%
+  arrange(site, note_period, participant_role, source_group) %>%
+  print(n = Inf)
+
+# ========================================================
+# NOTE ID UNIQUENESS QC
+# ========================================================
+
+cat("\n==== NOTE ID UNIQUENESS QC: WITHIN SOURCE FILE ====\n")
+
+note_id_within_file_qc <- clinical_notes_metadata %>%
+  filter(!is.na(note_id), note_id != "") %>%
+  count(site, source_group, source_file, note_id, name = "n_rows_per_note_id") %>%
+  filter(n_rows_per_note_id > 1) %>%
+  arrange(site, source_group, source_file, desc(n_rows_per_note_id))
+
+if (nrow(note_id_within_file_qc) == 0) {
+  cat("No duplicated note_id values within any source file.\n")
+} else {
+  print(note_id_within_file_qc, n = Inf)
+}
+
+cat("\n==== NOTE ID UNIQUENESS QC: ACROSS SOURCE FILES ====\n")
+
+note_id_across_file_qc <- clinical_notes_metadata %>%
+  filter(!is.na(note_id), note_id != "") %>%
+  distinct(site, source_group, source_file, note_id) %>%
+  count(note_id, name = "n_source_files") %>%
+  filter(n_source_files > 1) %>%
+  arrange(desc(n_source_files), note_id)
+
+if (nrow(note_id_across_file_qc) == 0) {
+  cat("No note_id values appear in more than one source file.\n")
+} else {
+  print(note_id_across_file_qc, n = Inf)
+}
+
+cat("\n==== NOTE UID UNIQUENESS QC ====\n")
+
+note_uid_qc <- clinical_notes_metadata %>%
+  filter(!is.na(note_uid), note_uid != "", !str_detect(note_uid, "::NA$")) %>%
+  count(note_uid, name = "n_rows_per_note_uid") %>%
+  filter(n_rows_per_note_uid > 1) %>%
+  arrange(desc(n_rows_per_note_uid), note_uid)
+
+if (nrow(note_uid_qc) == 0) {
+  cat("No duplicated note_uid values in the combined metadata.\n")
+} else {
+  print(note_uid_qc, n = Inf)
+}
+
+cat("\n==== NOTE ID SUMMARY BY SOURCE FILE ====\n")
+
+clinical_notes_metadata %>%
+  group_by(site, note_period, participant_role, source_group, source_file) %>%
+  summarise(
+    n_rows = n(),
+    n_missing_note_id = sum(is.na(note_id) | note_id == ""),
+    n_unique_note_id = n_distinct(note_id[!is.na(note_id) & note_id != ""]),
+    n_duplicated_note_id_rows = n_rows - n_missing_note_id - n_unique_note_id,
+    .groups = "drop"
+  ) %>%
+  arrange(site, note_period, participant_role, source_group, source_file) %>%
   print(n = Inf)
 
 cat("\n==== ID PREFIX QC ====\n")
 
 clinical_notes_metadata %>%
   mutate(
+    part_prefix = if_else(!is.na(part_id), str_extract(part_id, "^[^-]+-[^-]+"), NA_character_),
     mom_prefix = if_else(!is.na(part_id_mom), str_extract(part_id_mom, "^[^-]+-mom"), NA_character_),
     infant_prefix = if_else(!is.na(part_id_infant), str_extract(part_id_infant, "^[^-]+-infant"), NA_character_)
   ) %>%
-  count(site, participant_role, source_group, mom_prefix, infant_prefix, name = "n_rows") %>%
-  arrange(site, participant_role, source_group, mom_prefix, infant_prefix) %>%
+  count(site, participant_role, source_group, part_prefix, mom_prefix, infant_prefix, name = "n_rows") %>%
+  arrange(site, participant_role, source_group, part_prefix, mom_prefix, infant_prefix) %>%
   print(n = Inf)
 
 cat("\n==== MASTER VARIABLE NAMES ====\n")
@@ -432,13 +561,22 @@ if (debug_mode) {
   print(
     clinical_notes_metadata %>%
       select(
-        site,
-        note_period,
-        participant_role,
-        source_group,
-        source_file,
-        part_id_mom,
-        part_id_infant,
+        any_of(c(
+          "part_id",
+          "part_id_mom",
+          "part_id_infant",
+          "note_id",
+          "site",
+          "note_period",
+          "participant_role",
+          "note_created_datetime",
+          "source_group",
+          "source_file",
+          "source_path",
+          "source_n_rows",
+          "note_uid",
+          "note_type"
+        )),
         everything()
       ) %>%
       head(10)
