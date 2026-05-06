@@ -46,7 +46,7 @@ cat("Date:", format(run_time, "%Y-%m-%d %H:%M:%S %Z"), "\n\n")
 # ===============================
 # Load functions
 # ===============================
-source(file.path(working_dir, "code", "functions", "process_mom_baby_link_simple_v5.R"))
+source(file.path(working_dir, "code", "functions", "process_mom_baby_link.R"))
 
 library(dplyr)
 library(readr)
@@ -56,13 +56,13 @@ library(readr)
 # ===============================
 message("=== RUNNING MOM BABY LINK (SIMPLE V5) ===")
 
-gnv <- process_mom_baby_link_simple_v5("GNV", working_dir)
-jax <- process_mom_baby_link_simple_v5("JAX", working_dir)
+gnv <- process_mom_baby_link("GNV", working_dir)
+jax <- process_mom_baby_link("JAX", working_dir)
 
 # ===============================
 # Combine
 # ===============================
-mom_baby_link <- bind_rows(gnv, jax)
+mom_baby_link_all_sites <- bind_rows(gnv, jax)
 
 # ===============================
 # Output paths
@@ -81,8 +81,8 @@ file_base <- paste0("mom_baby_link_all_sites_", date_tag)
 # Write outputs
 # ===============================
 # Local
-save(mom_baby_link, file = file.path(local_out_dir, paste0(file_base, ".rda")))
-write_csv(mom_baby_link, file.path(local_out_dir, paste0(file_base, ".csv")), na = "")
+save(mom_baby_link_all_sites, file = file.path(local_out_dir, paste0(file_base, ".rda")))
+write_csv(mom_baby_link_all_sites, file.path(local_out_dir, paste0(file_base, ".csv")), na = "")
 
 # Network
 if (dir.exists(network_base)) {
@@ -97,8 +97,8 @@ if (dir.exists(network_base)) {
 # Summary
 # ===============================
 cat("\n==== SUMMARY ====\n")
-cat("Rows:", nrow(mom_baby_link), "\n")
-cat("Missing DOB:", sum(is.na(mom_baby_link$part_dob_infant)), "\n")
+cat("Rows:", nrow(mom_baby_link_all_sites), "\n")
+cat("Missing DOB:", sum(is.na(mom_baby_link_all_sites$part_dob_infant)), "\n")
 
 # ===============================
 # Close log

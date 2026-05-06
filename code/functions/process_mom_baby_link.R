@@ -1,4 +1,4 @@
-process_mom_baby_link_simple_v5 <- function(site, working_dir = getwd()) {
+process_mom_baby_link <- function(site, working_dir = getwd()) {
   suppressPackageStartupMessages({
     library(dplyr)
     library(readr)
