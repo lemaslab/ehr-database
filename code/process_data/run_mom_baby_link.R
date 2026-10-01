@@ -86,8 +86,8 @@ write_csv(mom_baby_link_all_sites, file.path(local_out_dir, paste0(file_base, ".
 
 # Network
 if (dir.exists(network_base)) {
-  save(mom_baby_link, file = file.path(network_out_dir, paste0(file_base, ".rda")))
-  write_csv(mom_baby_link, file.path(network_out_dir, paste0(file_base, ".csv")), na = "")
+  save(mom_baby_link_all_sites, file = file.path(network_out_dir, paste0(file_base, ".rda")))
+  write_csv(mom_baby_link_all_sites, file.path(network_out_dir, paste0(file_base, ".csv")), na = "")
   message("Network write successful")
 } else {
   warning("Network path not available — skipped network write")
