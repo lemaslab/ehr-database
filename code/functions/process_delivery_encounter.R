@@ -139,7 +139,7 @@ process_delivery_encounter <- function(site,
   delivery <- delivery %>%
     mutate(
       part_id_mom = paste0(site_prefix, "-mom-", part_id_mom_tmp),
-      part_id_infant_raw = paste0(site_prefix, "-infant-", part_id_infant_tmp),
+      part_id_infant = paste0(site_prefix, "-infant-", part_id_infant_tmp),
       site = site
     )
   
@@ -149,17 +149,48 @@ process_delivery_encounter <- function(site,
   
   if (!is.null(mom_baby_link_df)) {
     
-    message("[", site, "] joining to mom_baby_link")
+    message("[", site, "] joining to mom_baby_link by mother + infant")
+    
+    # The historical implementation joined by mother alone. For mothers with
+    # multiple pregnancies this creates a Cartesian expansion across births.
+    # Infant is the stable encounter-level key in the raw delivery extract, so
+    # require a unique infant -> mother/delivery mapping and join on both IDs.
+    linkage_qc <- mom_baby_link_df %>%
+      group_by(part_id_infant) %>%
+      summarise(
+        n_moms = n_distinct(part_id_mom),
+        n_delivery_ids = n_distinct(delivery_id),
+        .groups = "drop"
+      )
+    
+    if (any(linkage_qc$n_moms != 1L | linkage_qc$n_delivery_ids != 1L)) {
+      stop("[", site, "] mom_baby_link is not unique at the infant level.")
+    }
+    
+    n_before_join <- nrow(delivery)
     
     delivery <- delivery %>%
       left_join(
         mom_baby_link_df %>%
           select(part_id_mom, part_id_infant, delivery_id, part_dob_infant),
-        by = "part_id_mom"
+        by = c("part_id_mom", "part_id_infant"),
+        relationship = "many-to-one"
       )
     
+    if (nrow(delivery) != n_before_join) {
+      stop("[", site, "] Delivery linkage changed row count: ",
+           n_before_join, " -> ", nrow(delivery),
+           ". Possible Cartesian expansion.")
+    }
+    
+    n_unlinked <- sum(is.na(delivery$delivery_id))
+    if (n_unlinked > 0L) {
+      stop("[", site, "] ", n_unlinked,
+           " delivery rows did not link to a delivery_id.")
+    }
+    
   } else {
-    warning("[", site, "] mom_baby_link_df not provided")
+    stop("[", site, "] mom_baby_link_df is required for validated delivery linkage.")
   }
   
   # ===============================
@@ -213,6 +244,23 @@ process_delivery_encounter <- function(site,
       everything()
     ) %>%
     distinct()
+  
+  # ===============================
+  # FINAL LINKAGE QC
+  # ===============================
+  
+  infant_delivery_qc <- delivery_encounter %>%
+    group_by(part_id_infant) %>%
+    summarise(
+      n_moms = n_distinct(part_id_mom),
+      n_delivery_ids = n_distinct(delivery_id),
+      .groups = "drop"
+    )
+  
+  if (any(infant_delivery_qc$n_moms != 1L |
+          infant_delivery_qc$n_delivery_ids != 1L)) {
+    stop("[", site, "] Final delivery encounter QC failed: infant maps to multiple mothers or delivery episodes.")
+  }
   
   # ===============================
   # OUTPUT
