@@ -58,7 +58,14 @@ process_mom_baby_link <- function(site, working_dir = getwd()) {
     left_join(birth, by = "part_id_infant") %>%
     arrange(part_id_mom, part_dob_infant) %>%
     group_by(part_id_mom) %>%
-    mutate(temp_id = cumsum(c(1, diff(part_dob_infant) > 3))) %>%
+    mutate(
+      new_bucket = if_else(
+        is.na(part_dob_infant),
+        TRUE,
+        c(TRUE, diff(part_dob_infant) > days(3))
+      ),
+      temp_id = cumsum(new_bucket)
+    ) %>%
     ungroup() %>%
     mutate(
       delivery_id_num = dense_rank(paste(part_id_mom, temp_id, sep = "_")),
@@ -66,6 +73,23 @@ process_mom_baby_link <- function(site, working_dir = getwd()) {
       site = site
     ) %>%
     select(part_id_mom, part_id_infant, delivery_id, part_dob_infant, site)
+
+  # Hard linkage QC: each infant must resolve to exactly one mother and delivery.
+  infant_qc <- mom_baby_link %>%
+    group_by(part_id_infant) %>%
+    summarise(
+      n_moms = n_distinct(part_id_mom),
+      n_delivery_ids = n_distinct(delivery_id),
+      .groups = "drop"
+    )
+
+  if (any(infant_qc$n_moms != 1L | infant_qc$n_delivery_ids != 1L)) {
+    stop("[", site, "] Infant linkage QC failed: one or more infants map to multiple mothers or delivery episodes.")
+  }
+
+  if (any(is.na(mom_baby_link$delivery_id))) {
+    stop("[", site, "] Linkage QC failed: missing delivery_id.")
+  }
 
   date_tag <- format(Sys.Date(), "%Y%m%d")
 
