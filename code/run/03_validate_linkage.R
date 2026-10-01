@@ -56,7 +56,17 @@ if (nrow(bad_delivery_moms) > 0L) {
        " delivery episode(s) map to multiple mothers.")
 }
 
-multiple_births <- delivery_qc %>% filter(n_infants > 1L)
+delivery_qc <- delivery_qc %>%
+  mutate(
+    is_multiple_birth = n_infants > 1L,
+    unusual_multiple_birth_span = is_multiple_birth & birth_span_hours > 2
+  )
+
+multiple_births <- delivery_qc %>% filter(is_multiple_birth)
+
+multiple_birth_review <- delivery_qc %>%
+  filter(unusual_multiple_birth_span) %>%
+  arrange(desc(birth_span_hours))
 
 multiple_birth_distribution <- delivery_qc %>%
   count(n_infants, name = "n_deliveries") %>%
@@ -120,6 +130,15 @@ admission_qc <- delivery_link_qc %>%
       admit2delivery_days > 0
   )
 
+admission_review <- admission_qc %>%
+  filter(unusual_admit_timing) %>%
+  select(
+    site, part_id_mom, part_id_infant, delivery_id,
+    admit_date_mom, delivery_date, part_dob_infant,
+    admit2delivery_days, unusual_admit_timing
+  ) %>%
+  arrange(site, admit2delivery_days)
+
 admission_summary <- admission_qc %>%
   group_by(site) %>%
   summarise(
@@ -149,10 +168,12 @@ linkage_qc_report <- list(
   delivery_qc = delivery_qc,
   multiple_birth_distribution = multiple_birth_distribution,
   multiple_birth_span_summary = multiple_birth_span_summary,
+  multiple_birth_review = multiple_birth_review,
   mother_qc = mother_qc,
   repeat_pregnancy_summary = repeat_pregnancy_summary,
   delivery_date_summary = delivery_date_summary,
-  admission_summary = admission_summary
+  admission_summary = admission_summary,
+  admission_review = admission_review
 )
 
 qc_dir <- file.path(working_dir, "data", "processed", "COMBINED", "qc")
@@ -162,6 +183,20 @@ qc_path <- file.path(
   paste0("linkage_qc_", format(Sys.Date(), "%Y%m%d"), ".rds")
 )
 atomic_save_rds(linkage_qc_report, qc_path)
+
+# Human-reviewable exception tables. These are QC artifacts only; they do not
+# alter the canonical delivery IDs or remove records from the cohort.
+multiple_review_path <- file.path(
+  qc_dir,
+  paste0("multiple_birth_span_review_", format(Sys.Date(), "%Y%m%d"), ".csv")
+)
+admission_review_path <- file.path(
+  qc_dir,
+  paste0("admission_timing_review_", format(Sys.Date(), "%Y%m%d"), ".csv")
+)
+
+write.csv(multiple_birth_review, multiple_review_path, row.names = FALSE, na = "")
+write.csv(admission_review, admission_review_path, row.names = FALSE, na = "")
 
 cat("\n==== LINKAGE QC SUMMARY ====\n")
 cat("Infants:", n_distinct(link$part_id_infant), "\n")
@@ -187,4 +222,6 @@ cat("\nAdmission timing:\n")
 print(admission_summary)
 
 message("[output] ", qc_path)
+message("[output] ", multiple_review_path)
+message("[output] ", admission_review_path)
 message("Stage 03 linkage QC complete.")
