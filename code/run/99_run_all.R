@@ -14,4 +14,7 @@ source("code/run/01_build_id_linkage.R")
 message("Stage 02: delivery encounters")
 source("code/run/02_build_delivery_encounter.R")
 
+message("Stage 03: deep linkage QC")
+source("code/run/03_validate_linkage.R")
+
 message("=== PIPELINE COMPLETE ===")
