@@ -1,0 +1,22 @@
+==== MATERNAL ICD RUN (V2) ====
+Date: 2026-04-19 20:07:01 EDT 
+
+=== LOADING ALL FUNCTIONS ===
+Using working_dir: C:\Users\djlemas\Documents\GitHub\ehr-database
+Loaded 13 function files
+=== RUNNING MATERNAL ICD V2 ===
+=== PROCESSING MATERNAL ICD V2: GNV ===
+[GNV] checking files...
+[GNV] V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_10_2021/mom_diagnosis_ICD9.csv | exists=FALSE
+Error in process_maternal_icd_codes_v2(site = "GNV", working_dir = working_dir) : 
+  [GNV] Missing required file: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_10_2021/mom_diagnosis_ICD9.csv
+Error in file(filename, "r", encoding = encoding) : 
+  cannot open the connection
+In addition: Warning message:
+In file(filename, "r", encoding = encoding) :
+  cannot open file 'code/process_data/process_mom_medications_IP.R': No such file or directory
+Error in file(filename, "r", encoding = encoding) : 
+  cannot open the connection
+In addition: Warning message:
+In file(filename, "r", encoding = encoding) :
+  cannot open file 'code/process_data/process_mom_medications_IP.R': No such file or directory
