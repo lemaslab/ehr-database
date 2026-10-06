@@ -234,6 +234,10 @@ read_metadata_file <- function(site, note_period, participant_role,
   
   df <- read_csv(
     file_path,
+    col_types = cols(
+      Deidentified_note_key = col_character(),
+      .default = col_guess()
+    ),
     show_col_types = FALSE,
     n_max = n_max_arg
   ) %>%
