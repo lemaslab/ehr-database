@@ -34,22 +34,39 @@ if (length(missing_runners)) {
   )
 }
 
+source("code/run/00_pipeline_helpers.R")
 run_id <- format(Sys.time(), "%Y%m%d_%H%M%S")
+log_dir <- ehr_log_init(run_id)
+ehr_log_append("run_config.csv", list(run_id = run_id,
+  output_mode = Sys.getenv("EHR_OUTPUT_MODE", "release"),
+  network_sync = Sys.getenv("EHR_NETWORK_SYNC", "true"),
+  started_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")))
+
 stage_log <- data.frame(stage = character(), status = character(), seconds = numeric(),
                         error = character(), stringsAsFactors = FALSE)
 run_stage <- function(name, script) {
   started <- Sys.time()
   status <- "completed"
   error <- ""
+  log_file <- file.path(log_dir, paste0(name, ".log"))
+  con <- file(log_file, open = "wt")
+  sink(con, type = "output", split = TRUE)
+  sink(con, type = "message")
   tryCatch(source(script, local = FALSE), error = function(e) {
     status <<- "failed"
     error <<- conditionMessage(e)
   })
+  sink(type = "message")
+  sink(type = "output")
+  close(con)
   stage_log <<- rbind(stage_log, data.frame(
     stage = name, status = status,
     seconds = round(as.numeric(difftime(Sys.time(), started, units = "secs")), 1),
     error = error, stringsAsFactors = FALSE
   ))
+  ehr_log_append("pipeline_execution.csv", list(stage = name, status = status,
+    seconds = round(as.numeric(difftime(Sys.time(), started, units = "secs")), 1),
+    error = error))
   if (status == "failed") stop("Stage ", name, " failed: ", error, call. = FALSE)
 }
 message("Stage 01: mother-infant-delivery linkage")
@@ -85,4 +102,10 @@ if (requireNamespace("rmarkdown", quietly = TRUE)) {
 } else {
   warning("Install rmarkdown to render the HTML report; CSV manifest was saved.")
 }
+writeLines(c(paste0("# EHR pipeline run ", run_id),
+  paste0("Mode: ", Sys.getenv("EHR_OUTPUT_MODE", "release")),
+  paste0("Log directory: ", log_dir),
+  paste0("Completed stages: ", sum(stage_log$status == "completed")),
+  paste0("Failed stages: ", sum(stage_log$status == "failed"))),
+  file.path(log_dir, "run_summary.md"))
 message("=== FULL EHR PIPELINE COMPLETE ===")
