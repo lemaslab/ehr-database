@@ -6,3 +6,5 @@
 
 data/*/*
 !README.md
+# Run-scoped diagnostics (may include operational paths)
+/logs/run_*/
