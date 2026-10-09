@@ -34,22 +34,55 @@ if (length(missing_runners)) {
   )
 }
 
+run_id <- format(Sys.time(), "%Y%m%d_%H%M%S")
+stage_log <- data.frame(stage = character(), status = character(), seconds = numeric(),
+                        error = character(), stringsAsFactors = FALSE)
+run_stage <- function(name, script) {
+  started <- Sys.time()
+  status <- "completed"
+  error <- ""
+  tryCatch(source(script, local = FALSE), error = function(e) {
+    status <<- "failed"
+    error <<- conditionMessage(e)
+  })
+  stage_log <<- rbind(stage_log, data.frame(
+    stage = name, status = status,
+    seconds = round(as.numeric(difftime(Sys.time(), started, units = "secs")), 1),
+    error = error, stringsAsFactors = FALSE
+  ))
+  if (status == "failed") stop("Stage ", name, " failed: ", error, call. = FALSE)
+}
 message("Stage 01: mother-infant-delivery linkage")
-source("code/run/01_build_id_linkage.R")
+run_stage("01_linkage", "code/run/01_build_id_linkage.R")
 
 message("Stage 02: delivery encounters")
-source("code/run/02_build_delivery_encounter.R")
+run_stage("02_delivery", "code/run/02_build_delivery_encounter.R")
 
 message("Stage 03: deep linkage QC")
-source("code/run/03_validate_linkage.R")
+run_stage("03_qc", "code/run/03_validate_linkage.R")
 
 message("Stage 04: maternal and infant ICD")
-source("code/run/04_build_icd.R")
+run_stage("04_icd", "code/run/04_build_icd.R")
 
 message("Stage 05: maternal medications")
-source("code/run/05_build_medications.R")
+run_stage("05_medications", "code/run/05_build_medications.R")
 
 message("Stage 06: clinical note metadata")
-source("code/run/06_build_clinical_notes_metadata.R")
+run_stage("06_notes", "code/run/06_build_clinical_notes_metadata.R")
 
+message("Stage 07: release manifest and HTML report")
+source("code/run/07_release_manifest.R")
+release <- ehr_release_manifest(getwd(), stage_log, run_id)
+if (requireNamespace("rmarkdown", quietly = TRUE)) {
+  tryCatch(
+    rmarkdown::render("reports/ehr_pipeline_report.Rmd",
+      output_file = paste0("ehr_pipeline_", run_id, ".html"),
+      output_dir = release$report_dir,
+      params = list(run_id = run_id),
+      envir = new.env(parent = globalenv()), quiet = TRUE),
+    error = function(e) warning("HTML report failed: ", conditionMessage(e))
+  )
+} else {
+  warning("Install rmarkdown to render the HTML report; CSV manifest was saved.")
+}
 message("=== FULL EHR PIPELINE COMPLETE ===")
