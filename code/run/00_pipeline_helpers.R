@@ -57,3 +57,41 @@ write_combined_rda <- function(object, object_name, stem, working_dir = getwd())
   message("[output] ", path)
   invisible(path)
 }
+
+# Run-scoped diagnostics. Logs contain schemas and aggregate counts only.
+ehr_log_init <- function(run_id, root = getwd()) {
+  path <- file.path(root, "logs", paste0("run_", run_id))
+  if (dir.exists(path)) stop("Log directory already exists: ", path)
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+  Sys.setenv(EHR_LOG_DIR = normalizePath(path, winslash = "/", mustWork = TRUE))
+  path
+}
+ehr_log_dir <- function() Sys.getenv("EHR_LOG_DIR", unset = "")
+ehr_log_append <- function(file, values) {
+  dir <- ehr_log_dir()
+  if (!nzchar(dir)) return(invisible(NULL))
+  path <- file.path(dir, file)
+  line <- as.data.frame(values, stringsAsFactors = FALSE)
+  utils::write.table(line, path, sep = ",", row.names = FALSE,
+                     col.names = !file.exists(path), append = file.exists(path),
+                     qmethod = "double", na = "")
+  invisible(path)
+}
+ehr_audit_schema <- function(df, dataset, checkpoint = "output", site = NA_character_) {
+  if (!is.data.frame(df)) return(invisible(NULL))
+  dir <- ehr_log_dir()
+  if (!nzchar(dir)) return(invisible(NULL))
+  schema <- data.frame(
+    timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
+    dataset = dataset, checkpoint = checkpoint, site = site,
+    rows = nrow(df), columns = ncol(df),
+    variable = names(df),
+    type = vapply(df, function(x) paste(class(x), collapse = "/"), character(1)),
+    missing_n = vapply(df, function(x) sum(is.na(x)), numeric(1)),
+    stringsAsFactors = FALSE)
+  path <- file.path(dir, "schema_inventory.csv")
+  utils::write.table(schema, path, sep = ",", row.names = FALSE,
+                     col.names = !file.exists(path), append = file.exists(path),
+                     qmethod = "double", na = "")
+  invisible(schema)
+}
