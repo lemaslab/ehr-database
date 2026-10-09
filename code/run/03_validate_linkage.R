@@ -152,6 +152,60 @@ admission_summary <- admission_qc %>%
     .groups = "drop"
   )
 
+# 6a. Episode-level plurality and delivery-date QC -----------------------------
+# Descriptive fields for downstream analyses; do not alter episode membership.
+episode_birth_details <- delivery_link_qc %>%
+  mutate(
+    infant_delivery_day = as.Date(delivery_date_parsed),
+    maternal_admission_day = as.Date(admit_date_mom),
+    infant_dob_day = as.Date(dob_parsed)
+  ) %>%
+  group_by(site, delivery_id, part_id_mom) %>%
+  summarise(
+    n_infants = n_distinct(part_id_infant),
+    n_delivery_dates = n_distinct(infant_delivery_day, na.rm = TRUE),
+    n_admission_dates = n_distinct(maternal_admission_day, na.rm = TRUE),
+    first_delivery_date = if (all(is.na(infant_delivery_day))) as.Date(NA) else min(infant_delivery_day, na.rm = TRUE),
+    last_delivery_date = if (all(is.na(infant_delivery_day))) as.Date(NA) else max(infant_delivery_day, na.rm = TRUE),
+    missing_delivery_dates = sum(is.na(infant_delivery_day)),
+    missing_admission_dates = sum(is.na(maternal_admission_day)),
+    missing_infant_dobs = sum(is.na(infant_dob_day)),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    plurality = case_when(
+      n_infants == 1L ~ "singleton",
+      n_infants == 2L ~ "twins",
+      n_infants == 3L ~ "triplets",
+      n_infants == 4L ~ "quadruplets",
+      n_infants == 5L ~ "quintuplets",
+      TRUE ~ "higher_order"
+    ),
+    delivery_span_days = as.integer(last_delivery_date - first_delivery_date),
+    same_maternal_admission = missing_admission_dates == 0L & n_admission_dates == 1L,
+    flag_span_over_3d = n_infants > 1L & !is.na(delivery_span_days) & delivery_span_days > 3L,
+    flag_span_over_7d = n_infants > 1L & !is.na(delivery_span_days) & delivery_span_days > 7L,
+    flag_span_over_14d = n_infants > 1L & !is.na(delivery_span_days) & delivery_span_days > 14L,
+    flag_admission_discordance = n_infants > 1L & n_admission_dates > 1L,
+    flag_incomplete_dates = missing_delivery_dates > 0L | missing_admission_dates > 0L | missing_infant_dobs > 0L
+  )
+
+plurality_summary <- episode_birth_details %>%
+  group_by(site, plurality, n_infants) %>%
+  summarise(
+    delivery_episodes = n(),
+    infants = sum(n_infants),
+    multi_date_episodes = sum(n_delivery_dates > 1L),
+    over_3_days = sum(flag_span_over_3d),
+    over_7_days = sum(flag_span_over_7d),
+    over_14_days = sum(flag_span_over_14d),
+    .groups = "drop"
+  )
+
+episode_birth_review <- episode_birth_details %>%
+  filter(flag_span_over_3d | flag_admission_discordance | flag_incomplete_dates) %>%
+  arrange(site, desc(delivery_span_days))
+
 # 6. Explicit Cartesian-expansion check --------------------------------------
 if (nrow(delivery) != n_distinct(delivery$part_id_infant)) {
   stop("Stage 03 QC failed: delivery encounter contains multiple rows per infant.")
@@ -167,6 +221,9 @@ linkage_qc_report <- list(
   infant_qc = infant_qc,
   delivery_qc = delivery_qc,
   multiple_birth_distribution = multiple_birth_distribution,
+  episode_birth_details = episode_birth_details,
+  plurality_summary = plurality_summary,
+  episode_birth_review = episode_birth_review,
   multiple_birth_span_summary = multiple_birth_span_summary,
   multiple_birth_review = multiple_birth_review,
   mother_qc = mother_qc,
@@ -196,6 +253,8 @@ admission_review_path <- file.path(
 )
 
 write.csv(multiple_birth_review, multiple_review_path, row.names = FALSE, na = "")
+write.csv(episode_birth_details, file.path(qc_dir, paste0("delivery_episode_qc_", format(Sys.Date(), "%Y%m%d"), ".csv")), row.names = FALSE, na = "")
+write.csv(episode_birth_review, file.path(qc_dir, paste0("delivery_episode_review_", format(Sys.Date(), "%Y%m%d"), ".csv")), row.names = FALSE, na = "")
 write.csv(admission_review, admission_review_path, row.names = FALSE, na = "")
 
 cat("\n==== LINKAGE QC SUMMARY ====\n")
@@ -206,7 +265,9 @@ cat("Bad infant linkages:", nrow(bad_infants), "\n")
 cat("Delivery episodes crossing mothers:", nrow(bad_delivery_moms), "\n")
 cat("Delivery encounter rows:", nrow(delivery), "\n\n")
 
-cat("Multiple-birth distribution:\n")
+cat("Plurality and multi-day delivery episodes:\n")
+print(plurality_summary)
+cat("\nMultiple-birth distribution:\n")
 print(multiple_birth_distribution)
 
 cat("\nMultiple-birth time spans:\n")
