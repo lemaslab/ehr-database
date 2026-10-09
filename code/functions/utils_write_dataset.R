@@ -7,6 +7,10 @@ write_dataset <- function(df,
                           write_network = TRUE,
                           network_base = "V:/FACULTY/DJLEMAS/EHR_Data_processed") {
   if (!is.data.frame(df)) stop("df must be a data.frame")
+  mode <- tolower(Sys.getenv("EHR_OUTPUT_MODE", unset = "release"))
+  if (!mode %in% c("pilot", "release")) stop("Invalid EHR_OUTPUT_MODE")
+  if (mode == "pilot" || tolower(Sys.getenv("EHR_NETWORK_SYNC", unset = "true")) %in% c("false", "0", "no")) write_network <- FALSE
+  if (exists("ehr_audit_schema", mode = "function")) ehr_audit_schema(df, dataset_name, "before_write", subdir)
   if (length(dataset_name) != 1L || is.na(dataset_name) ||
       !grepl("^[A-Za-z][A-Za-z0-9_.]*$", dataset_name)) {
     stop("dataset_name must be a valid R object name")
@@ -53,13 +57,16 @@ write_dataset <- function(df,
   staged_write(rda_path, function(path) {
     save(list = dataset_name, file = path, envir = object_env)
   })
-  staged_write(csv_path, function(path) readr::write_csv(df, path, na = ""))
+  if (mode == "release") staged_write(csv_path, function(path) readr::write_csv(df, path, na = ""))
 
   file_info <- function(path) {
     list(path = path, bytes = unname(file.info(path)$size),
          md5 = unname(tools::md5sum(path)))
   }
-  local <- list(rda = file_info(rda_path), csv = file_info(csv_path))
+  local <- list(rda = file_info(rda_path), csv = if (mode == "release") file_info(csv_path) else NULL)
+  if (exists("ehr_log_append", mode = "function")) ehr_log_append("dataset_outputs.csv",
+    list(dataset = dataset_name, mode = mode, rows = nrow(df), columns = ncol(df),
+         rda_path = rda_path, rda_md5 = local$rda$md5))
   network <- list(status = if (write_network) "not_attempted" else "disabled",
                   rda = NULL, csv = NULL, error = NULL)
 
@@ -77,7 +84,7 @@ write_dataset <- function(df,
             !dir.create(network_dir, recursive = TRUE)) {
           stop("Cannot create network directory: ", network_dir)
         }
-        for (extension in c("rda", "csv")) {
+        for (extension in if (mode == "release") c("rda", "csv") else "rda") {
           src <- if (extension == "rda") rda_path else csv_path
           dst <- file.path(network_dir, basename(src))
           staged_write(dst, function(tmp) {
@@ -99,7 +106,7 @@ write_dataset <- function(df,
     }
   }
 
-  message("Saved locally: ", basename(rda_path), " and ", basename(csv_path))
+  message("Saved locally: ", basename(rda_path), if (mode == "release") paste0(" and ", basename(csv_path)) else " (pilot RDA only)")
   if (identical(network$status, "verified")) {
     message("Verified network copies: ", network_base)
   }
@@ -107,7 +114,7 @@ write_dataset <- function(df,
   # Backward-compatible rda/csv fields plus release-manifest metadata.
   invisible(list(
     rda = rda_path,
-    csv = csv_path,
+    csv = if (mode == "release") csv_path else NULL,
     dataset_name = dataset_name,
     rows = nrow(df),
     columns = ncol(df),
