@@ -67,7 +67,8 @@ local({
         "note_created_datetime" else NA_character_,
       NA_character_)
     if (!is.na(date_col) && date_col %in% names(x)) {
-      ds <- suppressWarnings(as.Date(x[[date_col]]))
+      ds <- tryCatch(suppressWarnings(as.Date(x[[date_col]])),
+        error=function(e) rep(as.Date(NA), nrow(x)))
       nonmiss <- ds[!is.na(ds)]
       temporal[[kind]] <- data.frame(dataset=kind,date_column=date_col,
         missing_dates=sum(is.na(ds)),min_date=if(length(nonmiss))
