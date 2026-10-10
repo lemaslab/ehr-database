@@ -45,17 +45,12 @@ load_or_build <- function(site, dataset, build_fn, working_dir = getwd()) {
 }
 
 write_combined_rda <- function(object, object_name, stem, working_dir = getwd()) {
-  out_dir <- file.path(working_dir, "data", "processed", "COMBINED")
-  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  date_tag <- format(Sys.Date(), "%Y%m%d")
-  path <- file.path(out_dir, paste0(stem, "_", date_tag, ".rda"))
-
-  env <- new.env(parent = emptyenv())
-  assign(object_name, object, envir = env)
-  save(list = object_name, file = path, envir = env)
-
-  message("[output] ", path)
-  invisible(path)
+  # All canonical combined tables use the same output policy.
+  source("code/functions/utils_write_dataset.R", local=TRUE)
+  result <- write_dataset(object, dataset_name=object_name,
+    working_dir=working_dir, subdir="COMBINED")
+  message("[output] ", result$rda)
+  invisible(result$rda)
 }
 
 # Run-scoped diagnostics. Logs contain schemas and aggregate counts only.
@@ -94,4 +89,47 @@ ehr_audit_schema <- function(df, dataset, checkpoint = "output", site = NA_chara
                      col.names = !file.exists(path), append = file.exists(path),
                      qmethod = "double", na = "")
   invisible(schema)
+}
+
+# Output schema and canonical identifier QC: one row per checked variable.
+# Missing IDs on role-inapplicable notes must not be treated as a failure.
+ehr_audit_ids <- function(df, dataset, site=NA_character_) {
+  keys <- intersect(c("part_id_mom","part_id_infant","delivery_id","note_uid_global"),names(df))
+  for (key in keys) {
+    x <- as.character(df[[key]])
+    applicable <- rep(TRUE,length(x))
+    if ("participant_role" %in% names(df)) {
+      if (key=="part_id_mom") applicable <- as.character(df$participant_role)=="mom"
+      if (key=="part_id_infant") applicable <- as.character(df$participant_role) %in% c("baby","infant")
+    }
+    missing <- sum(applicable & (is.na(x) | !nzchar(trimws(x))))
+    bad <- NA_integer_
+    if (key %in% c("part_id_mom","part_id_infant") && "site" %in% names(df)) {
+      prefix <- ifelse(as.character(df$site)=="GNV","AC-",
+                       ifelse(as.character(df$site)=="JAX","DC-",NA_character_))
+      prefix <- paste0(prefix,if(key=="part_id_mom")"mom-" else "infant-")
+      bad <- sum(applicable & !is.na(x) & !is.na(prefix) &
+                 !startsWith(x,prefix))
+    }
+    status <- if(missing>0 || (!is.na(bad)&&bad>0)) "WARNING" else "PASS"
+    message("[ID QC] ",dataset," | ",key," | ",status,
+            " | missing=",missing," | invalid_prefix=",bad)
+    ehr_log_append("identifier_qc.csv",list(
+      dataset=dataset,site=site,variable=key,applicable_rows=sum(applicable),
+      missing_rows=missing,invalid_prefix_rows=bad,status=status))
+  }
+}
+# Human-readable raw-to-canonical terminology (a reference mapping, not a
+# claim that every possible raw column is present in each source).
+ehr_variable_dictionary <- function() {
+  data.frame(raw_label=c("Deidentified_mom_ID","deidentified_mom_id",
+    "Deidentified_baby_ID","deidentified_baby_id",
+    "Deidentified_note_key","Taken Datetime","date_of_delivery"),
+    canonical_label=c("part_id_mom","part_id_mom","part_id_infant",
+    "part_id_infant","note_id_source","date_med_taken","delivery_date"),
+    notes=c("GNV/DC site prefixes applied","GNV/DC site prefixes applied",
+      "GNV/DC site prefixes applied","GNV/DC site prefixes applied",
+      "Source-dependent parsing; verify processor",
+      "Medication timestamp","Canonical delivery encounter date"),
+    stringsAsFactors=FALSE)
 }
