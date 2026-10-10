@@ -420,6 +420,16 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
   )
 
 # ========================================================
+# Computed delivery episode metadata (from canonical local linkage RDA)
+# ========================================================
+# Preserves one row per note. Ambiguous/unmatched notes remain with NA
+# delivery_id and an explicit delivery_link_status. No linkage rebuilding.
+source("code/functions/link_clinical_notes_to_delivery.R")
+clinical_notes_metadata <- link_clinical_notes_to_delivery(
+  clinical_notes_metadata, working_dir = working_dir
+)
+
+# ========================================================
 # PLACEHOLDER: troubleshoot additional computed variables here
 # ========================================================
 # Add/test computed variables here while debug_mode = TRUE.
