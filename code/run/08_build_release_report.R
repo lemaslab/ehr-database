@@ -111,6 +111,29 @@ local({
   source("code/run/00_raw_source_inventory.R", local=TRUE)
   ehr_raw_source_inventory(root=getwd(),output_dir=release_dir,
     hash_files=tolower(Sys.getenv("EHR_RAW_SOURCE_HASH","false")) %in% c("true","1","yes"))
+  # Network verification is a separate, non-blocking release audit.
+  # The historical validated Oct 10 release predates standardized network
+  # exports for linkage/delivery, so missing files are explicitly reported.
+  net_base <- Sys.getenv("EHR_NETWORK_BASE",
+    "V:/FACULTY/DJLEMAS/EHR_Data_processed")
+  network_qc <- do.call(rbind,lapply(seq_len(nrow(manifest)),function(i) {
+    src <- manifest$source_file[i]
+    dataset <- manifest$dataset[i]
+    relative <- file.path("COMBINED",basename(src))
+    dst <- file.path(net_base,relative)
+    present <- file.exists(dst)
+    match <- if(present) identical(unname(tools::md5sum(dst)),manifest$md5[i]) else FALSE
+    csv <- sub("\\\\.rda$",".csv",dst,ignore.case=TRUE)
+    data.frame(dataset=dataset,network_rda=dst,rda_exists=present,
+      rda_md5_matches=match,network_csv=csv,
+      csv_exists=file.exists(csv),
+      csv_nonempty=if(file.exists(csv))isTRUE(file.info(csv)$size>0) else FALSE,
+      stringsAsFactors=FALSE)
+  }))
+  utils::write.csv(network_qc,file.path(release_dir,"network_verification.csv"),row.names=FALSE)
+  message("Network audit: RDA MD5 matched ",
+    sum(network_qc$rda_md5_matches),"/",nrow(network_qc),
+    "; network CSV present ",sum(network_qc$csv_exists),"/",nrow(network_qc))
   if (!requireNamespace("rmarkdown",quietly=TRUE)) {
     warning("Install rmarkdown to render HTML; aggregate CSVs are ready.")
   } else {
