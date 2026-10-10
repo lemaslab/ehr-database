@@ -1,0 +1,74 @@
+---
+title: "Maternal–Infant EHR Release: Structured Data & Clinical-Notes Metadata"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+params:
+  release_dir: ""
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE,warning=FALSE,message=FALSE)
+dir <- params$release_dir
+read_tbl <- function(name) {
+  path <- file.path(dir,paste0(name,".csv"))
+  if (file.exists(path)) utils::read.csv(path,stringsAsFactors=FALSE)
+  else data.frame()
+}
+overview <- read_tbl("dataset_overview")
+sites <- read_tbl("site_summary")
+dates <- read_tbl("date_summary")
+categories <- read_tbl("category_summary")
+qc <- read_tbl("validation_summary")
+manifest <- read_tbl("manifest")
+```
+
+This report summarizes aggregate statistics from *explicitly pinned, checksum-verified* local RDA files. It contains **no clinical note text or patient-level records**. Maternal records are not multiplied across pregnancies. The laboratory extracts are excluded while warehouse identifiers are being corrected.
+
+## Release and quality checks
+
+```{r qc}
+if (nrow(qc)) {
+  cat("QC checks passed:",sum(qc$passed),"/",nrow(qc),"\n\n")
+  knitr::kable(qc)
+} else cat("QC report missing.")
+```
+
+## Cohort and dataset overview
+
+```{r overview}
+if (nrow(overview)) knitr::kable(overview) else cat("Overview unavailable.")
+```
+
+## Records by UF Health site
+
+```{r sites}
+if (nrow(sites)) knitr::kable(sites) else cat("Site summary unavailable.")
+```
+
+## Date availability and range
+
+```{r dates}
+if (nrow(dates)) knitr::kable(dates) else cat("Date summary unavailable.")
+```
+
+## Clinical characteristics and metadata QC categories
+
+```{r categories}
+if (nrow(categories)) knitr::kable(categories) else cat("Category summaries unavailable.")
+```
+
+## Data provenance
+
+Input paths and checksums below identify the source artifacts used for this report. This page is an operational release report; it does not establish encounter-specific maternal event assignment or prove clinical note text retrieval.
+
+```{r manifest}
+if (nrow(manifest)) knitr::kable(manifest) else cat("Manifest unavailable.")
+```
+
+## Remaining dependencies
+
+- Maternal inpatient and outpatient medication rebuild scripts must be present and verified before claiming full raw-to-release reproducibility.
+- Clinical-notes metadata must be independently crosswalked to actual clinical-note text.
+- Laboratory inputs remain excluded until the warehouse corrects the ID namespace.
