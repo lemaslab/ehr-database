@@ -179,6 +179,26 @@ metadata_manifest <- tibble::tribble(
   "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_05_2025/data_release_05_2025/note_mom_postnatal_two_years/postnatal_mom_metadata_Jax_update.csv"
 )
 
+# Optional strictly local source root; mirror the directory tree under
+# V:/FACULTY/DJLEMAS/EHR_Data_raw into this local folder.
+local_input_root <- Sys.getenv("EHR_METADATA_INPUT_ROOT", unset = "")
+if (nzchar(local_input_root)) {
+  source_prefix <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/"
+  metadata_manifest$file_path <- vapply(metadata_manifest$file_path,
+    function(p) {
+      if (!startsWith(p, source_prefix)) stop("Unexpected metadata path: ", p)
+      file.path(local_input_root, substring(p, nchar(source_prefix) + 1L))
+    }, character(1))
+}
+if (tolower(Sys.getenv("EHR_REQUIRE_LOCAL_INPUT", unset = "false")) %in%
+    c("true", "1", "yes")) {
+  if (!nzchar(local_input_root) || !dir.exists(local_input_root))
+    stop("Strict offline mode requires EHR_METADATA_INPUT_ROOT to point to local source CSV copies.")
+  if (any(grepl("^[A-Za-z]:[/\\\\]", metadata_manifest$file_path) &
+          toupper(substr(metadata_manifest$file_path, 1L, 1L)) == "V"))
+    stop("Strict offline mode refuses V: source paths.")
+}
+
 # ========================================================
 # Apply debug filters
 # ========================================================
