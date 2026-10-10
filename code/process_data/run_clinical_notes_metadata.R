@@ -576,7 +576,8 @@ note_uid_within_file_qc <- clinical_notes_metadata %>%
 if (nrow(note_uid_within_file_qc) == 0) {
   cat("No duplicated compact note_uid values within any source file.\n")
 } else {
-  print(note_uid_within_file_qc, n = Inf)
+  cat("Duplicate compact IDs within source files:", nrow(note_uid_within_file_qc), "\n")
+  print(head(note_uid_within_file_qc, 20), n = 20)
 }
 
 cat("\n==== NOTE UID UNIQUENESS QC: ACROSS SOURCE FILES ====\n")
@@ -591,7 +592,8 @@ note_uid_across_file_qc <- clinical_notes_metadata %>%
 if (nrow(note_uid_across_file_qc) == 0) {
   cat("No compact note_uid values appear in more than one source file.\n")
 } else {
-  print(note_uid_across_file_qc, n = Inf)
+  cat("Compact IDs reused across files:", nrow(note_uid_across_file_qc), "\n")
+  print(head(note_uid_across_file_qc, 20), n = 20)
 }
 
 cat("\n==== NOTE UID GLOBAL UNIQUENESS QC ====\n")
@@ -605,7 +607,8 @@ note_uid_global_qc <- clinical_notes_metadata %>%
 if (nrow(note_uid_global_qc) == 0) {
   cat("No duplicated note_uid_global values in the combined metadata.\n")
 } else {
-  print(note_uid_global_qc, n = Inf)
+  cat("Duplicate global IDs:", nrow(note_uid_global_qc), "\n")
+  print(head(note_uid_global_qc, 20), n = 20)
 }
 
 cat("\n==== NOTE UID SUMMARY BY SOURCE FILE ====\n")
