@@ -449,6 +449,12 @@ clinical_notes_metadata <- link_clinical_notes_to_delivery(
   clinical_notes_metadata, working_dir = working_dir
 )
 
+# Compute delivery-relative dates, intervals and postpartum windows.
+source("code/functions/add_clinical_note_timing.R")
+clinical_notes_metadata <- add_clinical_note_timing(
+  clinical_notes_metadata, working_dir = working_dir
+)
+
 # ========================================================
 # PLACEHOLDER: troubleshoot additional computed variables here
 # ========================================================
