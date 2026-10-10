@@ -266,15 +266,10 @@ process_delivery_encounter <- function(site,
   # OUTPUT
   # ===============================
   
-  date_tag <- format(Sys.Date(), "%Y%m%d")
-  
-  out_dir <- file.path(working_dir, "data", "processed", site)
-  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  
-  file_base <- paste0("delivery_encounter_", site, "_", date_tag)
-  
-  save(delivery_encounter, file = file.path(out_dir, paste0(file_base, ".rda")))
-  write_csv(delivery_encounter, file.path(out_dir, paste0(file_base, ".csv")), na = "")
+  source("code/functions/utils_write_dataset.R", local=TRUE)
+  write_dataset(delivery_encounter,
+    dataset_name=paste0("delivery_encounter_",tolower(site)),
+    working_dir=working_dir, subdir=site)
   
   message("[", site, "] rows: ", nrow(delivery_encounter))
   
