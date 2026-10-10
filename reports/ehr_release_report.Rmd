@@ -23,6 +23,8 @@ categories <- read_tbl("category_summary")
 qc <- read_tbl("validation_summary")
 manifest <- read_tbl("manifest")
 network_checks <- read_tbl("network_verification")
+source("code/run/00_pipeline_helpers.R",local=TRUE)
+variable_dictionary <- ehr_variable_dictionary()
 raw_inventory_files <- list.files(dir, pattern="^raw_source_inventory_[0-9]{8}_[0-9]{6}\\.csv$", full.names=TRUE)
 if (length(raw_inventory_files)) raw_sources <- utils::read.csv(sort(raw_inventory_files,decreasing=TRUE)[1],stringsAsFactors=FALSE)
 raw_read_files <- list.files(dir, pattern="^read_calls_review_[0-9]{8}_[0-9]{6}\\.csv$", full.names=TRUE)
@@ -78,6 +80,14 @@ The table compares each pinned local RDA with its network counterpart using MD5 
 
 ```{r network-verification}
 if (nrow(network_checks)) knitr::kable(network_checks) else cat("Network audit unavailable.")
+```
+
+## Canonical variable naming reference
+
+These are the standardized target names for common source fields. This dictionary is **not** a verified per-file transformation map; compare source columns with each processor before certifying a rename.
+
+```{r variable-dictionary}
+knitr::kable(variable_dictionary)
 ```
 
 ## Raw EHR source-file inventory
