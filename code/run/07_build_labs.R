@@ -4,17 +4,18 @@
 # Full: Sys.unsetenv("EHR_LAB_N_MAX")
 # Linkage intentionally deferred until warehouse repairs IDs.
 source("code/functions/process_structured_labs.R")
-root <- Sys.getenv("EHR_LAB_INPUT_ROOT", "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw")
+# Candidate ten-year clinical lab sources; not yet canonical-ID validated.
+root <- Sys.getenv("EHR_LAB_INPUT_ROOT",
+  "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data")
 paths <- c(
-  mom_gnv = file.path(root, "mom_gnv", "mom_gnv",
-    "deidentified_mom_labs_structured_gnv_10_20.csv"),
-  mom_jax = file.path(root, "mom_jax", "mom_jax",
-    "deidentified_mom_labs_structured_jax_10_20.csv"),
-  baby_gnv = file.path(root, "baby_gnv", "baby_gnv",
-    "deidentified_infant_labs_structured_gnv_11_19.csv"),
-  baby_jax = file.path(root, "baby_jax", "baby_jax",
-    "deidentified_infant_labs_structured_jax_11_19.csv")
+  mom_gnv = file.path(root, "2021/dataset_10_2021/mom_labs.csv"),
+  mom_jax = file.path(root, "2025/dataset_04_2025/mom_labs_Jax.csv"),
+  baby_gnv = file.path(root, "2023/dataset_01_2023/infant_labs_deid_update.csv"),
+  baby_jax = file.path(root, "2025/dataset_04_2025/infant_labs_deid_update_Jax.csv")
 )
+cat("\n==== LAB SOURCE FILES ====\n")
+print(data.frame(dataset=names(paths),source=unname(paths),
+  exists=unname(file.exists(paths)),row.names=NULL))
 if (any(!file.exists(paths)))
   stop("Missing laboratory source CSV(s): ", paste(paths[!file.exists(paths)], collapse = ", "))
 if (tolower(Sys.getenv("EHR_LAB_LINKAGE_MODE", "defer")) != "defer")
