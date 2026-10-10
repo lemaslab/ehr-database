@@ -133,4 +133,13 @@ local({
     stop("Release QC FAILED; inspect validation_summary.csv. Inputs unchanged.")
   }
   message("Release QC PASSED; inputs unchanged.")
+  # Only reports on successfully validated, checksum-pinned RDAs.
+  # Missing pandoc/rmarkdown is nonfatal; CSV descriptive tables remain available.
+  old_release_dir <- Sys.getenv("EHR_RELEASE_DIR", unset = NA_character_)
+  on.exit({
+    if (is.na(old_release_dir)) Sys.unsetenv("EHR_RELEASE_DIR")
+    else Sys.setenv(EHR_RELEASE_DIR = old_release_dir)
+  }, add = TRUE)
+  Sys.setenv(EHR_RELEASE_DIR = normalizePath(out, winslash = "/", mustWork = TRUE))
+  source("code/run/08_build_release_report.R", local = TRUE)
 })
