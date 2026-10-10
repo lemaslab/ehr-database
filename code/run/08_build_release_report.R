@@ -123,7 +123,7 @@ local({
     dst <- file.path(net_base,relative)
     present <- file.exists(dst)
     match <- if(present) identical(unname(tools::md5sum(dst)),manifest$md5[i]) else FALSE
-    csv <- sub("\\\\.rda$",".csv",dst,ignore.case=TRUE)
+    csv <- paste0(tools::file_path_sans_ext(dst),".csv")
     data.frame(dataset=dataset,network_rda=dst,rda_exists=present,
       rda_md5_matches=match,network_csv=csv,
       csv_exists=file.exists(csv),
