@@ -91,15 +91,11 @@ process_mom_baby_link <- function(site, working_dir = getwd()) {
     stop("[", site, "] Linkage QC failed: missing delivery_id.")
   }
 
-  date_tag <- format(Sys.Date(), "%Y%m%d")
-
-  out_dir <- file.path(working_dir, "data", "processed", site)
-  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-
-  file_base <- paste0("mom_baby_link_", site, "_", date_tag)
-
-  save(mom_baby_link, file = file.path(out_dir, paste0(file_base, ".rda")))
-  readr::write_csv(mom_baby_link, file.path(out_dir, paste0(file_base, ".csv")), na = "")
+  # Standardized output: local RDA; verified network RDA and CSV.
+  source("code/functions/utils_write_dataset.R", local=TRUE)
+  write_dataset(mom_baby_link,
+    dataset_name=paste0("mom_baby_link_",tolower(site)),
+    working_dir=working_dir, subdir=site)
 
   message("[", site, "] rows: ", nrow(mom_baby_link))
   message("[", site, "] missing DOB: ", sum(is.na(mom_baby_link$part_dob_infant)))
