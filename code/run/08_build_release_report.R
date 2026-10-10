@@ -107,6 +107,10 @@ local({
   utils::write.csv(join_rows(site_summary),file.path(release_dir,"site_summary.csv"),row.names=FALSE)
   utils::write.csv(join_rows(temporal),file.path(release_dir,"date_summary.csv"),row.names=FALSE)
   utils::write.csv(join_rows(top_categories),file.path(release_dir,"category_summary.csv"),row.names=FALSE)
+  # Reviewable raw-source provenance (paths and file metadata, no patient rows).
+  source("code/run/00_raw_source_inventory.R", local=TRUE)
+  ehr_raw_source_inventory(root=getwd(),output_dir=release_dir,
+    hash_files=tolower(Sys.getenv("EHR_RAW_SOURCE_HASH","false")) %in% c("true","1","yes"))
   if (!requireNamespace("rmarkdown",quietly=TRUE)) {
     warning("Install rmarkdown to render HTML; aggregate CSVs are ready.")
   } else {
