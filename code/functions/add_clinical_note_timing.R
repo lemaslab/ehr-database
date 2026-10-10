@@ -69,7 +69,31 @@ add_clinical_note_timing <- function(notes, working_dir = getwd()) {
       within_365d_postpartum = if_else(!is.na(days_relative_delivery),
         days_relative_delivery >= 0 & days_relative_delivery <= 365, NA)
     ) %>%
-    select(-.note_date_internal)
+    select(-.note_date_internal) %>%
+    mutate(
+      delivery_link_confidence = case_when(
+        delivery_link_status %in% c("infant_exact", "mom_delivery_date") ~ "high",
+        delivery_link_status == "mom_single_episode" ~ "conditional",
+        TRUE ~ "unresolved"
+      ),
+      timing_qc_reason = case_when(
+        is.na(days_relative_delivery) ~ "missing_or_ambiguous_delivery_timing",
+        participant_role == "mom" & note_period == "prenatal" &
+          days_relative_delivery < -280 ~ "prenatal_more_than_280d_before_delivery",
+        participant_role == "mom" & note_period == "prenatal" &
+          days_relative_delivery > 0 ~ "prenatal_note_after_delivery",
+        participant_role == "mom" & note_period == "delivery" &
+          abs(days_relative_delivery) > 7 ~ "delivery_note_outside_7d_window",
+        participant_role %in% c("baby", "infant") &
+          days_relative_delivery < 0 ~ "infant_note_before_birth",
+        TRUE ~ "none"
+      ),
+      timing_qc_status = case_when(
+        timing_qc_reason == "missing_or_ambiguous_delivery_timing" ~ "unknown",
+        timing_qc_reason == "none" ~ "consistent",
+        TRUE ~ "review"
+      )
+    )
   if (nrow(out) != n) stop("Timing linkage changed note row count.")
   message("Timing computed for ", sum(!is.na(out$days_relative_delivery)),
           " of ", n, " notes.")
