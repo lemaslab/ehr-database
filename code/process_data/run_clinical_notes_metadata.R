@@ -686,6 +686,20 @@ if (debug_mode) {
 }
 
 # ========================================================
+# Final release QC: zero row loss and complete timing classifications
+# ========================================================
+stopifnot(
+  nrow(clinical_notes_metadata) == dplyr::n_distinct(clinical_notes_metadata$note_uid_global),
+  !anyNA(clinical_notes_metadata$note_uid_global),
+  !anyNA(clinical_notes_metadata$timing_qc_status),
+  all(clinical_notes_metadata$timing_qc_status %in%
+        c("consistent", "review", "unknown"))
+)
+message("FINAL CLINICAL METADATA QC PASSED: ", nrow(clinical_notes_metadata), " notes")
+print(clinical_notes_metadata %>%
+  count(site, participant_role, timing_qc_status, name = "n"))
+
+# ========================================================
 # Write combined output
 # ========================================================
 
