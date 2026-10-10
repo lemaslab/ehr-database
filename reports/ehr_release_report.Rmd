@@ -22,6 +22,11 @@ dates <- read_tbl("date_summary")
 categories <- read_tbl("category_summary")
 qc <- read_tbl("validation_summary")
 manifest <- read_tbl("manifest")
+raw_sources <- read_tbl("raw_source_inventory_" )
+raw_inventory_files <- list.files(dir, pattern="^raw_source_inventory_[0-9]{8}_[0-9]{6}\\.csv$", full.names=TRUE)
+if (length(raw_inventory_files)) raw_sources <- utils::read.csv(sort(raw_inventory_files,decreasing=TRUE)[1],stringsAsFactors=FALSE)
+raw_read_files <- list.files(dir, pattern="^read_calls_review_[0-9]{8}_[0-9]{6}\\.csv$", full.names=TRUE)
+raw_reads <- if (length(raw_read_files)) utils::read.csv(sort(raw_read_files,decreasing=TRUE)[1],stringsAsFactors=FALSE) else data.frame()
 ```
 
 This report summarizes aggregate statistics from *explicitly pinned, checksum-verified* local RDA files. It contains **no clinical note text or patient-level records**. Maternal records are not multiplied across pregnancies. The laboratory extracts are excluded while warehouse identifiers are being corrected.
@@ -65,6 +70,20 @@ Input paths and checksums below identify the source artifacts used for this repo
 
 ```{r manifest}
 if (nrow(manifest)) knitr::kable(manifest) else cat("Manifest unavailable.")
+```
+
+## Raw EHR source-file inventory
+
+The table lists **declared source paths found in processing scripts**, with full paths, script line references, availability, file size, and modified time. Please manually confirm the release/version and site before relying on an input. **This inventory does not prove that every file was read during the current run.** Sources assembled dynamically require separate review.
+
+```{r raw-source-inventory}
+if (nrow(raw_sources)) knitr::kable(raw_sources) else cat("No literal raw source paths discovered.")
+```
+
+### Data-read calls requiring review
+
+```{r dynamic-reads}
+if (nrow(raw_reads)) knitr::kable(raw_reads) else cat("No read calls were detected.")
 ```
 
 ## Remaining dependencies
