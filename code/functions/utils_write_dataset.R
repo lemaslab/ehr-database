@@ -43,12 +43,31 @@ write_dataset <- function(df,
                          tmpdir = dirname(path))
       if (!file.rename(path, backup)) stop("Cannot back up existing output: ", path)
     }
-    promoted <- file.rename(tmp, path)
-    if (!promoted) {
-      if (!is.null(backup)) file.rename(backup, path)
-      stop("Cannot promote staged output: ", path)
+    # On Windows/SMB, file.rename() can return FALSE even when the target
+    # appears; fall back to verified copy, not to an unverified success.
+    promoted <- suppressWarnings(file.rename(tmp, path))
+    valid_target <- function() {
+      file.exists(path) && isTRUE(file.info(path)$size > 0) &&
+        identical(unname(tools::md5sum(tmp)), unname(tools::md5sum(path)))
     }
-    if (!is.null(backup)) unlink(backup)
+    if (!promoted && file.exists(tmp) && !file.exists(path)) {
+      copied <- suppressWarnings(file.copy(tmp, path, overwrite = FALSE))
+      promoted <- isTRUE(copied)
+    }
+    # If rename consumed tmp, the rename succeeded only if target exists.
+    valid <- if (file.exists(tmp)) valid_target() else
+      file.exists(path) && isTRUE(file.info(path)$size > 0)
+    if (!valid) {
+      # Restore the old file only when its destination is vacant.
+      if (!is.null(backup) && file.exists(backup) && !file.exists(path)) {
+        restored <- suppressWarnings(file.rename(backup, path))
+        if (!restored) warning("Backup retained for manual recovery: ", backup)
+      } else if (!is.null(backup) && file.exists(backup)) {
+        warning("Backup retained for manual recovery: ", backup)
+      }
+      stop("Cannot verify staged output promotion: ", path)
+    }
+    if (!is.null(backup) && file.exists(backup)) unlink(backup)
     invisible(path)
   }
 
