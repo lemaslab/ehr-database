@@ -13,6 +13,8 @@ message("=== EHR FULL PROCESSING PIPELINE ===")
 
 required_runners <- c(
   "code/run/00_pipeline_helpers.R",
+  "code/run/00_raw_source_inventory.R",
+  "code/run/07_release_manifest.R",
   "code/run/01_build_id_linkage.R",
   "code/run/02_build_delivery_encounter.R",
   "code/run/03_validate_linkage.R",
@@ -37,9 +39,15 @@ if (length(missing_runners)) {
 source("code/run/00_pipeline_helpers.R")
 run_id <- format(Sys.time(), "%Y%m%d_%H%M%S")
 log_dir <- ehr_log_init(run_id)
+source("code/run/00_raw_source_inventory.R",local=TRUE)
+ehr_raw_source_inventory(root=getwd(),output_dir=log_dir)
+utils::write.csv(ehr_variable_dictionary(),file.path(log_dir,"variable_dictionary.csv"),row.names=FALSE)
 ehr_log_append("run_config.csv", list(run_id = run_id,
   output_mode = Sys.getenv("EHR_OUTPUT_MODE", "release"),
   network_sync = Sys.getenv("EHR_NETWORK_SYNC", "true"),
+  local_csv = Sys.getenv("EHR_LOCAL_CSV","false"),
+  network_csv = Sys.getenv("EHR_NETWORK_CSV","true"),
+  network_required = Sys.getenv("EHR_NETWORK_REQUIRED","true"),
   started_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")))
 
 stage_log <- data.frame(stage = character(), status = character(), seconds = numeric(),
