@@ -21,6 +21,13 @@ local({
              mom_op="mom_op_all_sites")
   paths <- setNames(file.path(combined,paste0(stems,"_",baseline,".rda")),names(stems))
   paths <- c(paths,notes=note_file)
+  include_labs <- tolower(Sys.getenv("EHR_RELEASE_INCLUDE_LABS","false")) %in% c("true","1","yes")
+  if(include_labs) {
+    lab_date <- Sys.getenv("EHR_RELEASE_LABS_DATE",baseline)
+    paths <- c(paths,
+      mom_labs=file.path(combined,paste0("mom_labs_all_sites_linked_",lab_date,".rda")),
+      infant_labs=file.path(combined,paste0("infant_labs_all_sites_linked_",lab_date,".rda")))
+  }
   if (any(!file.exists(paths))) stop("Missing RDA: ", paste(paths[!file.exists(paths)],collapse="; "))
   load_one <- function(file,obj) {
     env <- new.env(parent=emptyenv())
@@ -110,6 +117,52 @@ local({
   check("notes","missing timing QC",sum(is.na(notes$timing_qc_status)),
         !anyNA(notes$timing_qc_status))
   rm(notes,env);gc(verbose=FALSE)
+  if(include_labs) {
+    message("Validating maternal and infant laboratory datasets.")
+    reference <- load_one(paths[["linkage"]], stems[["linkage"]])
+    infant_ref <- match(as.character(reference$part_id_infant),
+                        as.character(reference$part_id_infant))
+    if(anyNA(infant_ref)) stop("Invalid infant reference")
+    for(kind in c("mom_labs","infant_labs")) {
+      nm <- paste0(kind,"_all_sites_linked")
+      df <- load_one(paths[[kind]],nm)
+      need <- c("site","lab_participant_id","lab_link_status",
+                "specimen_datetime","lab_result_raw",
+                if(kind=="mom_labs")"part_id_mom" else c("part_id_infant","delivery_id"))
+      if(!all(need %in% names(df)))
+        stop(kind," missing columns: ",paste(setdiff(need,names(df)),collapse=","))
+      check(kind,"nonempty rows",nrow(df),nrow(df)>0L)
+      check(kind,"valid site",sum(is.na(df$site)|!df$site %in% c("GNV","JAX")),
+            all(!is.na(df$site)&df$site %in% c("GNV","JAX")))
+      is_match <- !is.na(df$lab_link_status) & df$lab_link_status=="canonical_match"
+      check(kind,"verified matching rows",sum(is_match),sum(is_match)>0L)
+      id <- if(kind=="mom_labs")"part_id_mom" else "part_id_infant"
+      observed <- as.character(df[[id]])
+      wrong <- sum(is_match & (is.na(observed) |
+                       observed!=as.character(df$lab_participant_id)),na.rm=TRUE)
+      check(kind,"matched canonical ID mismatch",wrong,wrong==0L)
+      unverified_assigned <- sum(!is_match & !is.na(observed))
+      check(kind,"unverified canonical IDs assigned",unverified_assigned,
+            unverified_assigned==0L)
+      all_ids <- unique(as.character(reference[[id]]))
+      unknown <- sum(!unique(observed[is_match]) %in% all_ids)
+      check(kind,"matched IDs missing in linkage",unknown,unknown==0L)
+      if(kind=="infant_labs") {
+        idx <- match(observed,as.character(reference$part_id_infant))
+        expected <- as.character(reference$delivery_id[idx])
+        wrong_delivery <- sum(is_match & (is.na(df$delivery_id) |
+          as.character(df$delivery_id)!=expected),na.rm=TRUE)
+        check(kind,"infant delivery relation mismatch",wrong_delivery,
+              wrong_delivery==0L)
+      } else {
+        assigned_delivery <- sum(!is.na(df$delivery_id))
+        check(kind,"maternal delivery unassigned",assigned_delivery,
+              assigned_delivery==0L)
+      }
+      rm(df);gc(verbose=FALSE)
+    }
+    rm(reference);gc(verbose=FALSE)
+  }
   qc <- dplyr::bind_rows(checks)
   run_id <- format(Sys.time(),"%Y%m%d_%H%M%S")
   out <- file.path(root,"data","processed","RELEASES",paste0("ehr_release_",run_id))
@@ -123,7 +176,7 @@ local({
   passed <- all(qc$passed)
   writeLines(c(paste("Release:",run_id),paste("QC:",if(passed)"PASS" else "FAIL"),
     "Contains pointers to existing RDAs; does not copy EHR data.",
-    "Labs excluded; no maternal-to-delivery expansion.",
+    if(include_labs) "Labs included; maternal labs remain unassigned to delivery." else "Labs excluded; no maternal-to-delivery expansion.",
     "Clinical text-to-metadata crosswalk requires separate validation."),
     file.path(out,"README.txt"))
   message("Release files saved locally: ",out)
