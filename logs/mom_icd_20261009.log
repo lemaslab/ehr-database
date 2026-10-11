@@ -1,68 +1,0 @@
-==== MOM ICD RUN ====
-Date: 2026-10-09 18:11:41 EDT 
-
-=== LOADING ALL FUNCTIONS ===
-Loaded 15 function files
-=== RUNNING MOM ICD ===
-=== PROCESSING MOM ICD: GNV ===
-[GNV] all ICD files found
-[GNV] reading icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_10_2021/mom_diagnosis_ICD9.csv
-[GNV] reading icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_10_2021/mom_diagnosis_ICD10.csv
-[GNV] reading comorb_icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_ICD9_release.csv
-[GNV] reading comorb_icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_ICD10_release.csv
-[GNV] reading bateman: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_bateman_ICD9_release.csv
-[GNV] rows after cleanup: 1685212
-[GNV] unique moms: 22055
-[GNV] missing dx_code: 0
-[GNV] missing dx_date: 0
-=== PROCESSING MOM ICD: JAX ===
-[JAX] all ICD files found
-[JAX] reading icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_diagnosis_ICD9_Jax.csv
-[JAX] reading icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_diagnosis_ICD10_Jax.csv
-[JAX] reading comorb_icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_ICD9_release_Jax.csv
-[JAX] reading comorb_icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_ICD10_release_Jax.csv
-[JAX] reading bateman: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_bateman_ICD9_release_Jax.csv
-[JAX] rows after cleanup: 2539297
-[JAX] unique moms: 22877
-[JAX] missing dx_code: 0
-[JAX] missing dx_date: 0
-=== WRITING SITE DATASETS ===
-wrote 2.81MB in  0s, 2.15GB/swrote 222.26MB in  0s, 1.11GB/swrote 224.51MB in  0s, 1.11GB/swrote 226.74MB in  0s, 1.11GB/swrote 228.99MB in  0s, 1.11GB/swrote 231.25MB in  0s, 1.11GB/swrote 233.53MB in  0s, 1.11GB/swrote 235.80MB in  0s, 1.11GB/swrote 238.10MB in  0s, 1.11GB/swrote 240.37MB in  0s, 1.11GB/swrote 242.65MB in  0s, 1.11GB/swrote 244.40MB in  0s, 1.11GB/s                                                             wrote 2.15GB in  0s, 2.15GB/s                                                             Saved locally: mom_icd_gnv_20261009.rda and mom_icd_gnv_20261009.csv
-Verified network copies: V:/FACULTY/DJLEMAS/EHR_Data_processed
-wrote 4.32MB in  0s, 2.15GB/swrote 254.12MB in  0s, 1.26GB/swrote 257.50MB in  0s, 1.25GB/swrote 260.90MB in  0s, 1.25GB/swrote 264.21MB in  0s, 1.25GB/swrote 267.65MB in  0s, 1.24GB/swrote 271.02MB in  0s, 1.23GB/swrote 274.40MB in  0s, 1.23GB/swrote 277.77MB in  0s, 1.23GB/swrote 281.15MB in  0s, 1.22GB/swrote 284.51MB in  0s, 1.21GB/swrote 287.91MB in  0s, 1.20GB/swrote 291.29MB in  0s, 1.19GB/swrote 294.68MB in  0s, 1.18GB/swrote 298.07MB in  0s, 1.18GB/swrote 301.45MB in  0s, 1.18GB/swrote 304.82MB in  0s, 1.17GB/swrote 308.24MB in  0s, 1.16GB/swrote 311.66MB in  0s, 1.16GB/swrote 315.10MB in  0s, 1.15GB/swrote 318.51MB in  0s, 1.14GB/swrote 321.87MB in  0s, 1.14GB/swrote 325.29MB in  0s, 1.13GB/swrote 328.74MB in  0s, 1.12GB/swrote 332.20MB in  0s, 1.12GB/swrote 335.65MB in  0s, 1.11GB/swrote 339.09MB in  0s, 1.11GB/swrote 342.51MB in  0s, 1.11GB/swrote 345.94MB in  0s, 1.10GB/swrote 349.36MB in  0s, 1.10GB/swrote 352.81MB in  0s, 1.09GB/swrote 356.29MB in  0s, 1.09GB/swrote 359.76MB in  0s, 1.08GB/swrote 363.22MB in  0s, 1.07GB/swrote 366.48MB in  0s, 1.07GB/s                                                             wrote 2.15GB in  0s, 2.15GB/s                                                             Saved locally: mom_icd_jax_20261009.rda and mom_icd_jax_20261009.csv
-Verified network copies: V:/FACULTY/DJLEMAS/EHR_Data_processed
-=== COMBINING DATASETS ===
-=== ID QA ===
-Columns in combined ICD dataset:
-[1] "part_id_mom" "dx_date"     "dx_code"     "dx_descrip" 
-[5] "dx_type"     "dx_icd_type" "icd_source"  "site"       
-First 10 part_id_mom values:
- [1] "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1"
- [6] "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1"
-Does deidentified_mom_id remain?
-[1] FALSE
-=== WRITING COMBINED DATASET ===
-Combined rows: 4224509
-wrote 7.16MB in  0s, 2.15GB/swrote 295.03MB in  0s, 1.40GB/swrote 302.01MB in  0s, 1.35GB/swrote 308.94MB in  0s, 1.31GB/swrote 315.08MB in  0s, 1.25GB/swrote 321.24MB in  0s, 1.18GB/swrote 327.40MB in  0s, 1.12GB/swrote 333.57MB in  0s, 1.09GB/swrote 339.72MB in  0s, 1.07GB/swrote 345.89MB in  0s, 1.05GB/swrote 352.03MB in  0s, 1.02GB/swrote 358.21MB in  0s, 998.13MB/swrote 364.37MB in  0s, 977.04MB/swrote 370.54MB in  0s, 961.18MB/swrote 376.74MB in  0s, 949.81MB/swrote 382.94MB in  0s, 934.28MB/swrote 389.14MB in  0s, 920.42MB/swrote 395.32MB in  0s, 901.46MB/swrote 401.50MB in  0s, 883.96MB/swrote 407.71MB in  0s, 866.35MB/swrote 413.88MB in  0s, 850.57MB/swrote 420.08MB in  1s, 838.41MB/swrote 426.29MB in  1s, 824.08MB/swrote 432.48MB in  1s, 810.91MB/swrote 438.69MB in  1s, 795.43MB/swrote 444.86MB in  1s, 780.56MB/swrote 451.08MB in  1s, 765.80MB/swrote 457.25MB in  1s, 750.92MB/swrote 463.41MB in  1s, 733.99MB/swrote 469.54MB in  1s, 717.78MB/swrote 475.68MB in  1s, 704.98MB/swrote 481.81MB in  1s, 695.28MB/swrote 486.59MB in  1s, 685.61MB/swrote 492.06MB in  1s, 669.72MB/swrote 497.70MB in  1s, 660.03MB/swrote 503.39MB in  1s, 650.94MB/swrote 508.94MB in  1s, 641.30MB/swrote 514.61MB in  1s, 635.20MB/swrote 520.23MB in  1s, 627.58MB/swrote 525.84MB in  1s, 620.20MB/swrote 531.44MB in  1s, 613.34MB/swrote 537.08MB in  1s, 606.73MB/swrote 542.73MB in  1s, 603.08MB/swrote 548.36MB in  1s, 597.30MB/swrote 554.02MB in  1s, 592.97MB/swrote 559.73MB in  1s, 587.68MB/swrote 565.38MB in  1s, 583.83MB/swrote 571.06MB in  1s, 574.03MB/swrote 576.81MB in  1s, 570.67MB/swrote 582.54MB in  1s, 564.43MB/swrote 588.25MB in  1s, 560.55MB/swrote 593.95MB in  1s, 557.30MB/swrote 599.70MB in  1s, 553.43MB/swrote 605.51MB in  1s, 549.54MB/swrote 611.02MB in  1s, 548.33MB/s                                                             wrote 2.15GB in  1s, 2.15GB/s                                                             Saved locally: mom_icd_all_sites_20261009.rda and mom_icd_all_sites_20261009.csv
-Verified network copies: V:/FACULTY/DJLEMAS/EHR_Data_processed
-
-==== SUMMARY ====
-Total rows: 4224509 
-Unique moms: 44932 
-
-Rows by site:
-
-    GNV     JAX 
-1685212 2539297 
-
-Rows by dx_type:
-
-                   ENCOUNTER       HOSPITAL BILLING CODED 
-                      945108                      1288107 
-                PROBLEM LIST PROFESSSIONAL BILLING CHARGE 
-                       54920                      1936374 
-
-Rows by dx_icd_type:
-
-  ICD10    ICD9    <NA> 
-3349889  854054   20566 
