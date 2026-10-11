@@ -3,6 +3,7 @@
 # Set EHR_LAB_LINKAGE_DATE to the validated linkage date (default 20261010).
 local({
   source("code/functions/utils_write_dataset.R")
+  if(!requireNamespace("dplyr",quietly=TRUE)) stop("Requires dplyr")
   root <- file.path(getwd(),"data","processed")
   stamp <- Sys.getenv("EHR_LAB_SOURCE_TAG","20261010_193021")
   reference_date <- Sys.getenv("EHR_LAB_LINKAGE_DATE","20261010")
@@ -59,6 +60,26 @@ local({
       source_file=source_file,output_file=output_file)
     sources[[key]] <- output_file
     rm(x,en,candidates,matched);gc(verbose=FALSE)
+  }
+  # Combine verified site outputs one role at a time; preserve originals.
+  if(tolower(Sys.getenv("EHR_LAB_COMBINE","true")) %in% c("true","1","yes")) {
+    for(role in c("mom","infant")) {
+      parts <- lapply(c("gnv","jax"),function(site) {
+        input <- sources[[paste(role,site,sep="_")]]
+        e <- new.env(parent=emptyenv())
+        obj <- load(input,envir=e)
+        get(obj[[1]],envir=e,inherits=FALSE)
+      })
+      combined <- dplyr::bind_rows(parts)
+      stopifnot(nrow(combined)==sum(vapply(parts,nrow,integer(1))))
+      combined_name <- paste0(role,"_labs_all_sites_linked")
+      target <- file.path(root,"COMBINED",
+        paste0(combined_name,"_",format(Sys.Date(),"%Y%m%d"),".rda"))
+      if(!file.exists(target)) {
+        write_dataset(combined,combined_name,working_dir=getwd(),subdir="COMBINED")
+      } else message("[LAB] Reusing existing combined linked RDA: ",target)
+      rm(parts,combined);gc(verbose=FALSE)
+    }
   }
   audit <- do.call(rbind,results)
   qc_dir <- file.path(root,"LAB_QC")
