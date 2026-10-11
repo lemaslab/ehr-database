@@ -59,26 +59,40 @@ run_stage <- function(name, script) {
   status <- "completed"
   error <- ""
   log_file <- file.path(log_dir, paste0(name, ".log"))
-  con <- file(log_file, open = "wt")
-  sink(con, type = "output", split = TRUE)
-  sink(con, type = "message")
-  tryCatch(source(script, local = FALSE), error = function(e) {
+  initial_output <- sink.number(type="output")
+  initial_message <- sink.number(type="message")
+  con <- file(log_file,open="wt")
+  tryCatch({
+    sink(con,type="output",split=TRUE)
+    sink(con,type="message")
+    message("[STAGE START] ",name," | source: ",script)
+    source(script,local=FALSE)
+    message("[STAGE COMPLETE] ",name)
+  }, error=function(e) {
     status <<- "failed"
     error <<- conditionMessage(e)
+    message("[STAGE FAILED] ",name," | ",error)
+  }, finally={
+    # Restore the pre-stage output/message sinks even after a thrown error.
+    if(sink.number(type="message") != initial_message) {
+      try(sink(type="message"),silent=TRUE)
+    }
+    while(sink.number(type="output") > initial_output) {
+      try(sink(type="output"),silent=TRUE)
+    }
+    try(close(con),silent=TRUE)
   })
-  sink(type = "message")
-  sink(type = "output")
-  close(con)
-  stage_log <<- rbind(stage_log, data.frame(
-    stage = name, status = status,
-    seconds = round(as.numeric(difftime(Sys.time(), started, units = "secs")), 1),
-    error = error, stringsAsFactors = FALSE
-  ))
-  ehr_log_append("pipeline_execution.csv", list(stage = name, status = status,
-    seconds = round(as.numeric(difftime(Sys.time(), started, units = "secs")), 1),
-    error = error))
-  if (status == "failed") stop("Stage ", name, " failed: ", error, call. = FALSE)
+  elapsed <- round(as.numeric(difftime(Sys.time(),started,units="secs")),1)
+  stage_log <<- rbind(stage_log,data.frame(
+    stage=name,status=status,seconds=elapsed,error=error,
+    stringsAsFactors=FALSE))
+  ehr_log_append("pipeline_execution.csv",list(stage=name,status=status,
+    seconds=elapsed,error=error))
+  message("[STAGE] ",name," | ",status," | ",elapsed,
+          " sec | log: ",log_file)
+  if(status=="failed") stop("Stage ",name," failed: ",error,call.=FALSE)
 }
+
 message("Stage 01: mother-infant-delivery linkage")
 run_stage("01_linkage", "code/run/01_build_id_linkage.R")
 
