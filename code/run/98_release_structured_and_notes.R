@@ -25,8 +25,8 @@ local({
   if(include_labs) {
     lab_date <- Sys.getenv("EHR_RELEASE_LABS_DATE",baseline)
     paths <- c(paths,
-      mom_labs=file.path(combined,paste0("mom_labs_all_sites_linked_",lab_date,".rda")),
-      infant_labs=file.path(combined,paste0("infant_labs_all_sites_linked_",lab_date,".rda")))
+      mom_labs=file.path(combined,paste0("mom_labs_all_sites_",lab_date,".rda")),
+      infant_labs=file.path(combined,paste0("infant_labs_all_sites_",lab_date,".rda")))
   }
   if (any(!file.exists(paths))) stop("Missing RDA: ", paste(paths[!file.exists(paths)],collapse="; "))
   load_one <- function(file,obj) {
@@ -124,7 +124,7 @@ local({
                         as.character(reference$part_id_infant))
     if(anyNA(infant_ref)) stop("Invalid infant reference")
     for(kind in c("mom_labs","infant_labs")) {
-      nm <- paste0(kind,"_all_sites_linked")
+      nm <- paste0(kind,"_all_sites")
       df <- load_one(paths[[kind]],nm)
       need <- c("site","lab_participant_id","lab_link_status",
                 "specimen_datetime","lab_result_raw",
