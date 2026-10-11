@@ -22,13 +22,18 @@ write_dataset <- function(df,
   network_required <- mode == "release" && tolower(Sys.getenv("EHR_NETWORK_REQUIRED","true")) %in% c("true","1","yes")
   network_base <- Sys.getenv("EHR_NETWORK_BASE",network_base)
 
-  date_tag <- format(Sys.Date(), "%Y%m%d")
+  date_tag <- Sys.getenv("EHR_RELEASE_DATE", format(Sys.Date(), "%Y%m%d"))
+  if (!grepl("^[0-9]{8}$", date_tag)) stop("EHR_RELEASE_DATE must be YYYYMMDD")
   file_base <- paste0(dataset_name, "_", date_tag)
   local_dir <- file.path(working_dir, "data", "processed", subdir)
   if (!dir.exists(local_dir) && !dir.create(local_dir, recursive = TRUE)) {
     stop("Cannot create local output directory: ", local_dir)
   }
   rda_path <- file.path(local_dir, paste0(file_base, ".rda"))
+  if (file.exists(rda_path) &&
+      !tolower(Sys.getenv("EHR_OVERWRITE_OUTPUTS", "false")) %in% c("true","1","yes")) {
+    stop("Final local RDA exists; refusing overwrite without EHR_OVERWRITE_OUTPUTS=true: ", rda_path)
+  }
   csv_path <- file.path(local_dir, paste0(file_base, ".csv"))
 
   # Stage beside the destination; never delete a prior valid file before
