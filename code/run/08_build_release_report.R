@@ -25,6 +25,8 @@ local({
       mom_icd="mom_icd_all_sites",
       infant_icd="infant_icd_all_sites",
       mom_ip="mom_ip_all_sites", mom_op="mom_op_all_sites",
+      mom_labs="mom_labs_all_sites_linked",
+      infant_labs="infant_labs_all_sites_linked",
       notes=if ("clinical_notes_metadata" %in% objects)
         "clinical_notes_metadata" else "clinical_notes_metadata_all_sites")
     if (!desired %in% objects) stop("Expected RDA object missing for ",kind)
@@ -63,6 +65,7 @@ local({
     date_col <- switch(kind,delivery="delivery_date",
       mom_icd="dx_date",infant_icd="dx_date",
       mom_ip="date_med_taken",mom_op="date_med_order",
+      mom_labs="specimen_datetime",infant_labs="specimen_datetime",
       notes=if ("note_created_datetime" %in% names(x))
         "note_created_datetime" else NA_character_,
       NA_character_)
@@ -81,6 +84,7 @@ local({
       infant_icd=if ("dx_category" %in% names(x)) "dx_category" else
         if ("dx_type" %in% names(x)) "dx_type" else NA_character_,
       notes="delivery_link_status",
+      mom_labs="lab_link_status", infant_labs="lab_link_status",
       NA_character_)
     if (!is.na(category) && category %in% names(x)) {
       t <- sort(table(as.character(x[[category]]),useNA="ifany"),
@@ -96,6 +100,17 @@ local({
         top_categories[[paste(kind,nm,sep="_")]] <- data.frame(
           dataset=kind,variable=nm,category=names(t),
           records=as.integer(t),stringsAsFactors=FALSE)
+      }
+    }
+    if (kind %in% c("mom_labs","infant_labs")) {
+      for(nm in c("lab_link_status","lab_name")) {
+        if(nm %in% names(x)) {
+          tt <- sort(table(as.character(x[[nm]]),useNA="ifany"),
+                     decreasing=TRUE)
+          top_categories[[paste(kind,nm,sep="_")]] <- data.frame(
+            dataset=kind,variable=nm,category=names(head(tt,10)),
+            records=as.integer(head(tt,10)),stringsAsFactors=FALSE)
+        }
       }
     }
     rm(x); gc(verbose=FALSE)
