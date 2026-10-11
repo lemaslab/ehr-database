@@ -158,7 +158,7 @@ local({
       rmarkdown::render(report,
         output_file="ehr_release_report.html",output_dir=release_dir,
         params=list(release_dir=normalizePath(release_dir,winslash="/")),
-        envir=new.env(parent=globalenv()),quiet=TRUE)
+        envir=new.env(parent=globalenv()),knit_root_dir=getwd(),quiet=TRUE)
       message("HTML release report: ",file.path(release_dir,"ehr_release_report.html"))
     },error=function(e) warning("HTML render failed; CSV summaries remain available: ",
                                conditionMessage(e)))
