@@ -15,6 +15,8 @@ required_runners <- c(
   "code/run/00_pipeline_helpers.R",
   "code/run/00_raw_source_inventory.R",
   "code/run/07_release_manifest.R",
+  "code/run/07_link_and_release_labs.R",
+  "code/run/98_release_structured_and_notes.R",
   "code/run/01_build_id_linkage.R",
   "code/run/02_build_delivery_encounter.R",
   "code/run/03_validate_linkage.R",
@@ -95,25 +97,36 @@ run_stage("05_medications", "code/run/05_build_medications.R")
 message("Stage 06: clinical note metadata")
 run_stage("06_notes", "code/run/06_build_clinical_notes_metadata.R")
 
-message("Stage 07: release manifest and HTML report")
-source("code/run/07_release_manifest.R")
-release <- ehr_release_manifest(getwd(), stage_log, run_id)
-if (requireNamespace("rmarkdown", quietly = TRUE)) {
-  tryCatch(
-    rmarkdown::render("reports/ehr_pipeline_report.Rmd",
-      output_file = paste0("ehr_pipeline_", run_id, ".html"),
-      output_dir = release$report_dir,
-      params = list(run_id = run_id),
-      envir = new.env(parent = globalenv()), quiet = TRUE),
-    error = function(e) warning("HTML report failed: ", conditionMessage(e))
-  )
-} else {
-  warning("Install rmarkdown to render the HTML report; CSV manifest was saved.")
+message("Stage 07: canonical laboratory linkage using preserved raw-extract RDAs")
+run_stage("07_labs", "code/run/07_link_and_release_labs.R")
+
+message("Stage 08: full release QC and descriptive HTML report")
+old_settings <- Sys.getenv(
+  c("EHR_RELEASE_STRUCTURED_DATE","EHR_RELEASE_METADATA_FILE",
+    "EHR_RELEASE_INCLUDE_LABS","EHR_RELEASE_LABS_DATE"),
+  unset=NA_character_)
+restore_settings <- function() {
+  for(i in seq_along(old_settings)) {
+    key <- names(old_settings)[i]
+    if(is.na(old_settings[i])) Sys.unsetenv(key)
+    else do.call(Sys.setenv,as.list(stats::setNames(old_settings[i],key)))
+  }
 }
-writeLines(c(paste0("# EHR pipeline run ", run_id),
-  paste0("Mode: ", Sys.getenv("EHR_OUTPUT_MODE", "release")),
-  paste0("Log directory: ", log_dir),
-  paste0("Completed stages: ", sum(stage_log$status == "completed")),
-  paste0("Failed stages: ", sum(stage_log$status == "failed"))),
-  file.path(log_dir, "run_summary.md"))
+Sys.setenv(
+  EHR_RELEASE_STRUCTURED_DATE=format(Sys.Date(),"%Y%m%d"),
+  EHR_RELEASE_METADATA_FILE=paste0(
+    "clinical_notes_metadata_all_sites_",format(Sys.Date(),"%Y%m%d"),".rda"),
+  EHR_RELEASE_INCLUDE_LABS="true",
+  EHR_RELEASE_LABS_DATE=format(Sys.Date(),"%Y%m%d")
+)
+tryCatch(
+  run_stage("08_release_qc", "code/run/98_release_structured_and_notes.R"),
+  finally=restore_settings()
+)
+writeLines(c(paste0("# EHR pipeline run ",run_id),
+  paste0("Mode: ",Sys.getenv("EHR_OUTPUT_MODE","release")),
+  paste0("Log directory: ",log_dir),
+  paste0("Completed stages: ",sum(stage_log$status=="completed")),
+  paste0("Failed stages: ",sum(stage_log$status=="failed"))),
+  file.path(log_dir,"run_summary.md"))
 message("=== FULL EHR PIPELINE COMPLETE ===")
