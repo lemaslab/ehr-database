@@ -26,6 +26,10 @@ if (is.null(working_dir)) {
 setwd(working_dir)
 
 message("Using working_dir: ", working_dir)
+if(!exists("ehr_substage_event",mode="function"))
+  source("code/run/00_pipeline_helpers.R",local=FALSE)
+med_substage_started <- Sys.time()
+ehr_substage_event("05_mom_medications_op","START",paste0("working_dir=",working_dir))
 
 # -------------------------------
 # Source processing function
@@ -68,3 +72,6 @@ for (i in seq_along(sites)) {
 message("[MED] Writing mom_op_all_sites to ",file.path(working_dir,"data","processed","COMBINED"))
 write_dataset(mom_op_all_sites, "mom_op_all_sites", working_dir=working_dir, subdir="COMBINED")
 message("[MED] Completed mom_op; local-only/network settings honored.")
+ehr_substage_event("05_mom_medications_op","COMPLETE",
+  paste0("rows=",nrow(mom_op_all_sites),"; elapsed_seconds=",
+         round(as.numeric(difftime(Sys.time(),med_substage_started,units="secs")),1)))
