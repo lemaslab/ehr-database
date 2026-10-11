@@ -25,8 +25,8 @@ local({
       mom_icd="mom_icd_all_sites",
       infant_icd="infant_icd_all_sites",
       mom_ip="mom_ip_all_sites", mom_op="mom_op_all_sites",
-      mom_labs="mom_labs_all_sites_linked",
-      infant_labs="infant_labs_all_sites_linked",
+      mom_labs="mom_labs_all_sites",
+      infant_labs="infant_labs_all_sites",
       notes=if ("clinical_notes_metadata" %in% objects)
         "clinical_notes_metadata" else "clinical_notes_metadata_all_sites")
     if (!desired %in% objects) stop("Expected RDA object missing for ",kind)
