@@ -6,6 +6,13 @@ local({
   if(!requireNamespace("dplyr",quietly=TRUE)) stop("Requires dplyr")
   root <- file.path(getwd(),"data","processed")
   stamp <- Sys.getenv("EHR_LAB_SOURCE_TAG","20261010_193021")
+  pilot_n <- Sys.getenv("EHR_LAB_PILOT_N","")
+  pilot <- nzchar(pilot_n)
+  if(pilot) {
+    pilot_n <- suppressWarnings(as.integer(pilot_n))
+    if(is.na(pilot_n) || pilot_n < 1L) stop("EHR_LAB_PILOT_N must be positive")
+    message("[LAB PILOT] Local only; maximum rows per source: ",pilot_n)
+  }
   reference_date <- Sys.getenv("EHR_LAB_LINKAGE_DATE","20261010")
   reference_file <- file.path(root,"COMBINED",paste0("mom_baby_link_all_sites_",reference_date,".rda"))
   if(!file.exists(reference_file)) stop("Linkage missing: ",reference_file)
@@ -30,6 +37,7 @@ local({
     objects <- load(source_file,envir=en)
     if(!dataset %in% objects) stop("Unexpected lab object in ",source_file)
     x <- get(dataset,envir=en)
+    if(pilot) x <- utils::head(x,pilot_n)
     n <- nrow(x)
     candidates <- as.character(x$lab_participant_id)
     matched <- !is.na(candidates) & candidates %in%
@@ -45,10 +53,12 @@ local({
       if(any(matched & is.na(x$delivery_id))) stop("Infant delivery relation missing: ",key)
     }
     stopifnot(nrow(x)==n)
-    output_name <- paste0(dataset,"_linked")
-    output_file <- file.path(root,subdir,paste0(output_name,"_",format(Sys.Date(),"%Y%m%d"),".rda"))
+    output_name <- dataset
+    destination <- if(pilot) file.path("LAB_PILOT",subdir) else subdir
+    output_file <- file.path(root,destination,paste0(output_name,"_",format(Sys.Date(),"%Y%m%d"),".rda"))
     if(!file.exists(output_file)) {
-      write_dataset(x,output_name,working_dir=getwd(),subdir=subdir)
+      write_dataset(x,output_name,working_dir=getwd(),subdir=destination,
+        write_network=!pilot)
     } else message("[LAB] Reusing existing canonical RDA: ",output_file)
     results[[key]] <- data.frame(dataset=key,records=n,
       unique_source_patients=length(unique(stats::na.omit(candidates))),
@@ -72,21 +82,24 @@ local({
       })
       combined <- dplyr::bind_rows(parts)
       stopifnot(nrow(combined)==sum(vapply(parts,nrow,integer(1))))
-      combined_name <- paste0(role,"_labs_all_sites_linked")
-      target <- file.path(root,"COMBINED",
+      combined_name <- paste0(role,"_labs_all_sites")
+      destination <- if(pilot) file.path("LAB_PILOT","COMBINED") else "COMBINED"
+      target <- file.path(root,destination,
         paste0(combined_name,"_",format(Sys.Date(),"%Y%m%d"),".rda"))
       if(!file.exists(target)) {
-        write_dataset(combined,combined_name,working_dir=getwd(),subdir="COMBINED")
+        write_dataset(combined,combined_name,working_dir=getwd(),
+          subdir=destination,write_network=!pilot)
       } else message("[LAB] Reusing existing combined linked RDA: ",target)
       rm(parts,combined);gc(verbose=FALSE)
     }
   }
   audit <- do.call(rbind,results)
-  qc_dir <- file.path(root,"LAB_QC")
+  qc_dir <- file.path(root,if(pilot)"LAB_PILOT_QC" else "LAB_QC")
   dir.create(qc_dir,recursive=TRUE,showWarnings=FALSE)
-  audit_file <- file.path(qc_dir,paste0("linked_lab_qc_",format(Sys.time(),"%Y%m%d_%H%M%S"),".csv"))
+  audit_file <- file.path(qc_dir,paste0("lab_qc_",format(Sys.Date(),"%Y%m%d"),".csv"))
   utils::write.csv(audit,audit_file,row.names=FALSE)
   print(audit[,c("dataset","records","matched_records","unmatched_records","match_pct")],row.names=FALSE)
   message("[LAB] QC: ",audit_file)
+  if(pilot) message("[LAB PILOT] All outputs isolated in data/processed/LAB_PILOT; network skipped.")
   if(any(audit$unmatched_records)) warning("Unmatched labs retained; inspect QC.")
 })
