@@ -56,35 +56,15 @@ message("Total rows: ", nrow(mom_op_all_sites))
 message("Sites: ", paste(unique(mom_op_all_sites$site), collapse = ", "))
 
 # -------------------------------
-# Save COMBINED dataset
+# Write standardized site and combined RDA outputs
+# Honors EHR_OUTPUT_MODE, EHR_NETWORK_SYNC, EHR_RELEASE_DATE.
 # -------------------------------
-
-# Local repo output
-local_output_dir <- file.path(working_dir, "data", "processed", "COMBINED")
-dir.create(local_output_dir, recursive = TRUE, showWarnings = FALSE)
-
-# Shared drive output
-shared_output_dir <- "V:/FACULTY/DJLEMAS/EHR_Data_processed/COMBINED"
-dir.create(shared_output_dir, recursive = TRUE, showWarnings = FALSE)
-
-date_tag <- format(Sys.Date(), "%Y%m%d")
-
-# Object/file name convention
-rda_file_local <- file.path(local_output_dir, paste0("mom_op_all_sites_", date_tag, ".rda"))
-csv_file_local <- file.path(local_output_dir, paste0("mom_op_all_sites_", date_tag, ".csv"))
-
-rda_file_shared <- file.path(shared_output_dir, paste0("mom_op_all_sites_", date_tag, ".rda"))
-csv_file_shared <- file.path(shared_output_dir, paste0("mom_op_all_sites_", date_tag, ".csv"))
-
-# Save local
-save(mom_op_all_sites, file = rda_file_local)
-readr::write_csv(mom_op_all_sites, csv_file_local)
-
-# Save shared drive
-save(mom_op_all_sites, file = rda_file_shared)
-readr::write_csv(mom_op_all_sites, csv_file_shared)
-
-message("Saved LOCAL RDA: ", rda_file_local)
-message("Saved LOCAL CSV: ", csv_file_local)
-message("Saved SHARED RDA: ", rda_file_shared)
-message("Saved SHARED CSV: ", csv_file_shared)
+source("code/functions/utils_write_dataset.R")
+for (i in seq_along(sites)) {
+  dataset_name <- paste0("mom_op_", tolower(sites[[i]]))
+  message("[MED] Writing ", dataset_name, " to ", file.path(working_dir,"data","processed",sites[[i]]))
+  write_dataset(results[[i]], dataset_name, working_dir=working_dir, subdir=sites[[i]])
+}
+message("[MED] Writing mom_op_all_sites to ",file.path(working_dir,"data","processed","COMBINED"))
+write_dataset(mom_op_all_sites, "mom_op_all_sites", working_dir=working_dir, subdir="COMBINED")
+message("[MED] Completed mom_op; local-only/network settings honored.")
