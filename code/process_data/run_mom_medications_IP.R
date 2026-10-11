@@ -26,6 +26,10 @@ if (is.null(working_dir)) {
 setwd(working_dir)
 
 message("Using working_dir: ", working_dir)
+if(!exists("ehr_substage_event",mode="function"))
+  source("code/run/00_pipeline_helpers.R",local=FALSE)
+med_substage_started <- Sys.time()
+ehr_substage_event("05_mom_medications_ip","START",paste0("working_dir=",working_dir))
 
 # -------------------------------
 # Source processing function
@@ -56,35 +60,18 @@ message("Total rows: ", nrow(mom_ip_all_sites))
 message("Sites: ", paste(unique(mom_ip_all_sites$site), collapse = ", "))
 
 # -------------------------------
-# Save COMBINED dataset
+# Write standardized site and combined RDA outputs
+# Honors EHR_OUTPUT_MODE, EHR_NETWORK_SYNC, EHR_RELEASE_DATE.
 # -------------------------------
-
-# Local repo output
-local_output_dir <- file.path(working_dir, "data", "processed", "COMBINED")
-dir.create(local_output_dir, recursive = TRUE, showWarnings = FALSE)
-
-# Shared drive output
-shared_output_dir <- "V:/FACULTY/DJLEMAS/EHR_Data_processed/COMBINED"
-dir.create(shared_output_dir, recursive = TRUE, showWarnings = FALSE)
-
-date_tag <- format(Sys.Date(), "%Y%m%d")
-
-# Object/file name convention
-rda_file_local <- file.path(local_output_dir, paste0("mom_ip_all_sites_", date_tag, ".rda"))
-csv_file_local <- file.path(local_output_dir, paste0("mom_ip_all_sites_", date_tag, ".csv"))
-
-rda_file_shared <- file.path(shared_output_dir, paste0("mom_ip_all_sites_", date_tag, ".rda"))
-csv_file_shared <- file.path(shared_output_dir, paste0("mom_ip_all_sites_", date_tag, ".csv"))
-
-# Save local
-save(mom_ip_all_sites, file = rda_file_local)
-readr::write_csv(mom_ip_all_sites, csv_file_local)
-
-# Save shared drive
-save(mom_ip_all_sites, file = rda_file_shared)
-readr::write_csv(mom_ip_all_sites, csv_file_shared)
-
-message("Saved LOCAL RDA: ", rda_file_local)
-message("Saved LOCAL CSV: ", csv_file_local)
-message("Saved SHARED RDA: ", rda_file_shared)
-message("Saved SHARED CSV: ", csv_file_shared)
+source("code/functions/utils_write_dataset.R")
+for (i in seq_along(sites)) {
+  dataset_name <- paste0("mom_ip_", tolower(sites[[i]]))
+  message("[MED] Writing ", dataset_name, " to ", file.path(working_dir,"data","processed",sites[[i]]))
+  write_dataset(results[[i]], dataset_name, working_dir=working_dir, subdir=sites[[i]])
+}
+message("[MED] Writing mom_ip_all_sites to ",file.path(working_dir,"data","processed","COMBINED"))
+write_dataset(mom_ip_all_sites, "mom_ip_all_sites", working_dir=working_dir, subdir="COMBINED")
+message("[MED] Completed mom_ip; local-only/network settings honored.")
+ehr_substage_event("05_mom_medications_ip","COMPLETE",
+  paste0("rows=",nrow(mom_ip_all_sites),"; elapsed_seconds=",
+         round(as.numeric(difftime(Sys.time(),med_substage_started,units="secs")),1)))

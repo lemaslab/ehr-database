@@ -1,0 +1,111 @@
+---
+title: "Maternal–Infant EHR Release: Structured Data & Clinical-Notes Metadata"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+params:
+  release_dir: ""
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE,warning=FALSE,message=FALSE)
+dir <- params$release_dir
+read_tbl <- function(name) {
+  path <- file.path(dir,paste0(name,".csv"))
+  if (file.exists(path)) utils::read.csv(path,stringsAsFactors=FALSE)
+  else data.frame()
+}
+overview <- read_tbl("dataset_overview")
+sites <- read_tbl("site_summary")
+dates <- read_tbl("date_summary")
+categories <- read_tbl("category_summary")
+qc <- read_tbl("validation_summary")
+manifest <- read_tbl("manifest")
+network_checks <- read_tbl("network_verification")
+source("code/run/00_pipeline_helpers.R",local=TRUE)
+variable_dictionary <- ehr_variable_dictionary()
+raw_inventory_files <- list.files(dir, pattern="^raw_source_inventory_[0-9]{8}_[0-9]{6}\\.csv$", full.names=TRUE)
+if (length(raw_inventory_files)) raw_sources <- utils::read.csv(sort(raw_inventory_files,decreasing=TRUE)[1],stringsAsFactors=FALSE)
+raw_read_files <- list.files(dir, pattern="^read_calls_review_[0-9]{8}_[0-9]{6}\\.csv$", full.names=TRUE)
+raw_reads <- if (length(raw_read_files)) utils::read.csv(sort(raw_read_files,decreasing=TRUE)[1],stringsAsFactors=FALSE) else data.frame()
+```
+
+This report summarizes aggregate statistics from *explicitly pinned, checksum-verified* local RDA files. It contains **no clinical note text or patient-level records**. Maternal records are not multiplied across pregnancies. Laboratory extracts are included when explicitly listed in the release manifest and validated against the canonical linkage. Maternal laboratory events are not assigned to individual deliveries.
+
+## Release and quality checks
+
+```{r qc}
+if (nrow(qc)) {
+  cat("QC checks passed:",sum(qc$passed),"/",nrow(qc),"\n\n")
+  knitr::kable(qc)
+} else cat("QC report missing.")
+```
+
+## Cohort and dataset overview
+
+```{r overview}
+if (nrow(overview)) knitr::kable(overview) else cat("Overview unavailable.")
+```
+
+## Records by UF Health site
+
+```{r sites}
+if (nrow(sites)) knitr::kable(sites) else cat("Site summary unavailable.")
+```
+
+## Date availability and range
+
+```{r dates}
+if (nrow(dates)) knitr::kable(dates) else cat("Date summary unavailable.")
+```
+
+## Clinical characteristics and metadata QC categories
+
+```{r categories}
+if (nrow(categories)) knitr::kable(categories) else cat("Category summaries unavailable.")
+```
+
+## Data provenance
+
+Input paths and checksums below identify the source artifacts used for this report. This page is an operational release report; it does not establish encounter-specific maternal event assignment or prove clinical note text retrieval.
+
+```{r manifest}
+if (nrow(manifest)) knitr::kable(manifest) else cat("Manifest unavailable.")
+```
+
+## Network output verification
+
+The table compares each pinned local RDA with its network counterpart using MD5 checksums and checks for nonempty network CSV files. This is an observational audit; a missing file does not alter the 48 local-data validation checks.
+
+```{r network-verification}
+if (nrow(network_checks)) knitr::kable(network_checks) else cat("Network audit unavailable.")
+```
+
+## Canonical variable naming reference
+
+These are the standardized target names for common source fields. This dictionary is **not** a verified per-file transformation map; compare source columns with each processor before certifying a rename.
+
+```{r variable-dictionary}
+knitr::kable(variable_dictionary)
+```
+
+## Raw EHR source-file inventory
+
+The table lists **declared source paths found in processing scripts**, with full paths, script line references, availability, file size, and modified time. Please manually confirm the release/version and site before relying on an input. **This inventory does not prove that every file was read during the current run.** Sources assembled dynamically require separate review.
+
+```{r raw-source-inventory}
+if (nrow(raw_sources)) knitr::kable(raw_sources) else cat("No literal raw source paths discovered.")
+```
+
+### Data-read calls requiring review
+
+```{r dynamic-reads}
+if (nrow(raw_reads)) knitr::kable(raw_reads) else cat("No read calls were detected.")
+```
+
+## Remaining dependencies
+
+- Maternal inpatient and outpatient medication rebuild scripts must be present and verified before claiming full raw-to-release reproducibility.
+- Clinical-notes metadata must be independently crosswalked to actual clinical-note text.
+- Laboratory identifier matching must remain fully validated when source extracts change; maternal laboratory events require separately validated pregnancy-specific assignment.

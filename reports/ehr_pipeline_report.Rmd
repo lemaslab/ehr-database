@@ -1,0 +1,79 @@
+---
+title: "EHR Processing Pipeline — Run Report"
+date: "\`r format(Sys.time(), '%Y-%m-%d %H:%M %Z')\`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+params:
+  run_id: ""
+---
+
+\`\`\`{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+run_id <- params$run_id
+out_dir <- "reports/output"
+read_run_csv <- function(prefix) {
+  path <- file.path(out_dir, paste0(prefix, "_", run_id, ".csv"))
+  if (file.exists(path)) utils::read.csv(path, stringsAsFactors = FALSE) else data.frame()
+}
+manifest <- read_run_csv("manifest")
+stages <- read_run_csv("stages")
+inventory <- read_run_csv("inventory")
+\`\`\`
+
+This report contains aggregate operational metadata only. It does not include patient-level records, note text, or row-level QC exceptions.
+
+## Release overview
+
+\`\`\`{r overview}
+if (nrow(manifest)) knitr::kable(manifest) else cat("Manifest unavailable.")
+\`\`\`
+
+## Processing stages
+
+\`\`\`{r stages}
+if (nrow(stages)) knitr::kable(stages) else cat("Stage log unavailable.")
+\`\`\`
+
+## Stage details
+
+### 01 — Mother–infant–delivery linkage
+
+Canonical mother, infant, and delivery IDs are generated and validated. Cached site-specific linkage inputs are reused when available.
+
+### 02 — Delivery encounters
+
+GNV and JAX delivery encounters are processed and checked for infant-level uniqueness and nonmissing delivery IDs.
+
+### 03 — Linkage validation
+
+Deep linkage QC executes, including multiple-birth and delivery-episode reviews. Individual exceptions are intentionally excluded from this report.
+
+### 04 — ICD diagnoses
+
+Maternal and infant ICD processing scripts execute. The file inventory below records emitted datasets; row counts are not inferred from file size.
+
+### 05 — Medications
+
+Maternal inpatient and outpatient medication processing scripts execute.
+
+### 06 — Clinical-note metadata
+
+Maternal and infant note metadata processing executes; clinical note text is not included in this report.
+
+### 07 — Release manifest
+
+Inventory lists output file paths relative to the output root, byte sizes, and modification dates. This is an inventory, **not** proof that all datasets are fresh, complete, or synchronized. Dataset-level counts and QC metrics will require explicit aggregate exports from each stage.
+
+## Output inventory
+
+\`\`\`{r inventory}
+if (nrow(inventory)) {
+  knitr::kable(inventory)
+} else cat("No output files found.")
+\`\`\`
+
+## Interpretation
+
+Successful stage completion means the corresponding script returned without an error. It does not independently certify downstream data quality. Review stage-specific QC output before releasing data.

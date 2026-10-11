@@ -179,6 +179,26 @@ metadata_manifest <- tibble::tribble(
   "V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_05_2025/data_release_05_2025/note_mom_postnatal_two_years/postnatal_mom_metadata_Jax_update.csv"
 )
 
+# Optional strictly local source root; mirror the directory tree under
+# V:/FACULTY/DJLEMAS/EHR_Data_raw into this local folder.
+local_input_root <- Sys.getenv("EHR_METADATA_INPUT_ROOT", unset = "")
+if (nzchar(local_input_root)) {
+  source_prefix <- "V:/FACULTY/DJLEMAS/EHR_Data_raw/"
+  metadata_manifest$file_path <- vapply(metadata_manifest$file_path,
+    function(p) {
+      if (!startsWith(p, source_prefix)) stop("Unexpected metadata path: ", p)
+      file.path(local_input_root, substring(p, nchar(source_prefix) + 1L))
+    }, character(1))
+}
+if (tolower(Sys.getenv("EHR_REQUIRE_LOCAL_INPUT", unset = "false")) %in%
+    c("true", "1", "yes")) {
+  if (!nzchar(local_input_root) || !dir.exists(local_input_root))
+    stop("Strict offline mode requires EHR_METADATA_INPUT_ROOT to point to local source CSV copies.")
+  if (any(grepl("^[A-Za-z]:[/\\\\]", metadata_manifest$file_path) &
+          toupper(substr(metadata_manifest$file_path, 1L, 1L)) == "V"))
+    stop("Strict offline mode refuses V: source paths.")
+}
+
 # ========================================================
 # Apply debug filters
 # ========================================================
@@ -420,6 +440,22 @@ clinical_notes_metadata <- clinical_notes_metadata %>%
   )
 
 # ========================================================
+# Computed delivery episode metadata (from canonical local linkage RDA)
+# ========================================================
+# Preserves one row per note. Ambiguous/unmatched notes remain with NA
+# delivery_id and an explicit delivery_link_status. No linkage rebuilding.
+source("code/functions/link_clinical_notes_to_delivery.R")
+clinical_notes_metadata <- link_clinical_notes_to_delivery(
+  clinical_notes_metadata, working_dir = working_dir
+)
+
+# Compute delivery-relative dates, intervals and postpartum windows.
+source("code/functions/add_clinical_note_timing.R")
+clinical_notes_metadata <- add_clinical_note_timing(
+  clinical_notes_metadata, working_dir = working_dir
+)
+
+# ========================================================
 # PLACEHOLDER: troubleshoot additional computed variables here
 # ========================================================
 # Add/test computed variables here while debug_mode = TRUE.
@@ -540,7 +576,8 @@ note_uid_within_file_qc <- clinical_notes_metadata %>%
 if (nrow(note_uid_within_file_qc) == 0) {
   cat("No duplicated compact note_uid values within any source file.\n")
 } else {
-  print(note_uid_within_file_qc, n = Inf)
+  cat("Duplicate compact IDs within source files:", nrow(note_uid_within_file_qc), "\n")
+  print(head(note_uid_within_file_qc, 20), n = 20)
 }
 
 cat("\n==== NOTE UID UNIQUENESS QC: ACROSS SOURCE FILES ====\n")
@@ -555,7 +592,8 @@ note_uid_across_file_qc <- clinical_notes_metadata %>%
 if (nrow(note_uid_across_file_qc) == 0) {
   cat("No compact note_uid values appear in more than one source file.\n")
 } else {
-  print(note_uid_across_file_qc, n = Inf)
+  cat("Compact IDs reused across files:", nrow(note_uid_across_file_qc), "\n")
+  print(head(note_uid_across_file_qc, 20), n = 20)
 }
 
 cat("\n==== NOTE UID GLOBAL UNIQUENESS QC ====\n")
@@ -569,7 +607,8 @@ note_uid_global_qc <- clinical_notes_metadata %>%
 if (nrow(note_uid_global_qc) == 0) {
   cat("No duplicated note_uid_global values in the combined metadata.\n")
 } else {
-  print(note_uid_global_qc, n = Inf)
+  cat("Duplicate global IDs:", nrow(note_uid_global_qc), "\n")
+  print(head(note_uid_global_qc, 20), n = 20)
 }
 
 cat("\n==== NOTE UID SUMMARY BY SOURCE FILE ====\n")
@@ -648,6 +687,20 @@ if (debug_mode) {
       head(10)
   )
 }
+
+# ========================================================
+# Final release QC: zero row loss and complete timing classifications
+# ========================================================
+stopifnot(
+  nrow(clinical_notes_metadata) == dplyr::n_distinct(clinical_notes_metadata$note_uid_global),
+  !anyNA(clinical_notes_metadata$note_uid_global),
+  !anyNA(clinical_notes_metadata$timing_qc_status),
+  all(clinical_notes_metadata$timing_qc_status %in%
+        c("consistent", "review", "unknown"))
+)
+message("FINAL CLINICAL METADATA QC PASSED: ", nrow(clinical_notes_metadata), " notes")
+print(clinical_notes_metadata %>%
+  count(site, participant_role, timing_qc_status, name = "n"))
 
 # ========================================================
 # Write combined output

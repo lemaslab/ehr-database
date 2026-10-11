@@ -3,8 +3,8 @@
 # Runs the existing inpatient and outpatient maternal medication processors.
 
 required <- c(
-  "code/process_data/run_mom_medications_ip.R",
-  "code/process_data/run_mom_medications_op.R"
+  "code/process_data/run_mom_medications_IP.R",
+  "code/process_data/run_mom_medications_OP.R"
 )
 missing <- required[!file.exists(required)]
 if (length(missing)) {
@@ -15,9 +15,9 @@ if (length(missing)) {
 }
 
 message("Stage 05a: maternal inpatient medications")
-source("code/process_data/run_mom_medications_ip.R")
+source("code/process_data/run_mom_medications_IP.R")
 
 message("Stage 05b: maternal outpatient medications")
-source("code/process_data/run_mom_medications_op.R")
+source("code/process_data/run_mom_medications_OP.R")
 
 message("Stage 05 medication processing complete.")
