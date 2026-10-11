@@ -25,8 +25,8 @@ required_runners <- c(
   "code/run/06_build_clinical_notes_metadata.R",
   "code/process_data/run_mom_icd.R",
   "code/process_data/run_infant_icd.R",
-  "code/process_data/run_mom_medications_ip.R",
-  "code/process_data/run_mom_medications_op.R",
+  "code/process_data/run_mom_medications_IP.R",
+  "code/process_data/run_mom_medications_OP.R",
   "code/process_data/run_clinical_notes_metadata.R"
 )
 
