@@ -133,3 +133,12 @@ ehr_variable_dictionary <- function() {
       "Medication timestamp","Canonical delivery encounter date"),
     stringsAsFactors=FALSE)
 }
+
+# Structured run-scoped substage events. Safe for standalone calls (console only).
+ehr_substage_event <- function(stage, status, details = "") {
+  message("[SUBSTAGE] ",stage," | ",status,if(nzchar(details))paste0(" | ",details) else "")
+  ehr_log_append("substage_execution.csv",list(
+    time=format(Sys.time(),"%Y-%m-%dT%H:%M:%S%z"),
+    stage=stage,status=status,details=details))
+  invisible(NULL)
+}
