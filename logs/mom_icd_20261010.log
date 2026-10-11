@@ -1,68 +1,0 @@
-==== MOM ICD RUN ====
-Date: 2026-10-10 13:39:34 EDT 
-
-=== LOADING ALL FUNCTIONS ===
-Loaded 18 function files
-=== RUNNING MOM ICD ===
-=== PROCESSING MOM ICD: GNV ===
-[GNV] all ICD files found
-[GNV] reading icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_10_2021/mom_diagnosis_ICD9.csv
-[GNV] reading icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2021/dataset_10_2021/mom_diagnosis_ICD10.csv
-[GNV] reading comorb_icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_ICD9_release.csv
-[GNV] reading comorb_icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_ICD10_release.csv
-[GNV] reading bateman: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2022/dataset_03_2022/mom_comorbidities_list_bateman_ICD9_release.csv
-[GNV] rows after cleanup: 1685212
-[GNV] unique moms: 22055
-[GNV] missing dx_code: 0
-[GNV] missing dx_date: 0
-=== PROCESSING MOM ICD: JAX ===
-[JAX] all ICD files found
-[JAX] reading icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_diagnosis_ICD9_Jax.csv
-[JAX] reading icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_diagnosis_ICD10_Jax.csv
-[JAX] reading comorb_icd9: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_ICD9_release_Jax.csv
-[JAX] reading comorb_icd10: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_ICD10_release_Jax.csv
-[JAX] reading bateman: V:/FACULTY/DJLEMAS/EHR_Data_raw/raw/READ_ONLY_DATASETS/10year_data/2025/dataset_04_2025/mom_comorbidities_list_bateman_ICD9_release_Jax.csv
-[JAX] rows after cleanup: 2539297
-[JAX] unique moms: 22877
-[JAX] missing dx_code: 0
-[JAX] missing dx_date: 0
-=== WRITING SITE DATASETS ===
-wrote 2.81MB in  0s, 2.15GB/swrote 39.93MB in  0s, 196.64MB/swrote 42.77MB in  0s, 176.02MB/swrote 45.65MB in  0s, 175.96MB/swrote 48.53MB in  0s, 170.15MB/swrote 51.43MB in  0s, 155.21MB/swrote 54.32MB in  0s, 152.90MB/swrote 57.20MB in  0s, 153.70MB/swrote 59.98MB in  0s, 143.35MB/swrote 62.42MB in  0s, 144.64MB/swrote 64.88MB in  0s, 145.85MB/swrote 67.34MB in  0s, 146.03MB/swrote 69.80MB in  1s, 134.23MB/swrote 72.25MB in  1s, 133.00MB/swrote 74.70MB in  1s, 131.78MB/swrote 77.14MB in  1s, 125.28MB/swrote 79.60MB in  1s, 124.69MB/swrote 82.07MB in  1s, 123.68MB/swrote 84.53MB in  1s, 116.93MB/swrote 86.99MB in  1s, 116.40MB/swrote 89.44MB in  1s, 116.50MB/swrote 91.89MB in  1s, 113.60MB/swrote 94.36MB in  1s, 113.89MB/swrote 96.83MB in  1s, 114.29MB/swrote 99.29MB in  1s, 112.30MB/swrote 101.75MB in  1s, 112.66MB/swrote 104.21MB in  1s, 112.94MB/swrote 106.66MB in  1s, 110.64MB/swrote 109.14MB in  1s, 111.53MB/swrote 111.60MB in  1s, 112.44MB/swrote 114.06MB in  1s, 113.15MB/swrote 116.51MB in  1s, 111.53MB/swrote 118.98MB in  1s, 112.24MB/swrote 121.44MB in  1s, 113.10MB/swrote 123.89MB in  1s, 113.69MB/swrote 126.38MB in  1s, 112.44MB/swrote 128.84MB in  1s, 112.80MB/swrote 131.31MB in  1s, 113.42MB/swrote 133.80MB in  1s, 113.72MB/swrote 136.28MB in  1s, 112.16MB/swrote 138.77MB in  1s, 112.78MB/swrote 141.25MB in  1s, 113.39MB/swrote 143.74MB in  1s, 114.17MB/swrote 146.22MB in  1s, 112.80MB/swrote 148.71MB in  1s, 113.58MB/swrote 151.23MB in  1s, 114.04MB/swrote 153.76MB in  1s, 114.54MB/swrote 156.27MB in  1s, 113.25MB/swrote 158.58MB in  1s, 114.05MB/swrote 160.62MB in  1s, 114.78MB/swrote 162.63MB in  1s, 115.55MB/swrote 164.64MB in  1s, 116.16MB/swrote 166.64MB in  1s, 114.71MB/swrote 168.83MB in  1s, 115.08MB/swrote 171.02MB in  1s, 115.35MB/swrote 173.22MB in  1s, 115.68MB/swrote 175.46MB in  2s, 113.31MB/swrote 177.62MB in  2s, 113.36MB/swrote 179.80MB in  2s, 113.54MB/swrote 182.01MB in  2s, 112.22MB/swrote 184.20MB in  2s, 112.24MB/swrote 186.39MB in  2s, 112.44MB/swrote 188.63MB in  2s, 110.59MB/swrote 190.83MB in  2s, 110.81MB/swrote 193.09MB in  2s, 111.11MB/swrote 195.30MB in  2s, 111.23MB/swrote 197.54MB in  2s, 110.24MB/swrote 199.77MB in  2s, 110.46MB/swrote 202.01MB in  2s, 110.59MB/swrote 204.27MB in  2s, 109.69MB/swrote 206.54MB in  2s, 110.20MB/swrote 208.80MB in  2s, 110.67MB/swrote 211.07MB in  2s, 111.09MB/swrote 213.31MB in  2s, 111.62MB/swrote 215.53MB in  2s, 110.55MB/swrote 217.77MB in  2s, 111.20MB/swrote 220.03MB in  2s, 111.58MB/swrote 222.26MB in  2s, 111.96MB/swrote 224.51MB in  2s, 112.69MB/swrote 226.74MB in  2s, 113.10MB/swrote 228.99MB in  2s, 112.37MB/swrote 231.25MB in  2s, 112.76MB/swrote 233.53MB in  2s, 113.11MB/swrote 235.80MB in  2s, 113.49MB/swrote 238.10MB in  2s, 112.10MB/swrote 240.37MB in  2s, 112.51MB/swrote 242.65MB in  2s, 112.98MB/swrote 244.40MB in  2s, 113.59MB/s                                                             wrote 2.15GB in  2s, 2.15GB/s                                                             Saved locally: mom_icd_gnv_20261010.rda and mom_icd_gnv_20261010.csv
-Verified network copies: V:/FACULTY/DJLEMAS/EHR_Data_processed
-wrote 4.32MB in  0s, 2.15GB/swrote 30.24MB in  0s, 140.08MB/swrote 34.48MB in  0s, 126.28MB/swrote 38.69MB in  0s, 124.87MB/swrote 42.90MB in  0s, 114.83MB/swrote 47.09MB in  0s, 114.82MB/swrote 51.28MB in  0s, 107.53MB/swrote 55.48MB in  1s, 106.28MB/s                                                             wrote 59.69MB in  1s, 98.11MB/swrote 63.89MB in  1s, 94.45MB/swrote 67.58MB in  1s, 95.89MB/swrote 71.28MB in  1s, 94.20MB/swrote 74.99MB in  1s, 95.39MB/swrote 78.69MB in  1s, 93.11MB/swrote 82.39MB in  1s, 94.56MB/swrote 86.07MB in  1s, 92.43MB/swrote 89.78MB in  1s, 93.25MB/swrote 93.48MB in  1s, 91.09MB/swrote 97.19MB in  1s, 92.32MB/swrote 100.90MB in  1s, 91.48MB/swrote 104.60MB in  1s, 91.80MB/swrote 108.28MB in  1s, 91.43MB/swrote 111.99MB in  1s, 92.07MB/swrote 115.72MB in  1s, 90.10MB/swrote 119.41MB in  1s, 89.90MB/swrote 123.11MB in  1s, 88.51MB/swrote 126.82MB in  1s, 88.07MB/swrote 130.55MB in  2s, 86.68MB/swrote 134.28MB in  2s, 87.42MB/swrote 138.00MB in  2s, 86.26MB/swrote 141.73MB in  2s, 86.95MB/swrote 145.46MB in  2s, 86.17MB/swrote 149.16MB in  2s, 86.30MB/swrote 152.88MB in  2s, 85.20MB/swrote 156.59MB in  2s, 85.25MB/swrote 160.31MB in  2s, 83.75MB/swrote 164.05MB in  2s, 84.09MB/swrote 167.76MB in  2s, 83.39MB/swrote 171.49MB in  2s, 83.78MB/swrote 175.20MB in  2s, 82.68MB/swrote 178.92MB in  2s, 83.02MB/swrote 182.66MB in  2s, 82.45MB/swrote 186.38MB in  2s, 82.69MB/swrote 190.10MB in  2s, 82.73MB/swrote 193.84MB in  2s, 82.90MB/swrote 197.55MB in  2s, 82.02MB/swrote 201.27MB in  2s, 82.48MB/swrote 204.99MB in  2s, 82.33MB/swrote 208.73MB in  3s, 82.51MB/swrote 212.43MB in  3s, 82.04MB/swrote 216.12MB in  3s, 82.42MB/swrote 219.84MB in  3s, 81.34MB/swrote 223.51MB in  3s, 81.70MB/swrote 227.19MB in  3s, 81.62MB/swrote 230.89MB in  3s, 82.03MB/swrote 234.57MB in  3s, 81.77MB/swrote 238.05MB in  3s, 81.62MB/swrote 240.90MB in  3s, 80.64MB/swrote 243.96MB in  3s, 80.61MB/swrote 247.33MB in  3s, 80.06MB/swrote 250.70MB in  3s, 80.16MB/swrote 254.12MB in  3s, 79.85MB/swrote 257.50MB in  3s, 80.09MB/swrote 260.90MB in  3s, 79.88MB/swrote 264.21MB in  3s, 80.12MB/swrote 267.65MB in  3s, 79.75MB/swrote 271.02MB in  3s, 80.01MB/swrote 274.40MB in  3s, 79.34MB/swrote 277.77MB in  3s, 79.53MB/swrote 281.15MB in  4s, 79.26MB/swrote 284.51MB in  4s, 79.01MB/swrote 287.91MB in  4s, 78.64MB/swrote 291.29MB in  4s, 79.07MB/swrote 294.68MB in  4s, 78.55MB/swrote 298.07MB in  4s, 78.55MB/swrote 301.45MB in  4s, 77.92MB/swrote 304.82MB in  4s, 78.05MB/swrote 308.24MB in  4s, 78.07MB/swrote 311.66MB in  4s, 78.20MB/swrote 315.10MB in  4s, 78.03MB/swrote 318.51MB in  4s, 78.32MB/swrote 321.87MB in  4s, 77.99MB/swrote 325.29MB in  4s, 78.17MB/swrote 328.74MB in  4s, 78.03MB/swrote 332.20MB in  4s, 78.07MB/swrote 335.65MB in  4s, 77.56MB/swrote 339.09MB in  4s, 78.02MB/swrote 342.51MB in  4s, 77.67MB/swrote 345.94MB in  4s, 77.64MB/swrote 349.36MB in  5s, 77.49MB/swrote 352.81MB in  5s, 77.90MB/swrote 356.29MB in  5s, 77.49MB/swrote 359.76MB in  5s, 77.42MB/swrote 363.22MB in  5s, 77.08MB/swrote 366.48MB in  5s, 77.53MB/s                                                             wrote 2.15GB in  5s, 2.15GB/s                                                             Saved locally: mom_icd_jax_20261010.rda and mom_icd_jax_20261010.csv
-Verified network copies: V:/FACULTY/DJLEMAS/EHR_Data_processed
-=== COMBINING DATASETS ===
-=== ID QA ===
-Columns in combined ICD dataset:
-[1] "part_id_mom" "dx_date"     "dx_code"     "dx_descrip" 
-[5] "dx_type"     "dx_icd_type" "icd_source"  "site"       
-First 10 part_id_mom values:
- [1] "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1"
- [6] "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1" "AC-mom-1"
-Does deidentified_mom_id remain?
-[1] FALSE
-=== WRITING COMBINED DATASET ===
-Combined rows: 4224509
-wrote 7.16MB in  0s, 2.15GB/swrote 28.67MB in  0s, 133.03MB/swrote 35.79MB in  0s, 115.51MB/swrote 42.90MB in  0s, 110.26MB/swrote 50.14MB in  0s, 105.47MB/swrote 57.38MB in  1s, 105.44MB/swrote 63.82MB in  1s, 102.88MB/swrote 69.99MB in  1s, 102.32MB/swrote 76.13MB in  1s, 100.56MB/s                                                             wrote 82.31MB in  1s, 99.33MB/swrote 88.47MB in  1s, 99.21MB/swrote 94.63MB in  1s, 98.41MB/swrote 100.81MB in  1s, 94.26MB/swrote 106.97MB in  1s, 92.89MB/swrote 113.16MB in  1s, 90.15MB/swrote 119.33MB in  1s, 88.36MB/swrote 125.50MB in  1s, 87.41MB/swrote 131.69MB in  2s, 86.57MB/swrote 137.95MB in  2s, 85.76MB/swrote 144.18MB in  2s, 86.10MB/swrote 150.43MB in  2s, 86.04MB/swrote 156.75MB in  2s, 84.41MB/swrote 162.02MB in  2s, 83.23MB/swrote 167.09MB in  2s, 82.70MB/swrote 172.59MB in  2s, 82.47MB/swrote 178.10MB in  2s, 81.37MB/swrote 183.60MB in  2s, 81.11MB/swrote 189.16MB in  2s, 80.60MB/swrote 194.74MB in  2s, 80.90MB/swrote 200.36MB in  2s, 80.72MB/swrote 206.01MB in  3s, 80.42MB/swrote 211.68MB in  3s, 79.58MB/swrote 217.27MB in  3s, 79.24MB/swrote 222.88MB in  3s, 78.99MB/swrote 228.53MB in  3s, 78.87MB/swrote 234.20MB in  3s, 78.92MB/swrote 239.94MB in  3s, 78.74MB/swrote 245.22MB in  3s, 78.32MB/swrote 252.45MB in  3s, 78.92MB/swrote 259.66MB in  3s, 78.37MB/swrote 266.84MB in  3s, 78.75MB/swrote 274.00MB in  4s, 78.24MB/swrote 281.05MB in  4s, 78.01MB/swrote 288.06MB in  4s, 77.85MB/swrote 295.03MB in  4s, 77.88MB/swrote 302.01MB in  4s, 77.89MB/swrote 308.94MB in  4s, 78.27MB/swrote 315.08MB in  4s, 78.53MB/swrote 321.24MB in  4s, 78.50MB/swrote 327.40MB in  4s, 78.27MB/swrote 333.57MB in  4s, 78.54MB/swrote 339.72MB in  4s, 78.55MB/swrote 345.89MB in  4s, 78.25MB/swrote 352.03MB in  4s, 78.37MB/swrote 358.21MB in  5s, 78.40MB/swrote 364.37MB in  5s, 78.55MB/swrote 370.54MB in  5s, 78.63MB/swrote 376.74MB in  5s, 78.76MB/swrote 382.94MB in  5s, 78.88MB/swrote 389.14MB in  5s, 78.65MB/swrote 395.32MB in  5s, 78.73MB/swrote 401.50MB in  5s, 79.10MB/swrote 407.71MB in  5s, 78.68MB/swrote 413.88MB in  5s, 78.60MB/swrote 420.08MB in  5s, 78.85MB/swrote 426.29MB in  5s, 78.71MB/swrote 432.48MB in  6s, 78.53MB/swrote 438.69MB in  6s, 78.58MB/swrote 444.86MB in  6s, 78.85MB/swrote 451.08MB in  6s, 78.81MB/swrote 457.25MB in  6s, 78.75MB/swrote 463.41MB in  6s, 78.81MB/swrote 469.54MB in  6s, 79.07MB/swrote 475.68MB in  6s, 79.11MB/swrote 481.81MB in  6s, 79.28MB/swrote 486.59MB in  6s, 78.97MB/swrote 492.06MB in  6s, 78.78MB/swrote 497.70MB in  6s, 78.50MB/swrote 503.39MB in  6s, 78.50MB/swrote 508.94MB in  6s, 78.45MB/swrote 514.61MB in  7s, 78.34MB/swrote 520.23MB in  7s, 78.40MB/swrote 525.84MB in  7s, 78.51MB/swrote 531.44MB in  7s, 78.44MB/swrote 537.08MB in  7s, 78.55MB/swrote 542.73MB in  7s, 78.47MB/swrote 548.36MB in  7s, 78.61MB/swrote 554.02MB in  7s, 78.15MB/swrote 559.73MB in  7s, 78.07MB/swrote 565.38MB in  7s, 77.91MB/swrote 571.06MB in  7s, 77.83MB/swrote 576.81MB in  7s, 77.86MB/swrote 582.54MB in  7s, 78.11MB/swrote 588.25MB in  8s, 78.08MB/swrote 593.95MB in  8s, 78.24MB/swrote 599.70MB in  8s, 78.41MB/swrote 605.51MB in  8s, 78.60MB/swrote 611.02MB in  8s, 79.09MB/s                                                             wrote 2.15GB in  8s, 2.15GB/s                                                             Saved locally: mom_icd_all_sites_20261010.rda and mom_icd_all_sites_20261010.csv
-Verified network copies: V:/FACULTY/DJLEMAS/EHR_Data_processed
-
-==== SUMMARY ====
-Total rows: 4224509 
-Unique moms: 44932 
-
-Rows by site:
-
-    GNV     JAX 
-1685212 2539297 
-
-Rows by dx_type:
-
-                   ENCOUNTER       HOSPITAL BILLING CODED 
-                      945108                      1288107 
-                PROBLEM LIST PROFESSSIONAL BILLING CHARGE 
-                       54920                      1936374 
-
-Rows by dx_icd_type:
-
-  ICD10    ICD9    <NA> 
-3349889  854054   20566 
