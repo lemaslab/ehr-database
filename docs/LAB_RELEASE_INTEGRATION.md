@@ -20,10 +20,10 @@ Sys.setenv(
 source("code/run/07_link_and_release_labs.R")
 ```
 
-Outputs are named `mom_labs_*_linked_YYYYMMDD.rda`,
-`infant_labs_*_linked_YYYYMMDD.rda`, and combined
-`mom_labs_all_sites_linked_YYYYMMDD.rda`,
-`infant_labs_all_sites_linked_YYYYMMDD.rda`. The original six files
+Outputs are named `mom_labs_*_YYYYMMDD.rda`,
+`infant_labs_*_YYYYMMDD.rda`, and combined
+`mom_labs_all_sites_YYYYMMDD.rda`,
+`infant_labs_all_sites_YYYYMMDD.rda`. The original six files
 remain unchanged. Local outputs contain RDAs; network receives RDAs and CSVs.
 
 The source timestamp must be updated if new original laboratory extracts are
