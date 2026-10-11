@@ -31,7 +31,7 @@ raw_read_files <- list.files(dir, pattern="^read_calls_review_[0-9]{8}_[0-9]{6}\
 raw_reads <- if (length(raw_read_files)) utils::read.csv(sort(raw_read_files,decreasing=TRUE)[1],stringsAsFactors=FALSE) else data.frame()
 ```
 
-This report summarizes aggregate statistics from *explicitly pinned, checksum-verified* local RDA files. It contains **no clinical note text or patient-level records**. Maternal records are not multiplied across pregnancies. The laboratory extracts are excluded while warehouse identifiers are being corrected.
+This report summarizes aggregate statistics from *explicitly pinned, checksum-verified* local RDA files. It contains **no clinical note text or patient-level records**. Maternal records are not multiplied across pregnancies. Laboratory extracts are included when explicitly listed in the release manifest and validated against the canonical linkage. Maternal laboratory events are not assigned to individual deliveries.
 
 ## Release and quality checks
 
@@ -108,4 +108,4 @@ if (nrow(raw_reads)) knitr::kable(raw_reads) else cat("No read calls were detect
 
 - Maternal inpatient and outpatient medication rebuild scripts must be present and verified before claiming full raw-to-release reproducibility.
 - Clinical-notes metadata must be independently crosswalked to actual clinical-note text.
-- Laboratory inputs remain excluded until the warehouse corrects the ID namespace.
+- Laboratory identifier matching must remain fully validated when source extracts change; maternal laboratory events require separately validated pregnancy-specific assignment.
