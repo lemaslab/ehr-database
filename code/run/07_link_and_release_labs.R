@@ -22,7 +22,11 @@ local({
     if(is.na(pilot_n) || pilot_n < 1L) stop("EHR_LAB_PILOT_N must be positive")
     message("[LAB PILOT] Local only; maximum rows per source: ",pilot_n)
   }
-  reference_date <- Sys.getenv("EHR_LAB_LINKAGE_DATE","20261010")
+  release_date <- Sys.getenv("EHR_RELEASE_DATE",format(Sys.Date(),"%Y%m%d"))
+  if(!grepl("^[0-9]{8}$",release_date)) stop("EHR_RELEASE_DATE must be YYYYMMDD")
+  reference_date <- Sys.getenv("EHR_LAB_LINKAGE_DATE",release_date)
+  if(!pilot && nzchar(Sys.getenv("EHR_RELEASE_DATE","")) && reference_date!=release_date)
+    stop("Lab linkage must use same-date canonical linkage for full release: ",release_date)
   reference_file <- file.path(root,"COMBINED",paste0("mom_baby_link_all_sites_",reference_date,".rda"))
   log_step("Source tag: ",stamp," | linkage date: ",reference_date)
   log_step("Loading canonical linkage: ",reference_file)
@@ -98,10 +102,10 @@ local({
              else paste0("infant delivery IDs assigned: ",fmt(sum(!is.na(x$delivery_id)))) )
     output_name <- dataset
     destination <- if(pilot) file.path("LAB_PILOT",subdir) else subdir
-    output_file <- file.path(root,destination,paste0(output_name,"_",format(Sys.Date(),"%Y%m%d"),".rda"))
+    output_file <- file.path(root,destination,paste0(output_name,"_",release_date,".rda"))
     log_step("Output directory: ",file.path(root,destination))
     log_step("Output RDA: ",output_file)
-    if(!file.exists(output_file)) {
+    if(!file.exists(output_file) || tolower(Sys.getenv("EHR_FORCE","false")) %in% c("true","1","yes")) {
       log_step("Writing dataset to local storage",if(!pilot && tolower(Sys.getenv("EHR_NETWORK_SYNC","true")) %in% c("true","1","yes")) " and network" else " (network disabled)","...")
       write_dataset(x,output_name,working_dir=getwd(),subdir=destination,
         write_network=!pilot)
@@ -139,9 +143,9 @@ local({
       combined_name <- paste0(role,"_labs_all_sites")
       destination <- if(pilot) file.path("LAB_PILOT","COMBINED") else "COMBINED"
       target <- file.path(root,destination,
-        paste0(combined_name,"_",format(Sys.Date(),"%Y%m%d"),".rda"))
+        paste0(combined_name,"_",release_date,".rda"))
       log_step("Combined output: ",target)
-      if(!file.exists(target)) {
+      if(!file.exists(target) || tolower(Sys.getenv("EHR_FORCE","false")) %in% c("true","1","yes")) {
         log_step("Writing combined ",role," RDA...")
         write_dataset(combined,combined_name,working_dir=getwd(),
           subdir=destination,write_network=!pilot)
@@ -153,7 +157,7 @@ local({
   audit <- do.call(rbind,results)
   qc_dir <- file.path(root,if(pilot)"LAB_PILOT_QC" else "LAB_QC")
   dir.create(qc_dir,recursive=TRUE,showWarnings=FALSE)
-  audit_file <- file.path(qc_dir,paste0("lab_qc_",format(Sys.Date(),"%Y%m%d"),".csv"))
+  audit_file <- file.path(qc_dir,paste0("lab_qc_",release_date,".csv"))
   utils::write.csv(audit,audit_file,row.names=FALSE)
   print(audit[,c("dataset","records","matched_records","unmatched_records","match_pct")],row.names=FALSE)
   log_step("QC summary:")
