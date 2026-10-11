@@ -8,3 +8,8 @@ data/*/*
 !README.md
 # Run-scoped diagnostics (may include operational paths)
 /logs/run_*/
+
+# Generated local execution logs
+/logs/*.log
+/logs/*.out
+/logs/*.err
